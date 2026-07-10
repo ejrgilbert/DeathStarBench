@@ -21,11 +21,11 @@ type seedRecord struct {
 func main() {}
 
 func init() {
-	recstore.Exports.Init = storeInit
-	recstore.Exports.LoadHotels = storeLoadHotels
+	recstore.Exports.Init = init
+	recstore.Exports.LoadHotels = loadHotels
 }
 
-func storeInit() {
+func init() {
 	if col.Count() > 0 {
 		return
 	}
@@ -48,7 +48,7 @@ func storeInit() {
 	col.InsertMany(cm.ToList(docs))
 }
 
-func storeLoadHotels() cm.List[recstore.Hotel] {
+func loadHotels() cm.List[recstore.Hotel] {
 	rawDocs := col.FindAll().Slice()
 	hotels := make([]recstore.Hotel, len(rawDocs))
 	for i, raw := range rawDocs {
