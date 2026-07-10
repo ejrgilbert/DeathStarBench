@@ -5,15 +5,52 @@ use tokio::sync::Mutex;
 use tonic::{transport::Server, Request, Response, Status};
 use wasmtime::component::{Component, Linker};
 use wasmtime::Store;
-use wasmtime_wasi::ResourceTable;
 
 use host_lib::{
-    make_engine, make_store_wasi_ctx, RecommendationStoreHostWorld, StoreData,
-    recommendation_store::{
-        recommendation_store_server::{RecommendationStore, RecommendationStoreServer},
-        Hotel as ProtoHotel, InitRequest, InitResponse, LoadHotelsRequest, LoadHotelsResponse,
-    },
+    make_engine, make_store_wasi_ctx, mongo_count, mongo_find_all, mongo_insert_many, StoreData,
 };
+
+mod proto {
+    tonic::include_proto!("recommendation_store");
+}
+
+use proto::{
+    recommendation_store_server::{RecommendationStore, RecommendationStoreServer},
+    Hotel as ProtoHotel, InitRequest, InitResponse, LoadHotelsRequest, LoadHotelsResponse,
+};
+
+wasmtime::component::bindgen!({
+    path: "../../components/recommendation_store/wit",
+    world: "recommendation-store-host-world",
+    async: true,
+});
+
+#[async_trait::async_trait]
+impl host::storage::collection::Host for StoreData {
+    async fn count(&mut self) -> u64 {
+        mongo_count(&self.collection).await.unwrap_or(0)
+    }
+
+    async fn find_all(&mut self) -> Vec<Vec<u8>> {
+        mongo_find_all(&self.collection).await.unwrap_or_default()
+    }
+
+    async fn find_one(&mut self, _filter: Vec<u8>) -> Option<Vec<u8>> {
+        unimplemented!("find_one not used by recommendation-store")
+    }
+
+    async fn find(&mut self, _filter: Vec<u8>) -> Vec<Vec<u8>> {
+        unimplemented!("find not used by recommendation-store")
+    }
+
+    async fn insert_one(&mut self, _doc: Vec<u8>) {
+        unimplemented!("insert_one not used by recommendation-store")
+    }
+
+    async fn insert_many(&mut self, docs: Vec<Vec<u8>>) {
+        mongo_insert_many(&self.collection, docs).await.unwrap();
+    }
+}
 
 type SharedStore = Arc<Mutex<Store<StoreData>>>;
 type SharedInstance = Arc<RecommendationStoreHostWorld>;
@@ -87,7 +124,7 @@ async fn main() -> Result<()> {
 
     let data = StoreData {
         wasi: make_store_wasi_ctx(&data_dir)?,
-        table: ResourceTable::new(),
+        table: wasmtime_wasi::ResourceTable::new(),
         collection,
     };
     let mut store = Store::new(&engine, data);

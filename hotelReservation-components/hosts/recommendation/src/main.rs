@@ -8,17 +8,21 @@ use wasmtime::Store;
 use wasmtime_wasi::ResourceTable;
 
 use exports::hotel::recommendation::recommendation::Requirement;
+use host_lib::{make_engine, make_wasi_ctx};
 
-use host_lib::{
-    make_engine, make_wasi_ctx,
-    recommendation::{
-        recommendation_server::{Recommendation, RecommendationServer},
-        Request as RecommendRequest, Result as RecommendResult,
-    },
-    recommendation_store::{
-        recommendation_store_client::RecommendationStoreClient, LoadHotelsRequest,
-        InitRequest,
-    },
+mod recommendation_proto {
+    tonic::include_proto!("recommendation");
+}
+mod recommendation_store_proto {
+    tonic::include_proto!("recommendation_store");
+}
+
+use recommendation_proto::{
+    recommendation_server::{Recommendation, RecommendationServer},
+    Request as RecommendRequest, Result as RecommendResult,
+};
+use recommendation_store_proto::{
+    recommendation_store_client::RecommendationStoreClient, InitRequest, LoadHotelsRequest,
 };
 
 wasmtime::component::bindgen!({
@@ -46,6 +50,7 @@ impl wasmtime_wasi::WasiView for RecommendationHostData {
 }
 
 // Implement hotel:recommendation-data/recommendation-store as a gRPC bridge.
+#[async_trait::async_trait]
 impl hotel::recommendation_data::recommendation_store::Host for RecommendationHostData {
     async fn init(&mut self) {
         self.store_client

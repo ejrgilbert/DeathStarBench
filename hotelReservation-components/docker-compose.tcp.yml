@@ -1,6 +1,5 @@
-# "tcp" topology: each Wasm component runs in its own Rust host process.
-# Inter-component calls (recommendation → recommendation-store) go over gRPC
-# on the Docker bridge network.
+# Each Wasm component runs in its own Rust host process. Inter-component calls
+# go over gRPC on the Docker bridge network.
 #
 # The outward-facing gRPC service on port 8085 is interface-identical to the
 # original hotelReservation binary (same proto, same method names).
@@ -30,10 +29,10 @@ services:
       - mongodb-recommendation
     restart: on-failure
 
-  recommendation-tcp:
+  recommendation:
     build:
       context: .
-      target: recommendation-tcp
+      target: recommendation
     environment:
       STORE_ADDR: "http://recommendation-store:8086"
       LISTEN_ADDR: "0.0.0.0:8085"

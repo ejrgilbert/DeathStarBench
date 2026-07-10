@@ -2,6 +2,6 @@
 members = [
     "host-lib",
     "hosts/recommendation-store",
-    "hosts/recommendation-tcp",
+    "hosts/recommendation",
 ]
 resolver = "2"
