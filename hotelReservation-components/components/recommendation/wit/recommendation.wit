@@ -16,15 +16,14 @@ interface recommendation {
     ) -> list<string>;
 }
 
-// Full world used by TinyGo (-wit-world recommendation-world).
+// Full world used by TinyGo.
 world recommendation-world {
     include wasi:cli/imports@0.2.0;
     import hotel:recommendation-data/recommendation-store;
     export recommendation;
 }
 
-// Minimal world used by the Rust host's bindgen!.
-// WASI handled separately by wasmtime_wasi::add_to_linker_async.
+// Minimal world used by the Rust host's bindgen!
 world recommendation-host-world {
     import hotel:recommendation-data/recommendation-store;
     export recommendation;

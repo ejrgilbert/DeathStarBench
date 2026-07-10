@@ -12,11 +12,11 @@ var svc = NewService()
 func main() {}
 
 func init() {
-	recapi.Exports.Init = recommInit
-	recapi.Exports.Recommend = recommRecommend
+	recapi.Exports.Init = init
+	recapi.Exports.Recommend = recommend
 }
 
-func recommInit() {
+func init() {
 	store.Init()
 
 	witHotels := store.LoadHotels().Slice()
@@ -27,7 +27,7 @@ func recommInit() {
 	svc.Load(hotels)
 }
 
-func recommRecommend(req recapi.Requirement, lat float64, lon float64) cm.List[string] {
+func recommend(req recapi.Requirement, lat float64, lon float64) cm.List[string] {
 	var r Requirement
 	switch req {
 	case recapi.RequirementDistance:

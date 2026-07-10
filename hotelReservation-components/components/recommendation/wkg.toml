@@ -1,4 +1,3 @@
 [overrides]
-# Both packages are local — not in a public registry.
 "hotel:recommendation-data" = { path = "../recommendation_store/wit" }
 "host:storage" = { path = "../../wit/host-storage" }
