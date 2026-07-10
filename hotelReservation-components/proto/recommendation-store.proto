@@ -1,0 +1,20 @@
+syntax = "proto3";
+package recommendation_store;
+
+service RecommendationStore {
+    rpc Init(InitRequest) returns (InitResponse);
+    rpc LoadHotels(LoadHotelsRequest) returns (LoadHotelsResponse);
+}
+
+message Hotel {
+    string id    = 1;
+    double lat   = 2;
+    double lon   = 3;
+    double rate  = 4;
+    double price = 5;
+}
+
+message InitRequest {}
+message InitResponse {}
+message LoadHotelsRequest {}
+message LoadHotelsResponse { repeated Hotel hotels = 1; }

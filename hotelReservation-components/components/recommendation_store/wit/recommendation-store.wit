@@ -1,0 +1,31 @@
+package hotel:recommendation-data;
+
+interface recommendation-store {
+    record hotel {
+        id: string,
+        lat: f64,
+        lon: f64,
+        rate: f64,
+        price: f64,
+    }
+
+    init: func();
+
+    load-hotels: func() -> list<hotel>;
+}
+
+// Full world used by TinyGo (-wit-world recommendation-store-world).
+// Includes all WASI P2 runtime imports the Go runtime needs.
+world recommendation-store-world {
+    include wasi:cli/imports@0.2.0;
+    import host:storage/collection;
+    export recommendation-store;
+}
+
+// Minimal world used by the Rust host's bindgen!.
+// WASI is handled separately by wasmtime_wasi::add_to_linker_async;
+// only the custom interface appears here so bindgen! doesn't generate WASI trait stubs.
+world recommendation-store-host-world {
+    import host:storage/collection;
+    export recommendation-store;
+}

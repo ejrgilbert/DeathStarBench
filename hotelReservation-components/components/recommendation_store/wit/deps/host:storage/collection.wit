@@ -1,0 +1,14 @@
+package host:storage;
+
+interface collection {
+    // Documents and filters are JSON bytes.
+    // The host converts JSON to/from its backend format (e.g. BSON for MongoDB).
+    type document = list<u8>;
+
+    count:       func() -> u64;
+    find-all:    func() -> list<document>;
+    find-one:    func(filter: document) -> option<document>;
+    find:        func(filter: document) -> list<document>;
+    insert-one:  func(doc: document);
+    insert-many: func(docs: list<document>);
+}

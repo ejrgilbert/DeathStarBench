@@ -1,0 +1,19 @@
+package hotel:recommendation-data;
+
+interface recommendation-store {
+    record hotel {
+        id: string,
+        lat: f64,
+        lon: f64,
+        rate: f64,
+        price: f64,
+    }
+
+    init: func();
+
+    load-hotels: func() -> list<hotel>;
+}
+
+world recommendation-data {
+    export recommendation-store;
+}

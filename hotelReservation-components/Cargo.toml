@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "host-lib",
+    "hosts/recommendation-store",
+    "hosts/recommendation-tcp",
+]
+resolver = "2"
