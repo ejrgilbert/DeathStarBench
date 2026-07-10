@@ -1,19 +1,14 @@
 use std::sync::Arc;
-
 use anyhow::Result;
 use tokio::sync::Mutex;
 use tonic::{transport::Server, Request, Response, Status};
 use wasmtime::component::{Component, Linker};
 use wasmtime::Store;
-
-use host_lib::{
-    make_engine, make_store_wasi_ctx, mongo_count, mongo_find_all, mongo_insert_many, StoreData,
-};
+use host_lib::{make_engine, make_store_wasi_ctx, StoreData};
 
 mod proto {
     tonic::include_proto!("recommendation_store");
 }
-
 use proto::{
     recommendation_store_server::{RecommendationStore, RecommendationStoreServer},
     Hotel as ProtoHotel, InitRequest, InitResponse, LoadHotelsRequest, LoadHotelsResponse,
@@ -25,32 +20,7 @@ wasmtime::component::bindgen!({
     async: true,
 });
 
-#[async_trait::async_trait]
-impl host::storage::collection::Host for StoreData {
-    async fn count(&mut self) -> u64 {
-        mongo_count(&self.collection).await.unwrap_or(0)
-    }
-
-    async fn find_all(&mut self) -> Vec<Vec<u8>> {
-        mongo_find_all(&self.collection).await.unwrap_or_default()
-    }
-
-    async fn find_one(&mut self, _filter: Vec<u8>) -> Option<Vec<u8>> {
-        unimplemented!("find_one not used by recommendation-store")
-    }
-
-    async fn find(&mut self, _filter: Vec<u8>) -> Vec<Vec<u8>> {
-        unimplemented!("find not used by recommendation-store")
-    }
-
-    async fn insert_one(&mut self, _doc: Vec<u8>) {
-        unimplemented!("insert_one not used by recommendation-store")
-    }
-
-    async fn insert_many(&mut self, docs: Vec<Vec<u8>>) {
-        mongo_insert_many(&self.collection, docs).await.unwrap();
-    }
-}
+host_lib::impl_collection_host!(StoreData);
 
 type SharedStore = Arc<Mutex<Store<StoreData>>>;
 type SharedInstance = Arc<RecommendationStoreHostWorld>;
@@ -86,21 +56,14 @@ impl RecommendationStore for StoreGrpcService {
 
         let hotels = wit_hotels
             .into_iter()
-            .map(|h| ProtoHotel {
-                id: h.id,
-                lat: h.lat,
-                lon: h.lon,
-                rate: h.rate,
-                price: h.price,
-            })
+            .map(|h| ProtoHotel { id: h.id, lat: h.lat, lon: h.lon, rate: h.rate, price: h.price })
             .collect();
 
         Ok(Response::new(LoadHotelsResponse { hotels }))
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+pub async fn run() -> Result<()> {
     let mongo_uri = std::env::var("MONGO_URI")
         .unwrap_or_else(|_| "mongodb://localhost:27017".into());
     let listen_addr = std::env::var("LISTEN_ADDR")
@@ -112,9 +75,7 @@ async fn main() -> Result<()> {
 
     let mongo = mongodb::Client::with_uri_str(&mongo_uri).await?;
     let collection = Arc::new(
-        mongo
-            .database("recommendation-db")
-            .collection("recommendation"),
+        mongo.database("recommendation-db").collection("recommendation"),
     );
 
     let engine = make_engine()?;
@@ -141,13 +102,10 @@ async fn main() -> Result<()> {
     let store = Arc::new(Mutex::new(store));
     let instance = Arc::new(instance);
 
-    println!("recommendation-store-host listening on {listen_addr}");
+    println!("recommendation-host [store] listening on {listen_addr}");
 
     Server::builder()
-        .add_service(RecommendationStoreServer::new(StoreGrpcService {
-            store,
-            instance,
-        }))
+        .add_service(RecommendationStoreServer::new(StoreGrpcService { store, instance }))
         .serve(listen_addr.parse()?)
         .await?;
 

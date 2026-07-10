@@ -1,5 +1,5 @@
-# Each Wasm component runs in its own Rust host process. Inter-component calls
-# go over gRPC on the Docker bridge network.
+# Config 2 (TCP): each wasm component runs in its own host process.
+# Inter-component calls go over gRPC on the Docker bridge network.
 #
 # The outward-facing gRPC service on port 8085 is interface-identical to the
 # original hotelReservation binary (same proto, same method names).
@@ -16,11 +16,13 @@ services:
   recommendation-store:
     build:
       context: .
-      target: recommendation-store
+      target: recommendation
     environment:
+      MODE: store
       MONGO_URI: "mongodb://mongodb-recommendation:27017"
       LISTEN_ADDR: "0.0.0.0:8086"
       DATA_DIR: /data
+      WASM_FILE: /app/recommendation-store.wasm
     ports:
       - "8086:8086"
     volumes:
@@ -34,8 +36,10 @@ services:
       context: .
       target: recommendation
     environment:
+      MODE: svc
       STORE_ADDR: "http://recommendation-store:8086"
       LISTEN_ADDR: "0.0.0.0:8085"
+      WASM_FILE: /app/recommendation.wasm
     ports:
       - "8085:8085"
     depends_on:

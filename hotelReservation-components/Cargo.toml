@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "host-lib",
-    "hosts/recommendation-store",
     "hosts/recommendation",
 ]
 resolver = "2"

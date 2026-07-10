@@ -80,3 +80,37 @@ pub async fn mongo_insert_many(
     collection.insert_many(bson_docs).await?;
     Ok(())
 }
+
+/// Implements `host::storage::collection::Host` on a type that has a `collection` field
+/// of type `Arc<mongodb::Collection<bson::Document>>`.
+///
+/// The trait is generated locally by each host's `bindgen!` call, so the impl must
+/// live in each host crate — this macro just eliminates the copy-paste of the body.
+///
+/// Usage: `host_lib::impl_collection_host!(YourStoreDataType);`
+#[macro_export]
+macro_rules! impl_collection_host {
+    ($T:ty) => {
+        #[::async_trait::async_trait]
+        impl host::storage::collection::Host for $T {
+            async fn count(&mut self) -> u64 {
+                $crate::mongo_count(&self.collection).await.unwrap_or(0)
+            }
+            async fn find_all(&mut self) -> ::std::vec::Vec<::std::vec::Vec<u8>> {
+                $crate::mongo_find_all(&self.collection).await.unwrap_or_default()
+            }
+            async fn find_one(&mut self, _: ::std::vec::Vec<u8>) -> ::core::option::Option<::std::vec::Vec<u8>> {
+                unimplemented!()
+            }
+            async fn find(&mut self, _: ::std::vec::Vec<u8>) -> ::std::vec::Vec<::std::vec::Vec<u8>> {
+                unimplemented!()
+            }
+            async fn insert_one(&mut self, _: ::std::vec::Vec<u8>) {
+                unimplemented!()
+            }
+            async fn insert_many(&mut self, docs: ::std::vec::Vec<::std::vec::Vec<u8>>) {
+                $crate::mongo_insert_many(&self.collection, docs).await.unwrap()
+            }
+        }
+    };
+}

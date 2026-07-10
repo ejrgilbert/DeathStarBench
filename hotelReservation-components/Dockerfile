@@ -1,5 +1,4 @@
 # Build stage: compiles the entire Rust workspace.
-# Service images pull from this shared layer.
 FROM rust:1.92.0-slim AS builder
 WORKDIR /build
 
@@ -15,22 +14,10 @@ COPY components/recommendation/wit/ components/recommendation/wit/
 RUN cargo build --release --locked
 
 
-# recommendation-store: runs the recommendation-store Wasm component,
-# owns the MongoDB collection, exposes gRPC on port 8086.
-FROM debian:bookworm-slim AS recommendation-store
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /build/target/release/recommendation-store-host /usr/local/bin/
-COPY recommendation-store.wasm /app/recommendation-store.wasm
-ENV WASM_FILE=/app/recommendation-store.wasm
-WORKDIR /app
-CMD ["recommendation-store-host"]
-
-
-# recommendation: runs the recommendation Wasm component, exposes gRPC at port 8085.
+# recommendation: one image, three modes for `store` / standalone `svc` / composed `abi`.
 FROM debian:bookworm-slim AS recommendation
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /build/target/release/recommendation-host /usr/local/bin/
-COPY recommendation.wasm /app/recommendation.wasm
-ENV WASM_FILE=/app/recommendation.wasm
+COPY recommendation-store.wasm recommendation.wasm recommendation-composed.wasm /app/
 WORKDIR /app
 CMD ["recommendation-host"]

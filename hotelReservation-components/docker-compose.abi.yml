@@ -1,0 +1,35 @@
+# Config 3 (ABI): each service-pair composed into one wasm, one host process per service.
+# No inter-component gRPC — store logic runs inside the composed component via ABI call.
+#
+# The outward-facing gRPC service on port 8085 is interface-identical to
+# Config 1 (original Go binary) and Config 2 (TCP config).
+#
+# Prerequisite: run `make all-composed` to build recommendation-composed.wasm
+# before bringing this stack up.
+
+services:
+  mongodb-recommendation:
+    image: mongo:5.0
+    volumes:
+      - recommendation-data:/data/db
+
+  recommendation:
+    build:
+      context: .
+      target: recommendation
+    environment:
+      MODE: abi
+      MONGO_URI: "mongodb://mongodb-recommendation:27017"
+      LISTEN_ADDR: "0.0.0.0:8085"
+      DATA_DIR: /data
+      WASM_FILE: /app/recommendation-composed.wasm
+    ports:
+      - "8085:8085"
+    volumes:
+      - ./data/recommendation-seed.json:/data/recommendation-seed.json:ro
+    depends_on:
+      - mongodb-recommendation
+    restart: on-failure
+
+volumes:
+  recommendation-data:

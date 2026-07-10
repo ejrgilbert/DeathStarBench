@@ -28,3 +28,9 @@ world recommendation-host-world {
     import hotel:recommendation-data/recommendation-store;
     export recommendation;
 }
+
+// Host world for the wac-composed component.
+world recommendation-composed-host-world {
+    import host:storage/collection;
+    export recommendation;
+}
