@@ -1,0 +1,3 @@
+[overrides]
+# host:storage is a local interface defined in this repo, not in a public registry.
+"host:storage" = { path = "../../wit/host-storage" }

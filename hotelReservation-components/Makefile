@@ -1,6 +1,10 @@
 TINYGO_FLAGS = -target=wasip2 -scheduler=none
 
-.PHONY: all clean
+.PHONY: all wit-deps clean
+
+wit-deps:
+	cd components/recommendation_store && wkg wit fetch
+	cd components/recommendation && wkg wit fetch
 
 all: recommendation-store.wasm recommendation.wasm
 
