@@ -1,0 +1,2 @@
+[overrides]
+"host:storage" = { path = "../../wit/host-storage" }

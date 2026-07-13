@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package rate_store;
+
+service RateStore {
+  rpc Init(InitRequest) returns (InitResponse);
+  rpc LoadRates(LoadRatesRequest) returns (LoadRatesResponse);
+}
+
+message RoomType {
+  double bookable_rate = 1;
+  string code = 2;
+  string room_description = 3;
+  double total_rate = 4;
+  double total_rate_inclusive = 5;
+}
+
+message RatePlan {
+  string hotel_id = 1;
+  string code = 2;
+  string in_date = 3;
+  string out_date = 4;
+  RoomType room_type = 5;
+}
+
+message InitRequest {}
+message InitResponse {}
+
+message LoadRatesRequest {}
+message LoadRatesResponse {
+  repeated RatePlan rates = 1;
+}

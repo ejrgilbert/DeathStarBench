@@ -2393,6 +2393,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
 
 [[package]]
+name = "rate-host"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bson",
+ "host-lib",
+ "mongodb",
+ "prost",
+ "tokio",
+ "tonic",
+ "tonic-build",
+ "wasmtime",
+ "wasmtime-wasi",
+]
+
+[[package]]
 name = "rayon"
 version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

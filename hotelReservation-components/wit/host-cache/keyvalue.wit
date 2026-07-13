@@ -1,0 +1,6 @@
+package host:cache;
+
+interface keyvalue {
+  get: func(key: string) -> option<list<u8>>;
+  set: func(key: string, value: list<u8>);
+}

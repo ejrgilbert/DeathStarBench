@@ -1,0 +1,4 @@
+[overrides]
+"hotel:rate-data" = { path = "../rate_store/wit" }
+"host:storage" = { path = "../../wit/host-storage" }
+"host:cache" = { path = "../../wit/host-cache" }

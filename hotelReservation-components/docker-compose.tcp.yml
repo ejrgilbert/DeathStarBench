@@ -172,8 +172,51 @@ services:
       - user-store
     restart: on-failure
 
+  mongodb-rate:
+    image: mongo:5.0
+    volumes:
+      - rate-data:/data/db
+
+  rate-store:
+    build:
+      context: .
+      target: runtime
+      args:
+        SERVICE: rate
+    environment:
+      MODE: store
+      MONGO_URI: "mongodb://mongodb-rate:27017"
+      LISTEN_ADDR: "0.0.0.0:8094"
+      DATA_DIR: /data
+      WASM_FILE: /app/rate-store.wasm
+    ports:
+      - "8094:8094"
+    volumes:
+      - ./data/rate-seed.json:/data/rate-seed.json:ro
+    depends_on:
+      - mongodb-rate
+    restart: on-failure
+
+  rate:
+    build:
+      context: .
+      target: runtime
+      args:
+        SERVICE: rate
+    environment:
+      MODE: svc
+      STORE_ADDR: "http://rate-store:8094"
+      LISTEN_ADDR: "0.0.0.0:8093"
+      WASM_FILE: /app/rate.wasm
+    ports:
+      - "8093:8093"
+    depends_on:
+      - rate-store
+    restart: on-failure
+
 volumes:
   recommendation-data:
   attractions-data:
   geo-data:
   user-data:
+  rate-data:

@@ -105,8 +105,34 @@ services:
       - mongodb-user
     restart: on-failure
 
+  mongodb-rate:
+    image: mongo:5.0
+    volumes:
+      - rate-data:/data/db
+
+  rate:
+    build:
+      context: .
+      target: runtime
+      args:
+        SERVICE: rate
+    environment:
+      MODE: abi
+      MONGO_URI: "mongodb://mongodb-rate:27017"
+      LISTEN_ADDR: "0.0.0.0:8093"
+      DATA_DIR: /data
+      WASM_FILE: /app/rate-composed.wasm
+    ports:
+      - "8093:8093"
+    volumes:
+      - ./data/rate-seed.json:/data/rate-seed.json:ro
+    depends_on:
+      - mongodb-rate
+    restart: on-failure
+
 volumes:
   recommendation-data:
   attractions-data:
   geo-data:
   user-data:
+  rate-data:

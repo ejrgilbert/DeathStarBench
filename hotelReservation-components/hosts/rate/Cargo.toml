@@ -1,0 +1,19 @@
+[package]
+name = "rate-host"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+host-lib      = { path = "../../host-lib" }
+wasmtime      = { version = "25", features = ["component-model", "async"] }
+wasmtime-wasi = "25"
+mongodb       = "3"
+bson          = "2"
+tonic         = { version = "0.12", features = ["transport"] }
+prost         = "0.13"
+async-trait   = "0.1"
+tokio         = { version = "1", features = ["full"] }
+anyhow        = "1"
+
+[build-dependencies]
+tonic-build = "0.12"
