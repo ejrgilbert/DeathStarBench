@@ -21,11 +21,11 @@ type seedRecord struct {
 func main() {}
 
 func init() {
-	recstore.Exports.Init = init
+	recstore.Exports.Init = doInit
 	recstore.Exports.LoadHotels = loadHotels
 }
 
-func init() {
+func doInit() {
 	if col.Count() > 0 {
 		return
 	}

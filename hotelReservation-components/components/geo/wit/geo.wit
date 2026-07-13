@@ -1,0 +1,25 @@
+package hotel:geo;
+
+interface geo {
+    init: func();
+    nearby:   func(lat: f64, lon: f64) -> list<string>;
+}
+
+// Full world used by TinyGo.
+world geo-world {
+    include wasi:cli/imports@0.2.0;
+    import hotel:geo-data/geo-store;
+    export geo;
+}
+
+// Minimal world used by the Rust host's bindgen!
+world geo-host-world {
+    import hotel:geo-data/geo-store;
+    export geo;
+}
+
+// Host world for the wac-composed component.
+world geo-composed-host-world {
+    import host:storage/collection;
+    export geo;
+}

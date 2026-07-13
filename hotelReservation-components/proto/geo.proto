@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package geo;
+
+service Geo {
+  rpc Nearby(Request)   returns (Result);
+}
+
+message Request {
+  double lat = 1;
+  double lon = 2;
+}
+
+message Result {
+  repeated string ids = 1;
+}

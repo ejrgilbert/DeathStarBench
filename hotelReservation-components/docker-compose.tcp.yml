@@ -1,6 +1,6 @@
 # Config 2 (TCP): each wasm component runs in its own host process.
 # Inter-component calls go over gRPC on the Docker bridge network.
-
+#
 # Prerequisite: run `make all` to build *.wasm files before bringing this stack up.
 
 services:
@@ -12,7 +12,9 @@ services:
   recommendation-store:
     build:
       context: .
-      target: recommendation
+      target: runtime
+      args:
+        SERVICE: recommendation
     environment:
       MODE: store
       MONGO_URI: "mongodb://mongodb-recommendation:27017"
@@ -30,7 +32,9 @@ services:
   recommendation:
     build:
       context: .
-      target: recommendation
+      target: runtime
+      args:
+        SERVICE: recommendation
     environment:
       MODE: svc
       STORE_ADDR: "http://recommendation-store:8086"
@@ -50,7 +54,9 @@ services:
   attractions-store:
     build:
       context: .
-      target: attractions
+      target: runtime
+      args:
+        SERVICE: attractions
     environment:
       MODE: store
       MONGO_URI: "mongodb://mongodb-attractions:27017"
@@ -68,7 +74,9 @@ services:
   attractions:
     build:
       context: .
-      target: attractions
+      target: runtime
+      args:
+        SERVICE: attractions
     environment:
       MODE: svc
       STORE_ADDR: "http://attractions-store:8088"
@@ -80,6 +88,49 @@ services:
       - attractions-store
     restart: on-failure
 
+  mongodb-geo:
+    image: mongo:5.0
+    volumes:
+      - geo-data:/data/db
+
+  geo-store:
+    build:
+      context: .
+      target: runtime
+      args:
+        SERVICE: geo
+    environment:
+      MODE: store
+      MONGO_URI: "mongodb://mongodb-geo:27017"
+      LISTEN_ADDR: "0.0.0.0:8090"
+      DATA_DIR: /data
+      WASM_FILE: /app/geo-store.wasm
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./data/geo-seed.json:/data/geo-seed.json:ro
+    depends_on:
+      - mongodb-geo
+    restart: on-failure
+
+  geo:
+    build:
+      context: .
+      target: runtime
+      args:
+        SERVICE: geo
+    environment:
+      MODE: svc
+      STORE_ADDR: "http://geo-store:8090"
+      LISTEN_ADDR: "0.0.0.0:8089"
+      WASM_FILE: /app/geo.wasm
+    ports:
+      - "8089:8089"
+    depends_on:
+      - geo-store
+    restart: on-failure
+
 volumes:
   recommendation-data:
   attractions-data:
+  geo-data:

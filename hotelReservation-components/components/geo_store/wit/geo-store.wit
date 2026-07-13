@@ -1,0 +1,25 @@
+package hotel:geo-data;
+
+interface geo-store {
+    record point {
+        id:  string,
+        lat: f64,
+        lon: f64,
+    }
+
+    init: func();
+    load-geo: func() -> list<point>;
+}
+
+// Full world used by TinyGo.
+world geo-store-world {
+    include wasi:cli/imports@0.2.0;
+    import host:storage/collection;
+    export geo-store;
+}
+
+// Minimal world used by the Rust host's bindgen!
+world geo-store-host-world {
+    import host:storage/collection;
+    export geo-store;
+}

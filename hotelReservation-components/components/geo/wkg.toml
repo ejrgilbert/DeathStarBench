@@ -1,0 +1,3 @@
+[overrides]
+"hotel:geo-data" = { path = "../geo_store/wit" }
+"host:storage" = { path = "../../wit/host-storage" }

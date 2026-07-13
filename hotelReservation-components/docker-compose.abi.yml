@@ -13,7 +13,9 @@ services:
   recommendation:
     build:
       context: .
-      target: recommendation
+      target: runtime
+      args:
+        SERVICE: recommendation
     environment:
       MODE: abi
       MONGO_URI: "mongodb://mongodb-recommendation:27017"
@@ -36,7 +38,9 @@ services:
   attractions:
     build:
       context: .
-      target: attractions
+      target: runtime
+      args:
+        SERVICE: attractions
     environment:
       MODE: abi
       MONGO_URI: "mongodb://mongodb-attractions:27017"
@@ -51,6 +55,32 @@ services:
       - mongodb-attractions
     restart: on-failure
 
+  mongodb-geo:
+    image: mongo:5.0
+    volumes:
+      - geo-data:/data/db
+
+  geo:
+    build:
+      context: .
+      target: runtime
+      args:
+        SERVICE: geo
+    environment:
+      MODE: abi
+      MONGO_URI: "mongodb://mongodb-geo:27017"
+      LISTEN_ADDR: "0.0.0.0:8089"
+      DATA_DIR: /data
+      WASM_FILE: /app/geo-composed.wasm
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./data/geo-seed.json:/data/geo-seed.json:ro
+    depends_on:
+      - mongodb-geo
+    restart: on-failure
+
 volumes:
   recommendation-data:
   attractions-data:
+  geo-data:
