@@ -1,0 +1,17 @@
+syntax = "proto3";
+package user_store;
+
+service UserStore {
+    rpc Init(InitRequest)           returns (InitResponse);
+    rpc LoadUsers(LoadUsersRequest) returns (LoadUsersResponse);
+}
+
+message User {
+    string username = 1;
+    string password = 2;
+}
+
+message InitRequest {}
+message InitResponse {}
+message LoadUsersRequest {}
+message LoadUsersResponse { repeated User users = 1; }

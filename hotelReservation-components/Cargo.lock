@@ -1314,6 +1314,7 @@ dependencies = [
  "mongodb",
  "serde_json",
  "tokio",
+ "tonic",
  "wasmtime",
  "wasmtime-wasi",
 ]
@@ -3411,6 +3412,22 @@ dependencies = [
  "idna",
  "percent-encoding",
  "serde",
+]
+
+[[package]]
+name = "user-host"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "host-lib",
+ "mongodb",
+ "prost",
+ "tokio",
+ "tonic",
+ "tonic-build",
+ "wasmtime",
+ "wasmtime-wasi",
 ]
 
 [[package]]

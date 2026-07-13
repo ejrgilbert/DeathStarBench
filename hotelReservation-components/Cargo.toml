@@ -4,5 +4,6 @@ members = [
     "hosts/recommendation",
     "hosts/attractions",
     "hosts/geo",
+    "hosts/user",
 ]
 resolver = "2"

@@ -1,0 +1,3 @@
+[overrides]
+"hotel:user-data" = { path = "../user_store/wit" }
+"host:storage" = { path = "../../wit/host-storage" }
