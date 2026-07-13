@@ -1,5 +1,7 @@
+# TODO: Clean this up to loop on SERVICES
+
 TINYGO_FLAGS = -target=wasip2 -scheduler=none
-SERVICES     = recommendation  # add new service names here
+SERVICES     = recommendation attractions  # add new service names here
 
 BENCH_N    = 1000        # total requests
 BENCH_C    = 10          # concurrent workers
@@ -7,12 +9,20 @@ BENCH_HOST = localhost
 BENCH_PORT = 8085
 BENCH_ADDR = $(BENCH_HOST):$(BENCH_PORT)
 
-.PHONY: all all-composed wit-deps bench bench-tcp bench-abi \
+.PHONY: all all-composed wit-deps generate bench bench-tcp bench-abi \
         tcp-up tcp-down abi-up abi-down teardown clean
 
 wit-deps:
 	cd components/recommendation_store && wkg wit fetch
 	cd components/recommendation && wkg wit fetch
+	cd components/attractions_store && wkg wit fetch
+	cd components/attractions && wkg wit fetch
+
+generate:
+	wit-bindgen-go generate --world recommendation-store-world --out ./components/recommendation_store ./components/recommendation_store/wit
+	wit-bindgen-go generate --world recommendation-world       --out ./components/recommendation       ./components/recommendation/wit
+	wit-bindgen-go generate --world attractions-store-world    --out ./components/attractions_store    ./components/attractions_store/wit
+	wit-bindgen-go generate --world attractions-world          --out ./components/attractions          ./components/attractions/wit
 
 all: $(foreach s,$(SERVICES),$(s)-store.wasm $(s).wasm)
 all-composed: $(foreach s,$(SERVICES),$(s)-composed.wasm)
@@ -29,6 +39,18 @@ recommendation.wasm:
 	  -wit-package ./components/recommendation/wit \
 	  -wit-world recommendation-world \
 	  -o $@ ./components/recommendation/
+
+attractions-store.wasm:
+	tinygo build $(TINYGO_FLAGS) \
+	  -wit-package ./components/attractions_store/wit \
+	  -wit-world attractions-store-world \
+	  -o $@ ./components/attractions_store/
+
+attractions.wasm:
+	tinygo build $(TINYGO_FLAGS) \
+	  -wit-package ./components/attractions/wit \
+	  -wit-world attractions-world \
+	  -o $@ ./components/attractions/
 
 # Generic composition rule — works for any service pair
 %-composed.wasm: %.wasm %-store.wasm

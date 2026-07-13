@@ -2,5 +2,6 @@
 members = [
     "host-lib",
     "hosts/recommendation",
+    "hosts/attractions",
 ]
 resolver = "2"

@@ -1,0 +1,27 @@
+package hotel:attractions;
+
+interface attractions {
+    init: func();
+    nearby-rest:   func(hotel-id: string) -> list<string>;
+    nearby-mus:    func(hotel-id: string) -> list<string>;
+    nearby-cinema: func(hotel-id: string) -> list<string>;
+}
+
+// Full world used by TinyGo.
+world attractions-world {
+    include wasi:cli/imports@0.2.0;
+    import hotel:attractions-data/attractions-store;
+    export attractions;
+}
+
+// Minimal world used by the Rust host's bindgen!
+world attractions-host-world {
+    import hotel:attractions-data/attractions-store;
+    export attractions;
+}
+
+// Host world for the wac-composed component.
+world attractions-composed-host-world {
+    import host:storage/collection;
+    export attractions;
+}

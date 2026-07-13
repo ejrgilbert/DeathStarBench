@@ -1,11 +1,7 @@
 # Config 2 (TCP): each wasm component runs in its own host process.
 # Inter-component calls go over gRPC on the Docker bridge network.
-#
-# The outward-facing gRPC service on port 8085 is interface-identical to the
-# original hotelReservation binary (same proto, same method names).
-#
-# Prerequisite: run `make all` to build recommendation.wasm and
-# recommendation-store.wasm before bringing this stack up.
+
+# Prerequisite: run `make all` to build *.wasm files before bringing this stack up.
 
 services:
   mongodb-recommendation:
@@ -46,5 +42,44 @@ services:
       - recommendation-store
     restart: on-failure
 
+  mongodb-attractions:
+    image: mongo:5.0
+    volumes:
+      - attractions-data:/data/db
+
+  attractions-store:
+    build:
+      context: .
+      target: attractions
+    environment:
+      MODE: store
+      MONGO_URI: "mongodb://mongodb-attractions:27017"
+      LISTEN_ADDR: "0.0.0.0:8088"
+      DATA_DIR: /data
+      WASM_FILE: /app/attractions-store.wasm
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./data/attractions-seed.json:/data/attractions-seed.json:ro
+    depends_on:
+      - mongodb-attractions
+    restart: on-failure
+
+  attractions:
+    build:
+      context: .
+      target: attractions
+    environment:
+      MODE: svc
+      STORE_ADDR: "http://attractions-store:8088"
+      LISTEN_ADDR: "0.0.0.0:8087"
+      WASM_FILE: /app/attractions.wasm
+    ports:
+      - "8087:8087"
+    depends_on:
+      - attractions-store
+    restart: on-failure
+
 volumes:
   recommendation-data:
+  attractions-data:

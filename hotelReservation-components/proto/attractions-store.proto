@@ -1,0 +1,49 @@
+syntax = "proto3";
+package attractions_store;
+
+service AttractionsStore {
+    rpc Init(InitRequest)                       returns (InitResponse);
+    rpc LoadHotelPositions(LoadRequest)         returns (LoadHotelPositionsResponse);
+    rpc LoadRestaurants(LoadRequest)            returns (LoadRestaurantsResponse);
+    rpc LoadMuseums(LoadRequest)                returns (LoadMuseumsResponse);
+    rpc LoadCinemas(LoadRequest)                returns (LoadCinemasResponse);
+}
+
+message HotelPosition {
+    string id  = 1;
+    double lat = 2;
+    double lon = 3;
+}
+
+message Restaurant {
+    string id       = 1;
+    double lat      = 2;
+    double lon      = 3;
+    string name     = 4;
+    float  rating   = 5;
+    string category = 6;
+}
+
+message Museum {
+    string id       = 1;
+    double lat      = 2;
+    double lon      = 3;
+    string name     = 4;
+    string category = 5;
+}
+
+message Cinema {
+    string id       = 1;
+    double lat      = 2;
+    double lon      = 3;
+    string name     = 4;
+    string category = 5;
+}
+
+message InitRequest {}
+message InitResponse {}
+message LoadRequest {}
+message LoadHotelPositionsResponse { repeated HotelPosition hotels      = 1; }
+message LoadRestaurantsResponse    { repeated Restaurant     restaurants = 1; }
+message LoadMuseumsResponse        { repeated Museum         museums     = 1; }
+message LoadCinemasResponse        { repeated Cinema         cinemas     = 1; }

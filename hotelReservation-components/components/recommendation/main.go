@@ -12,11 +12,11 @@ var svc = NewService()
 func main() {}
 
 func init() {
-	recapi.Exports.Init = init
+	recapi.Exports.Init = doInit
 	recapi.Exports.Recommend = recommend
 }
 
-func init() {
+func doInit() {
 	store.Init()
 
 	witHotels := store.LoadHotels().Slice()

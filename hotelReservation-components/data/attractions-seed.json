@@ -1,0 +1,29 @@
+[
+  {"type":"hotel","id":"1","lat":37.7867,"lon":-122.4112},
+  {"type":"hotel","id":"2","lat":37.7854,"lon":-122.4005},
+  {"type":"hotel","id":"3","lat":37.7854,"lon":-122.4071},
+  {"type":"hotel","id":"4","lat":37.7936,"lon":-122.3930},
+  {"type":"hotel","id":"5","lat":37.7831,"lon":-122.4181},
+  {"type":"hotel","id":"6","lat":37.7863,"lon":-122.4015},
+
+  {"type":"restaurant","id":"1","lat":37.7867,"lon":-122.4112,"name":"R1","rating":3.5,"category":"fusion"},
+  {"type":"restaurant","id":"2","lat":37.7857,"lon":-122.4012,"name":"R2","rating":3.9,"category":"italian"},
+  {"type":"restaurant","id":"3","lat":37.7847,"lon":-122.3912,"name":"R3","rating":4.5,"category":"sushi"},
+  {"type":"restaurant","id":"4","lat":37.7862,"lon":-122.4212,"name":"R4","rating":3.2,"category":"sushi"},
+  {"type":"restaurant","id":"5","lat":37.7839,"lon":-122.4052,"name":"R5","rating":4.9,"category":"fusion"},
+  {"type":"restaurant","id":"6","lat":37.7831,"lon":-122.3812,"name":"R6","rating":4.1,"category":"american"},
+
+  {"type":"museum","id":"1","lat":35.7867,"lon":-122.4112,"name":"M1","category":"history"},
+  {"type":"museum","id":"2","lat":36.7867,"lon":-122.5112,"name":"M2","category":"history"},
+  {"type":"museum","id":"3","lat":38.7867,"lon":-122.4612,"name":"M3","category":"nature"},
+  {"type":"museum","id":"4","lat":37.7867,"lon":-122.4912,"name":"M4","category":"nature"},
+  {"type":"museum","id":"5","lat":36.9867,"lon":-122.4212,"name":"M5","category":"nature"},
+  {"type":"museum","id":"6","lat":37.3867,"lon":-122.5012,"name":"M6","category":"technology"},
+
+  {"type":"cinema","id":"1","lat":37.7860,"lon":-122.4100,"name":"C1","category":"IMAX"},
+  {"type":"cinema","id":"2","lat":37.7840,"lon":-122.4060,"name":"C2","category":"standard"},
+  {"type":"cinema","id":"3","lat":37.7870,"lon":-122.4020,"name":"C3","category":"IMAX"},
+  {"type":"cinema","id":"4","lat":37.7855,"lon":-122.4140,"name":"C4","category":"standard"},
+  {"type":"cinema","id":"5","lat":37.7845,"lon":-122.4080,"name":"C5","category":"4DX"},
+  {"type":"cinema","id":"6","lat":37.7865,"lon":-122.4160,"name":"C6","category":"standard"}
+]

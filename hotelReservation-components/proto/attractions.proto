@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package attractions;
+
+service Attractions {
+  rpc NearbyRest(Request)   returns (Result);
+  rpc NearbyMus(Request)    returns (Result);
+  rpc NearbyCinema(Request) returns (Result);
+}
+
+message Request {
+  string hotel_id = 1;
+}
+
+message Result {
+  repeated string attraction_ids = 1;
+}
