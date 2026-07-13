@@ -13,14 +13,14 @@ COPY components/recommendation/wit/ components/recommendation/wit/
 COPY components/attractions_store/wit/ components/attractions_store/wit/
 COPY components/attractions/wit/ components/attractions/wit/
 
-RUN cargo build --release --locked
+RUN cargo build --release
 
 
 # recommendation image
 FROM debian:bookworm-slim AS recommendation
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /build/target/release/recommendation-host /usr/local/bin/
-COPY recommendation-store.wasm recommendation.wasm recommendation-composed.wasm /app/
+COPY build/recommendation-store.wasm build/recommendation.wasm build/recommendation-composed.wasm /app/
 WORKDIR /app
 CMD ["recommendation-host"]
 
@@ -28,6 +28,6 @@ CMD ["recommendation-host"]
 FROM debian:bookworm-slim AS attractions
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /build/target/release/attractions-host /usr/local/bin/
-COPY attractions-store.wasm attractions.wasm attractions-composed.wasm /app/
+COPY build/attractions-store.wasm build/attractions.wasm build/attractions-composed.wasm /app/
 WORKDIR /app
 CMD ["attractions-host"]

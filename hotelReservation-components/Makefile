@@ -1,5 +1,10 @@
 # TODO: Clean this up to loop on SERVICES
 
+BUILD_DIR := build
+
+$(BUILD_DIR):
+	mkdir -p $@
+
 TINYGO_FLAGS = -target=wasip2 -scheduler=none
 SERVICES     = recommendation attractions  # add new service names here
 
@@ -24,36 +29,36 @@ generate:
 	wit-bindgen-go generate --world attractions-store-world    --out ./components/attractions_store    ./components/attractions_store/wit
 	wit-bindgen-go generate --world attractions-world          --out ./components/attractions          ./components/attractions/wit
 
-all: $(foreach s,$(SERVICES),$(s)-store.wasm $(s).wasm)
-all-composed: $(foreach s,$(SERVICES),$(s)-composed.wasm)
+all: $(foreach s,$(SERVICES),$(BUILD_DIR)/$(s)-store.wasm $(BUILD_DIR)/$(s).wasm)
+all-composed: $(foreach s,$(SERVICES),$(BUILD_DIR)/$(s)-composed.wasm)
 
 # Explicit per-service tinygo builds
-recommendation-store.wasm:
+$(BUILD_DIR)/recommendation-store.wasm:
 	tinygo build $(TINYGO_FLAGS) \
 	  -wit-package ./components/recommendation_store/wit \
 	  -wit-world recommendation-store-world \
 	  -o $@ ./components/recommendation_store/
 
-recommendation.wasm:
+$(BUILD_DIR)/recommendation.wasm:
 	tinygo build $(TINYGO_FLAGS) \
 	  -wit-package ./components/recommendation/wit \
 	  -wit-world recommendation-world \
 	  -o $@ ./components/recommendation/
 
-attractions-store.wasm:
+$(BUILD_DIR)/attractions-store.wasm:
 	tinygo build $(TINYGO_FLAGS) \
 	  -wit-package ./components/attractions_store/wit \
 	  -wit-world attractions-store-world \
 	  -o $@ ./components/attractions_store/
 
-attractions.wasm:
+$(BUILD_DIR)/attractions.wasm:
 	tinygo build $(TINYGO_FLAGS) \
 	  -wit-package ./components/attractions/wit \
 	  -wit-world attractions-world \
 	  -o $@ ./components/attractions/
 
 # Generic composition rule — works for any service pair
-%-composed.wasm: %.wasm %-store.wasm
+$(BUILD_DIR)/%-composed.wasm: %.wasm %-store.wasm
 	wac plug --plug $*-store.wasm $*.wasm -o $@
 
 tcp-up: all
