@@ -1,0 +1,7 @@
+[overrides]
+"hotel:geo"       = { path = "../geo/wit" }
+"hotel:rate"      = { path = "../rate/wit" }
+"hotel:geo-data"  = { path = "../geo_store/wit" }
+"hotel:rate-data" = { path = "../rate_store/wit" }
+"host:storage"    = { path = "../../wit/host-storage" }
+"host:cache"      = { path = "../../wit/host-cache" }

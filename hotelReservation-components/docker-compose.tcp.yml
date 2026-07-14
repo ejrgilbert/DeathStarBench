@@ -256,6 +256,24 @@ services:
       - profile-store
     restart: on-failure
 
+  search:
+    build:
+      context: .
+      target: runtime
+      args:
+        SERVICE: search
+    environment:
+      GEO_ADDR:    "http://geo:8089"
+      RATE_ADDR:   "http://rate:8093"
+      LISTEN_ADDR: "0.0.0.0:8097"
+      WASM_FILE:   /app/search.wasm
+    ports:
+      - "8097:8097"
+    depends_on:
+      - geo
+      - rate
+    restart: on-failure
+
 volumes:
   recommendation-data:
   attractions-data:

@@ -59,7 +59,15 @@ echo "[INFO] testing reservation"
 echo "[INFO] testing review"
 # TODO
 echo "[INFO] testing search"
-# TODO
+if ! grpcurl -plaintext \
+      -import-path ./proto \
+      -proto search.proto \
+      -d '{"lat":37.7749,"lon":-122.4194,"inDate":"3/12/2023","outDate":"3/14/2023"}' \
+      localhost:8097 search.Search/Nearby; then
+    echo "[ERROR] user failed"
+    exit 1
+fi
+
 echo "[INFO] testing user (fail login)"
 if ! grpcurl -plaintext \
       -import-path ./proto \

@@ -1,0 +1,21 @@
+package hotel:search;
+
+interface search {
+    init: func();
+    nearby: func(lat: f64, lon: f64, in-date: string, out-date: string) -> list<string>;
+}
+
+// Full world used by TinyGo.
+world search-world {
+    include wasi:cli/imports@0.2.0;
+    import hotel:geo/geo;
+    import hotel:rate/rate;
+    export search;
+}
+
+// Minimal world used by the Rust host's bindgen!
+world search-host-world {
+    import hotel:geo/geo;
+    import hotel:rate/rate;
+    export search;
+}

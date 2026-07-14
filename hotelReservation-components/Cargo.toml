@@ -6,6 +6,7 @@ members = [
     "hosts/geo",
     "hosts/user",
     "hosts/rate",
-    "hosts/profile"
+    "hosts/profile",
+    "hosts/search"
 ]
 resolver = "2"

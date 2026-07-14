@@ -1,6 +1,7 @@
 BUILD_DIR    := build
 TINYGO_FLAGS := -target=wasip2 -scheduler=none
 SERVICES     := recommendation attractions geo user rate profile # append here to add a service
+# search has no store companion, built separately below
 
 BENCH_N    = 1000
 BENCH_C    = 10
@@ -11,6 +12,12 @@ BENCH_ADDR = $(BENCH_HOST):$(BENCH_PORT)
 .PHONY: all all-composed wit-deps generate bench bench-tcp bench-abi \
         tcp-up tcp-down abi-up abi-down teardown clean
 
+$(BUILD_DIR)/search.wasm: components/search | $(BUILD_DIR)
+	tinygo build $(TINYGO_FLAGS) \
+	  -wit-package ./components/search/wit \
+	  -wit-world search-world \
+	  -o $@ ./components/search/
+
 $(BUILD_DIR):
 	mkdir -p $@
 
@@ -19,15 +26,17 @@ wit-deps:
 	$(foreach s,$(SERVICES), \
 	  cd components/$(s)_store && wkg wit fetch && cd ../.. ; \
 	  cd components/$(s)       && wkg wit fetch && cd ../.. ;)
+	cd components/search && wkg wit fetch && cd ../..
 
 # ── generate ──────────────────────────────────────────────────────────────────
 generate:
 	$(foreach s,$(SERVICES), \
 	  wit-bindgen-go generate --world $(s)-store-world --out ./components/$(s)_store ./components/$(s)_store/wit ; \
 	  wit-bindgen-go generate --world $(s)-world       --out ./components/$(s)       ./components/$(s)/wit ;)
+	wit-bindgen-go generate --world search-world --out ./components/search ./components/search/wit
 
 # ── wasm build targets ────────────────────────────────────────────────────────
-all: $(BUILD_DIR) $(foreach s,$(SERVICES),$(BUILD_DIR)/$(s)-store.wasm $(BUILD_DIR)/$(s).wasm)
+all: $(BUILD_DIR) $(foreach s,$(SERVICES),$(BUILD_DIR)/$(s)-store.wasm $(BUILD_DIR)/$(s).wasm) $(BUILD_DIR)/search.wasm
 all-composed: $(BUILD_DIR) $(foreach s,$(SERVICES),$(BUILD_DIR)/$(s)-composed.wasm)
 
 $(BUILD_DIR)/%-store.wasm: components/%_store | $(BUILD_DIR)
