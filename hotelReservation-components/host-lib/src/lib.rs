@@ -84,6 +84,15 @@ pub async fn mongo_insert_many(
     Ok(())
 }
 
+pub async fn mongo_insert_one(
+    collection: &Arc<mongodb::Collection<bson::Document>>,
+    doc: Vec<u8>,
+) -> Result<()> {
+    let bson_doc = json_to_bson(&doc)?;
+    collection.insert_one(bson_doc).await?;
+    Ok(())
+}
+
 /// Host data for svc-mode hosts.  The store client generic keeps the struct identical
 /// across services; only the type parameter differs.
 pub struct SvcHostData<C> {

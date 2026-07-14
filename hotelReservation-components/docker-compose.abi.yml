@@ -198,6 +198,32 @@ services:
       - mongodb-review
     restart: on-failure
 
+  mongodb-reservation:
+    image: mongo:5.0
+    volumes:
+      - reservation-data:/data/db
+
+  reservation:
+    build:
+      context: .
+      target: runtime
+      args:
+        SERVICE: reservation
+    environment:
+      MODE: abi
+      MONGO_URI: "mongodb://mongodb-reservation:27017"
+      LISTEN_ADDR: "0.0.0.0:8100"
+      DATA_DIR: /data
+      WASM_FILE: /app/reservation-composed.wasm
+    ports:
+      - "8100:8100"
+    volumes:
+      - ./data/reservation-numbers-seed.json:/data/reservation-numbers-seed.json:ro
+      - ./data/reservation-reservations-seed.json:/data/reservation-reservations-seed.json:ro
+    depends_on:
+      - mongodb-reservation
+    restart: on-failure
+
 volumes:
   recommendation-data:
   attractions-data:
@@ -206,3 +232,4 @@ volumes:
   rate-data:
   profile-data:
   review-data:
+  reservation-data:

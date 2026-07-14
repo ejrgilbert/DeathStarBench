@@ -8,6 +8,7 @@ members = [
     "hosts/rate",
     "hosts/profile",
     "hosts/search",
-    "hosts/review"
+    "hosts/review",
+    "hosts/reservation"
 ]
 resolver = "2"

@@ -1,0 +1,36 @@
+syntax = "proto3";
+package reservation_store;
+
+service ReservationStore {
+  rpc Init(InitRequest)                       returns (InitResponse);
+  rpc LoadNumbers(LoadNumbersRequest)         returns (LoadNumbersResponse);
+  rpc LoadReservations(LoadReservationsRequest) returns (LoadReservationsResponse);
+  rpc InsertReservation(InsertReservationRequest) returns (InsertReservationResponse);
+}
+
+message InitRequest  {}
+message InitResponse {}
+message LoadNumbersRequest      {}
+message LoadReservationsRequest {}
+message InsertReservationRequest {
+  string hotelId      = 1;
+  string customerName = 2;
+  string inDate       = 3;
+  string outDate      = 4;
+  uint32 number       = 5;
+}
+message InsertReservationResponse {}
+
+message NumberRec {
+  string hotelId       = 1;
+  uint32 numberOfRoom  = 2;
+}
+message ReservationRec {
+  string hotelId       = 1;
+  string customerName  = 2;
+  string inDate        = 3;
+  string outDate       = 4;
+  uint32 number        = 5;
+}
+message LoadNumbersResponse      { repeated NumberRec      numbers      = 1; }
+message LoadReservationsResponse { repeated ReservationRec reservations = 1; }

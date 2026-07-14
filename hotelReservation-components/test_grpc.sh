@@ -55,7 +55,39 @@ if ! grpcurl -plaintext \
 fi
 
 echo "[INFO] testing reservation"
-# TODO
+if ! grpcurl -plaintext \
+      -import-path ./proto \
+      -proto reservation.proto \
+      -d '{"customerName":"Person","hotelId":["4"],"inDate":"2015-04-09","outDate":"2015-04-10","roomNumber":1}' \
+      localhost:8100 reservation.Reservation/CheckAvailability; then
+    echo "[ERROR] reservation failed"
+    exit 1
+fi
+if ! grpcurl -plaintext \
+      -import-path ./proto \
+      -proto reservation.proto \
+      -d '{"customerName":"Elizabeth","hotelId":"1","inDate":"2015-04-09","outDate":"2015-04-10","roomNumber":200}' \
+      localhost:8100 reservation.Reservation/MakeReservation; then
+    echo "[ERROR] reservation failed"
+    exit 1
+fi
+if ! grpcurl -plaintext \
+      -import-path ./proto \
+      -proto reservation.proto \
+      -d '{"customerName":"Elizabeth","hotelId":"1","inDate":"2015-04-09","outDate":"2015-04-10","roomNumber":1}' \
+      localhost:8100 reservation.Reservation/CheckAvailability; then
+    echo "[ERROR] reservation failed"
+    exit 1
+fi
+if ! grpcurl -plaintext \
+      -import-path ./proto \
+      -proto reservation.proto \
+      -d '{"customerName":"Not me","hotelId":"2","inDate":"2015-04-09","outDate":"2015-04-10","roomNumber":201}' \
+      localhost:8100 reservation.Reservation/MakeReservation; then
+    echo "[ERROR] reservation failed"
+    exit 1
+fi
+
 echo "[INFO] testing review"
 if ! grpcurl -plaintext \
       -import-path ./proto \

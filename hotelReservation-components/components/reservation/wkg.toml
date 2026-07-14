@@ -1,0 +1,3 @@
+[overrides]
+"hotel:reservation-data" = { path = "../reservation_store/wit" }
+"host:cache"             = { path = "../../wit/host-cache" }

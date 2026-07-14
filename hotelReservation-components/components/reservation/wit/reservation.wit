@@ -1,0 +1,40 @@
+package hotel:reservation;
+
+interface reservation {
+  init: func();
+  check-availability: func(
+    hotel-ids:   list<string>,
+    in-date:     string,
+    out-date:    string,
+    room-number: s32,
+  ) -> list<string>;
+  make-reservation: func(
+    hotel-id:      string,
+    customer-name: string,
+    in-date:       string,
+    out-date:      string,
+    room-number:   s32,
+  ) -> list<string>;
+}
+
+world reservation-world {
+  include wasi:cli/imports@0.2.0;
+  import hotel:reservation-data/reservation-store;
+  import host:cache/keyvalue;
+  export reservation;
+}
+
+world reservation-host-world {
+  import hotel:reservation-data/reservation-store;
+  import host:cache/keyvalue;
+  export reservation;
+}
+
+// In composed mode the svc imports the two low-level collection interfaces directly
+// (no separate store process).
+world reservation-composed-host-world {
+  import hotel:reservation-data/numbers-col;
+  import hotel:reservation-data/reservations-col;
+  import host:cache/keyvalue;
+  export reservation;
+}

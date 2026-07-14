@@ -1,0 +1,51 @@
+package hotel:reservation-data;
+
+// Lightweight collection interface for the 'number' (capacity) MongoDB collection.
+// Only the operations the Go store component actually needs.
+interface numbers-col {
+  type document = list<u8>;
+  count:       func() -> u64;
+  find-all:    func() -> list<document>;
+  insert-many: func(docs: list<document>);
+}
+
+// Lightweight collection interface for the 'reservation' MongoDB collection.
+// find-all for reads; insert-one for the write path.
+interface reservations-col {
+  type document = list<u8>;
+  find-all:   func() -> list<document>;
+  insert-one: func(doc: document);
+}
+
+interface reservation-store {
+  record number-rec {
+    hotel-id:       string,
+    number-of-room: u32,
+  }
+
+  record reservation-rec {
+    hotel-id:       string,
+    customer-name:  string,
+    in-date:        string,
+    out-date:       string,
+    number:         u32,
+  }
+
+  init:               func();
+  load-numbers:       func() -> list<number-rec>;
+  load-reservations:  func() -> list<reservation-rec>;
+  insert-reservation: func(r: reservation-rec);
+}
+
+world reservation-store-world {
+  include wasi:cli/imports@0.2.0;
+  import numbers-col;
+  import reservations-col;
+  export reservation-store;
+}
+
+world reservation-store-host-world {
+  import numbers-col;
+  import reservations-col;
+  export reservation-store;
+}
