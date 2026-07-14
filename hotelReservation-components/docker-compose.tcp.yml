@@ -274,6 +274,48 @@ services:
       - rate
     restart: on-failure
 
+  mongodb-review:
+    image: mongo:5.0
+    volumes:
+      - review-data:/data/db
+
+  review-store:
+    build:
+      context: .
+      target: runtime
+      args:
+        SERVICE: review
+    environment:
+      MODE: store
+      MONGO_URI: "mongodb://mongodb-review:27017"
+      LISTEN_ADDR: "0.0.0.0:8099"
+      DATA_DIR: /data
+      WASM_FILE: /app/review-store.wasm
+    ports:
+      - "8099:8099"
+    volumes:
+      - ./data/review-seed.json:/data/review-seed.json:ro
+    depends_on:
+      - mongodb-review
+    restart: on-failure
+
+  review:
+    build:
+      context: .
+      target: runtime
+      args:
+        SERVICE: review
+    environment:
+      MODE: svc
+      STORE_ADDR: "http://review-store:8099"
+      LISTEN_ADDR: "0.0.0.0:8098"
+      WASM_FILE: /app/review.wasm
+    ports:
+      - "8098:8098"
+    depends_on:
+      - review-store
+    restart: on-failure
+
 volumes:
   recommendation-data:
   attractions-data:
@@ -281,3 +323,4 @@ volumes:
   user-data:
   rate-data:
   profile-data:
+  review-data:

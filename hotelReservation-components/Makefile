@@ -1,6 +1,6 @@
 BUILD_DIR    := build
 TINYGO_FLAGS := -target=wasip2 -scheduler=none
-SERVICES     := recommendation attractions geo user rate profile # append here to add a service
+SERVICES     := recommendation attractions geo user rate profile review # append here to add a service
 # search has no store companion, built separately below
 
 BENCH_N    = 1000

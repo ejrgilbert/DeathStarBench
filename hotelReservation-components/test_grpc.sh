@@ -57,7 +57,15 @@ fi
 echo "[INFO] testing reservation"
 # TODO
 echo "[INFO] testing review"
-# TODO
+if ! grpcurl -plaintext \
+      -import-path ./proto \
+      -proto review.proto \
+      -d '{"hotelId":"2"}' \
+      localhost:8098 review.Review/GetReviews; then
+    echo "[ERROR] review failed"
+    exit 1
+fi
+
 echo "[INFO] testing search"
 if ! grpcurl -plaintext \
       -import-path ./proto \

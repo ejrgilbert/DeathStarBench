@@ -1,0 +1,31 @@
+package hotel:review-data;
+
+interface review-store {
+  record image {
+    url:     string,
+    default: bool,
+  }
+
+  record review {
+    review-id:   string,
+    hotel-id:    string,
+    name:        string,
+    rating:      f32,
+    description: string,
+    image:       image,
+  }
+
+  init:         func();
+  load-reviews: func() -> list<review>;
+}
+
+world review-store-world {
+  include wasi:cli/imports@0.2.0;
+  import host:storage/collection;
+  export review-store;
+}
+
+world review-store-host-world {
+  import host:storage/collection;
+  export review-store;
+}

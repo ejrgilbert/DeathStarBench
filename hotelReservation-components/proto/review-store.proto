@@ -1,0 +1,19 @@
+syntax = "proto3";
+package review_store;
+service ReviewStore {
+  rpc Init(InitRequest) returns (InitResponse);
+  rpc LoadReviews(LoadReviewsRequest) returns (LoadReviewsResponse);
+}
+message InitRequest {}
+message InitResponse {}
+message LoadReviewsRequest {}
+message LoadReviewsResponse { repeated Review reviews = 1; }
+message Review {
+  string reviewId    = 1;
+  string hotelId     = 2;
+  string name        = 3;
+  float  rating      = 4;
+  string description = 5;
+  Image  image       = 6;
+}
+message Image { string url = 1; bool default = 2; }
