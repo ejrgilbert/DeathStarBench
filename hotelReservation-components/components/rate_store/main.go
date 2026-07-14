@@ -70,7 +70,7 @@ func ensureLoaded() {
 		var s seedRatePlan
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
 		rates = append(rates, ratestore.RatePlan{
-			HotelId: s.HotelId,
+			HotelID: s.HotelId,
 			Code:    s.Code,
 			InDate:  s.InDate,
 			OutDate: s.OutDate,

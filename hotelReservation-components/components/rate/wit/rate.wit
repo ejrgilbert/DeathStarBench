@@ -2,11 +2,11 @@ package hotel:rate;
 
 interface rate {
   record room-type {
-    bookable-rate: float64,
+    bookable-rate: f64,
     code: string,
     room-description: string,
-    total-rate: float64,
-    total-rate-inclusive: float64,
+    total-rate: f64,
+    total-rate-inclusive: f64,
   }
 
   record rate-plan {

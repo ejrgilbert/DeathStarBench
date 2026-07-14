@@ -21,13 +21,13 @@ func doInit() {
 	store.Init()
 }
 
-func getRates(hotelIds []string, inDate, outDate string) cm.List[rateapi.RatePlan] {
-	result := svc.GetRates(hotelIds, loadAll, cacheGet, cacheSet)
+func getRates(hotelIds cm.List[string], inDate, outDate string) (result cm.List[rateapi.RatePlan]) {
+	plans := svc.GetRates(hotelIds.Slice(), loadAll, cacheGet, cacheSet)
 
-	witResult := make([]rateapi.RatePlan, len(result))
-	for i, p := range result {
+	witResult := make([]rateapi.RatePlan, len(plans))
+	for i, p := range plans {
 		witResult[i] = rateapi.RatePlan{
-			HotelId: p.HotelId,
+			HotelID: p.HotelId,
 			Code:    p.Code,
 			InDate:  p.InDate,
 			OutDate: p.OutDate,
@@ -40,22 +40,26 @@ func getRates(hotelIds []string, inDate, outDate string) cm.List[rateapi.RatePla
 			},
 		}
 	}
-	return cm.ToList(witResult)
+	result = cm.ToList(witResult)
+	return
 }
 
 func loadAll() []RatePlan {
 	witPlans := store.LoadRates().Slice()
 	plans := make([]RatePlan, len(witPlans))
 	for i, wp := range witPlans {
+        // bug workaround: string([]byte(s)) copies data out of the WIT-allocated buffer into
+        // Go-managed heap memory, preventing the GC from collecting the buffer
+        // while string headers still point into it.
 		plans[i] = RatePlan{
-			HotelId: wp.HotelId,
-			Code:    wp.Code,
-			InDate:  wp.InDate,
-			OutDate: wp.OutDate,
+			HotelId: string([]byte(wp.HotelID)),
+			Code:    string([]byte(wp.Code)),
+			InDate:  string([]byte(wp.InDate)),
+			OutDate: string([]byte(wp.OutDate)),
 			RoomType: RoomType{
 				BookableRate:       wp.RoomType.BookableRate,
-				Code:               wp.RoomType.Code,
-				RoomDescription:    wp.RoomType.RoomDescription,
+				Code:               string([]byte(wp.RoomType.Code)),
+				RoomDescription:    string([]byte(wp.RoomType.RoomDescription)),
 				TotalRate:          wp.RoomType.TotalRate,
 				TotalRateInclusive: wp.RoomType.TotalRateInclusive,
 			},
@@ -66,7 +70,7 @@ func loadAll() []RatePlan {
 
 func cacheGet(key string) ([]byte, bool) {
 	opt := kv.Get(key)
-	if opt.None() != nil {
+	if opt.None() {
 		return nil, false
 	}
 	return opt.Some().Slice(), true

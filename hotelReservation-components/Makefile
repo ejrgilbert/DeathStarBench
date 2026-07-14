@@ -1,6 +1,6 @@
 BUILD_DIR    := build
 TINYGO_FLAGS := -target=wasip2 -scheduler=none
-SERVICES     := recommendation attractions geo user rate  # append here to add a service
+SERVICES     := recommendation attractions geo user rate profile # append here to add a service
 
 BENCH_N    = 1000
 BENCH_C    = 10

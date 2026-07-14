@@ -1,0 +1,1282 @@
+[
+  {
+    "id": "1",
+    "name": "Clift Hotel",
+    "phoneNumber": "(415) 775-4700",
+    "description": "A 6-minute walk from Union Square and 4 minutes from a Muni Metro station, this luxury hotel designed by Philippe Starck features an artsy furniture collection in the lobby, including work by Salvador Dali.",
+    "address": {
+      "streetNumber": "495",
+      "streetName": "Geary St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94102",
+      "lat": 37.7867,
+      "lon": -122.4112
+    }
+  },
+  {
+    "id": "2",
+    "name": "W San Francisco",
+    "phoneNumber": "(415) 777-5300",
+    "description": "Less than a block from the Yerba Buena Center for the Arts, this trendy hotel is a 12-minute walk from Union Square.",
+    "address": {
+      "streetNumber": "181",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94103",
+      "lat": 37.7854,
+      "lon": -122.4005
+    }
+  },
+  {
+    "id": "3",
+    "name": "Hotel Zetta",
+    "phoneNumber": "(415) 543-8555",
+    "description": "A 3-minute walk from the Powell Street cable-car turnaround and BART rail station, this hip hotel 9 minutes from Union Square combines high-tech lodging with artsy touches.",
+    "address": {
+      "streetNumber": "55",
+      "streetName": "5th St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94103",
+      "lat": 37.7834,
+      "lon": -122.4071
+    }
+  },
+  {
+    "id": "4",
+    "name": "Hotel Vitale",
+    "phoneNumber": "(415) 278-3700",
+    "description": "This waterfront hotel with Bay Bridge views is 3 blocks from the Financial District and a 4-minute walk from the Ferry Building.",
+    "address": {
+      "streetNumber": "8",
+      "streetName": "Mission St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94105",
+      "lat": 37.7936,
+      "lon": -122.393
+    }
+  },
+  {
+    "id": "5",
+    "name": "Phoenix Hotel",
+    "phoneNumber": "(415) 776-1380",
+    "description": "Located in the Tenderloin neighborhood, a 10-minute walk from a BART rail station, this retro motor lodge has hosted many rock musicians and other celebrities since the 1950s. It's a 4-minute walk from the historic Great American Music Hall nightclub.",
+    "address": {
+      "streetNumber": "601",
+      "streetName": "Eddy St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.7831,
+      "lon": -122.4181
+    }
+  },
+  {
+    "id": "6",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4000",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.7863,
+      "lon": -122.4015
+    }
+  },
+  {
+    "id": "7",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-407",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.8255005,
+      "lon": -122.3540039
+    }
+  },
+  {
+    "id": "8",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-408",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.831501,
+      "lon": -122.3460007
+    }
+  },
+  {
+    "id": "9",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-409",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.8375015,
+      "lon": -122.3380051
+    }
+  },
+  {
+    "id": "10",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4010",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.843502,
+      "lon": -122.3300018
+    }
+  },
+  {
+    "id": "11",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4011",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.8495026,
+      "lon": -122.3220062
+    }
+  },
+  {
+    "id": "12",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4012",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.8554993,
+      "lon": -122.314003
+    }
+  },
+  {
+    "id": "13",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4013",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.8614998,
+      "lon": -122.3060074
+    }
+  },
+  {
+    "id": "14",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4014",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.8675003,
+      "lon": -122.2980042
+    }
+  },
+  {
+    "id": "15",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4015",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.8735008,
+      "lon": -122.2900009
+    }
+  },
+  {
+    "id": "16",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4016",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.8795013,
+      "lon": -122.2820053
+    }
+  },
+  {
+    "id": "17",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4017",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.8855019,
+      "lon": -122.2740021
+    }
+  },
+  {
+    "id": "18",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4018",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.8915024,
+      "lon": -122.2660065
+    }
+  },
+  {
+    "id": "19",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4019",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.8974991,
+      "lon": -122.2580032
+    }
+  },
+  {
+    "id": "20",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4020",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.9034996,
+      "lon": -122.25
+    }
+  },
+  {
+    "id": "21",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4021",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.9095001,
+      "lon": -122.2420044
+    }
+  },
+  {
+    "id": "22",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4022",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.9155006,
+      "lon": -122.2340012
+    }
+  },
+  {
+    "id": "23",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4023",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.9215012,
+      "lon": -122.2260056
+    }
+  },
+  {
+    "id": "24",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4024",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.9275017,
+      "lon": -122.2180023
+    }
+  },
+  {
+    "id": "25",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4025",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.9335022,
+      "lon": -122.2100067
+    }
+  },
+  {
+    "id": "26",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4026",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.9394989,
+      "lon": -122.2020035
+    }
+  },
+  {
+    "id": "27",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4027",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.9454994,
+      "lon": -122.1940002
+    }
+  },
+  {
+    "id": "28",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4028",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.9514999,
+      "lon": -122.1860046
+    }
+  },
+  {
+    "id": "29",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4029",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.9575005,
+      "lon": -122.1780014
+    }
+  },
+  {
+    "id": "30",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4030",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.963501,
+      "lon": -122.1700058
+    }
+  },
+  {
+    "id": "31",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4031",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.9695015,
+      "lon": -122.1620026
+    }
+  },
+  {
+    "id": "32",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4032",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.975502,
+      "lon": -122.154007
+    }
+  },
+  {
+    "id": "33",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4033",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.9815025,
+      "lon": -122.1460037
+    }
+  },
+  {
+    "id": "34",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4034",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.9874992,
+      "lon": -122.1380005
+    }
+  },
+  {
+    "id": "35",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4035",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.9934998,
+      "lon": -122.1300049
+    }
+  },
+  {
+    "id": "36",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4036",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 37.9995003,
+      "lon": -122.1220016
+    }
+  },
+  {
+    "id": "37",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4037",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0055008,
+      "lon": -122.114006
+    }
+  },
+  {
+    "id": "38",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4038",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0115013,
+      "lon": -122.1060028
+    }
+  },
+  {
+    "id": "39",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4039",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0175018,
+      "lon": -122.0980072
+    }
+  },
+  {
+    "id": "40",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4040",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0235023,
+      "lon": -122.090004
+    }
+  },
+  {
+    "id": "41",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4041",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0294991,
+      "lon": -122.0820007
+    }
+  },
+  {
+    "id": "42",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4042",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0354996,
+      "lon": -122.0740051
+    }
+  },
+  {
+    "id": "43",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4043",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0415001,
+      "lon": -122.0660019
+    }
+  },
+  {
+    "id": "44",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4044",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0475006,
+      "lon": -122.0580063
+    }
+  },
+  {
+    "id": "45",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4045",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0535011,
+      "lon": -122.0500031
+    }
+  },
+  {
+    "id": "46",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4046",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0595016,
+      "lon": -122.0420074
+    }
+  },
+  {
+    "id": "47",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4047",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0655022,
+      "lon": -122.0340042
+    }
+  },
+  {
+    "id": "48",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4048",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0714989,
+      "lon": -122.026001
+    }
+  },
+  {
+    "id": "49",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4049",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0774994,
+      "lon": -122.0180054
+    }
+  },
+  {
+    "id": "50",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4050",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0834999,
+      "lon": -122.0100021
+    }
+  },
+  {
+    "id": "51",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4051",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0895004,
+      "lon": -122.0020065
+    }
+  },
+  {
+    "id": "52",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4052",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.0955009,
+      "lon": -121.9940033
+    }
+  },
+  {
+    "id": "53",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4053",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.1015015,
+      "lon": -121.9860001
+    }
+  },
+  {
+    "id": "54",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4054",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.107502,
+      "lon": -121.9780045
+    }
+  },
+  {
+    "id": "55",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4055",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.1135025,
+      "lon": -121.9700012
+    }
+  },
+  {
+    "id": "56",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4056",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.1194992,
+      "lon": -121.9620056
+    }
+  },
+  {
+    "id": "57",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4057",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.1254997,
+      "lon": -121.9540024
+    }
+  },
+  {
+    "id": "58",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4058",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.1315002,
+      "lon": -121.9460068
+    }
+  },
+  {
+    "id": "59",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4059",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.1375008,
+      "lon": -121.9380035
+    }
+  },
+  {
+    "id": "60",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4060",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.1435013,
+      "lon": -121.9300003
+    }
+  },
+  {
+    "id": "61",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4061",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.1495018,
+      "lon": -121.9220047
+    }
+  },
+  {
+    "id": "62",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4062",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.1555023,
+      "lon": -121.9140015
+    }
+  },
+  {
+    "id": "63",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4063",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.161499,
+      "lon": -121.9060059
+    }
+  },
+  {
+    "id": "64",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4064",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.1674995,
+      "lon": -121.8980026
+    }
+  },
+  {
+    "id": "65",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4065",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.1735001,
+      "lon": -121.890007
+    }
+  },
+  {
+    "id": "66",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4066",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.1795006,
+      "lon": -121.8820038
+    }
+  },
+  {
+    "id": "67",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4067",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.1855011,
+      "lon": -121.8740005
+    }
+  },
+  {
+    "id": "68",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4068",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.1915016,
+      "lon": -121.8660049
+    }
+  },
+  {
+    "id": "69",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4069",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.1975021,
+      "lon": -121.8580017
+    }
+  },
+  {
+    "id": "70",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4070",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.2034988,
+      "lon": -121.8500061
+    }
+  },
+  {
+    "id": "71",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4071",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.2094994,
+      "lon": -121.8420029
+    }
+  },
+  {
+    "id": "72",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4072",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.2154999,
+      "lon": -121.8340073
+    }
+  },
+  {
+    "id": "73",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4073",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.2215004,
+      "lon": -121.826004
+    }
+  },
+  {
+    "id": "74",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4074",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.2275009,
+      "lon": -121.8180008
+    }
+  },
+  {
+    "id": "75",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4075",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.2335014,
+      "lon": -121.8100052
+    }
+  },
+  {
+    "id": "76",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4076",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.239502,
+      "lon": -121.802002
+    }
+  },
+  {
+    "id": "77",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4077",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.2455025,
+      "lon": -121.7940063
+    }
+  },
+  {
+    "id": "78",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4078",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.2514992,
+      "lon": -121.7860031
+    }
+  },
+  {
+    "id": "79",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4079",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.2574997,
+      "lon": -121.7779999
+    }
+  },
+  {
+    "id": "80",
+    "name": "St. Regis San Francisco",
+    "phoneNumber": "(415) 284-4080",
+    "description": "St. Regis Museum Tower is a 42-story, 484 ft skyscraper in the South of Market district of San Francisco, California, adjacent to Yerba Buena Gardens, Moscone Center, PacBell Building and the San Francisco Museum of Modern Art.",
+    "address": {
+      "streetNumber": "125",
+      "streetName": "3rd St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "United States",
+      "postalCode": "94109",
+      "lat": 38.2635002,
+      "lon": -121.7700043
+    }
+  }
+]

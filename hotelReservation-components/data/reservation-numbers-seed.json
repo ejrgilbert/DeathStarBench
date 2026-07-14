@@ -1,0 +1,322 @@
+[
+  {
+    "hotelId": "1",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "2",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "3",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "4",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "5",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "6",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "7",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "8",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "9",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "10",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "11",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "12",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "13",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "14",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "15",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "16",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "17",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "18",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "19",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "20",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "21",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "22",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "23",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "24",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "25",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "26",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "27",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "28",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "29",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "30",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "31",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "32",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "33",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "34",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "35",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "36",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "37",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "38",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "39",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "40",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "41",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "42",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "43",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "44",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "45",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "46",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "47",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "48",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "49",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "50",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "51",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "52",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "53",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "54",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "55",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "56",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "57",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "58",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "59",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "60",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "61",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "62",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "63",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "64",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "65",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "66",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "67",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "68",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "69",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "70",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "71",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "72",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "73",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "74",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "75",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "76",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "77",
+    "numberOfRoom": 250
+  },
+  {
+    "hotelId": "78",
+    "numberOfRoom": 200
+  },
+  {
+    "hotelId": "79",
+    "numberOfRoom": 300
+  },
+  {
+    "hotelId": "80",
+    "numberOfRoom": 250
+  }
+]

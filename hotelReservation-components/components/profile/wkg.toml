@@ -1,0 +1,4 @@
+[overrides]
+"hotel:profile-data" = { path = "../profile_store/wit" }
+"host:storage" = { path = "../../wit/host-storage" }
+"host:cache" = { path = "../../wit/host-cache" }

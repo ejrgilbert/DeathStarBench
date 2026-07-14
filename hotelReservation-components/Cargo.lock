@@ -2228,6 +2228,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "profile-host"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bson",
+ "host-lib",
+ "mongodb",
+ "prost",
+ "tokio",
+ "tonic",
+ "tonic-build",
+ "wasmtime",
+ "wasmtime-wasi",
+]
+
+[[package]]
 name = "prost"
 version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -35,14 +35,14 @@ func (s *Service) GetRates(
 	var missed []string
 
 	for _, id := range hotelIds {
-		val, ok := cacheGet(id)
-		if !ok {
-			missed = append(missed, id)
-			continue
+		if val, ok := cacheGet(id); ok {
+			var plans []RatePlan
+			if err := json.Unmarshal(val, &plans); err == nil {
+				result = append(result, plans...)
+				continue
+			}
 		}
-		var plans []RatePlan
-		json.Unmarshal(val, &plans)
-		result = append(result, plans...)
+		missed = append(missed, id)
 	}
 
 	if len(missed) > 0 {
@@ -52,8 +52,11 @@ func (s *Service) GetRates(
 		}
 
 		for hotelId, plans := range byHotel {
-			b, _ := json.Marshal(plans)
-			cacheSet(hotelId, b)
+			if val, err := json.Marshal(plans); err != nil {
+				println("rate: failed to marshal plans for hotel", hotelId, ":", err.Error())
+			} else {
+				cacheSet(hotelId, val)
+			}
 		}
 		for _, id := range missed {
 			result = append(result, byHotel[id]...)

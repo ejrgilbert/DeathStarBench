@@ -47,7 +47,9 @@ impl wasmtime_wasi::WasiView for StoreData {
 }
 
 pub fn bson_to_json(doc: &bson::Document) -> Result<Vec<u8>> {
-    let val = bson::from_document::<serde_json::Value>(doc.clone())?;
+    let mut doc = doc.clone();
+    doc.remove("_id");
+    let val = bson::from_document::<serde_json::Value>(doc)?;
     Ok(serde_json::to_vec(&val)?)
 }
 

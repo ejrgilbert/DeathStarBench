@@ -1,0 +1,68 @@
+[
+  {
+    "reviewId": "1",
+    "hotelId": "1",
+    "name": "Person 1",
+    "rating": 3.4,
+    "description": "A 6-minute walk from Union Square and 4 minutes from a Muni Metro station, this luxury hotel designed by Philippe Starck features an artsy furniture collection in the lobby, including work by Salvador Dali.",
+    "images": {
+      "url": "some url",
+      "default": false
+    }
+  },
+  {
+    "reviewId": "2",
+    "hotelId": "1",
+    "name": "Person 2",
+    "rating": 4.4,
+    "description": "A 6-minute walk from Union Square and 4 minutes from a Muni Metro station, this luxury hotel designed by Philippe Starck features an artsy furniture collection in the lobby, including work by Salvador Dali.",
+    "images": {
+      "url": "some url",
+      "default": false
+    }
+  },
+  {
+    "reviewId": "3",
+    "hotelId": "1",
+    "name": "Person 3",
+    "rating": 4.2,
+    "description": "A 6-minute walk from Union Square and 4 minutes from a Muni Metro station, this luxury hotel designed by Philippe Starck features an artsy furniture collection in the lobby, including work by Salvador Dali.",
+    "images": {
+      "url": "some url",
+      "default": false
+    }
+  },
+  {
+    "reviewId": "4",
+    "hotelId": "1",
+    "name": "Person 4",
+    "rating": 3.9,
+    "description": "A 6-minute walk from Union Square and 4 minutes from a Muni Metro station, this luxury hotel designed by Philippe Starck features an artsy furniture collection in the lobby, including work by Salvador Dali.",
+    "images": {
+      "url": "some url",
+      "default": false
+    }
+  },
+  {
+    "reviewId": "5",
+    "hotelId": "2",
+    "name": "Person 5",
+    "rating": 4.2,
+    "description": "A 6-minute walk from Union Square and 4 minutes from a Muni Metro station, this luxury hotel designed by Philippe Starck features an artsy furniture collection in the lobby, including work by Salvador Dali.",
+    "images": {
+      "url": "some url",
+      "default": false
+    }
+  },
+  {
+    "reviewId": "6",
+    "hotelId": "2",
+    "name": "Person 6",
+    "rating": 3.7,
+    "description": "A 6-minute walk from Union Square and 4 minutes from a Muni Metro station, this luxury hotel designed by Philippe Starck features an artsy furniture collection in the lobby, including work by Salvador Dali.",
+    "images": {
+      "url": "some url",
+      "default": false
+    }
+  }
+]
