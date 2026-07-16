@@ -1,43 +1,12 @@
-package hotel:profile-data;
-
-interface profile-store {
-  record hotel {
-    id: string,
-    name: string,
-    phone-number: string,
-    description: string,
-    addr: address,
-    images: list<image>,
-  }
-
-  record address {
-    street-number: string,
-    street-name: string,
-    city: string,
-    state: string,
-    country: string,
-    postal-code: string,
-    lat: f64,
-    lon: f64,
-  }
-
-  record image {
-    url: string,
-    default: bool
-  }
-
-  init: func();
-
-  load-profiles: func() -> list<hotel>;
-}
+package hotel:profile-data-wasm;
 
 world profile-store-world {
-  include wasi:cli/imports@0.2.0;
-  import host:storage/collection;
-  export profile-store;
+    include wasi:cli/imports@0.2.0;
+    import host:storage/collection;
+    export hotel:store/profile-store;
 }
 
 world profile-store-host-world {
-  import host:storage/collection;
-  export profile-store;
+    import host:storage/collection;
+    export hotel:store/profile-store;
 }

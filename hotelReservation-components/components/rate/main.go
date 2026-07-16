@@ -3,9 +3,9 @@ package main
 import (
 	"go.bytecodealliance.org/cm"
 
-	kv "hotel-components/components/rate/host/cache/keyvalue"
-	store "hotel-components/components/rate/hotel/rate-data/rate-store"
-	rateapi "hotel-components/components/rate/hotel/rate/rate"
+	kv "hotel-components/components/rate/cache/keyvalue/keyvalue"
+	store "hotel-components/components/rate/hotel/store/rate-store"
+	rateapi "hotel-components/components/rate/hotel/api/rate"
 )
 
 var svc = NewService()

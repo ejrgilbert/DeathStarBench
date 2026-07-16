@@ -1,5 +1,4 @@
 use anyhow::Result;
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use wasmtime::Store;
@@ -17,7 +16,6 @@ pub struct AbiData {
     pub table:            wasmtime_wasi::ResourceTable,
     pub numbers_col:      Arc<mongodb::Collection<bson::Document>>,
     pub reservations_col: Arc<mongodb::Collection<bson::Document>>,
-    pub cache:            Arc<Mutex<HashMap<String, Vec<u8>>>>,
 }
 
 impl wasmtime_wasi::WasiView for AbiData {
@@ -45,16 +43,6 @@ impl hotel::reservation_data::reservations_col::Host for AbiData {
     }
     async fn insert_one(&mut self, doc: Vec<u8>) {
         host_lib::mongo_insert_one(&self.reservations_col, doc).await.unwrap()
-    }
-}
-
-#[async_trait::async_trait]
-impl host::cache::keyvalue::Host for AbiData {
-    async fn get(&mut self, key: String) -> Option<Vec<u8>> {
-        self.cache.lock().await.get(&key).cloned()
-    }
-    async fn set(&mut self, key: String, value: Vec<u8>) {
-        self.cache.lock().await.insert(key, value);
     }
 }
 
@@ -105,7 +93,6 @@ pub async fn run() -> anyhow::Result<()> {
     let db    = mongo.database("reservation-db");
     let numbers_col      = Arc::new(db.collection::<bson::Document>("number"));
     let reservations_col = Arc::new(db.collection::<bson::Document>("reservation"));
-    let cache: Arc<Mutex<HashMap<String, Vec<u8>>>> = Arc::new(Mutex::new(HashMap::new()));
 
     let engine     = host_lib::make_engine()?;
     let mut linker: Linker<AbiData> = Linker::new(&engine);
@@ -117,7 +104,6 @@ pub async fn run() -> anyhow::Result<()> {
         table:            wasmtime_wasi::ResourceTable::new(),
         numbers_col,
         reservations_col,
-        cache,
     };
     let mut store = Store::new(&engine, data);
 

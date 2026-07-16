@@ -1,4 +1,4 @@
-package host:cache;
+package cache:keyvalue;
 
 interface keyvalue {
   get: func(key: string) -> option<list<u8>>;

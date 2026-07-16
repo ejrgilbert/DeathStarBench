@@ -1,1 +1,2 @@
 [overrides]
+"hotel:store" = { path = "../../wit/hotel-store" }

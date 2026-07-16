@@ -3,9 +3,9 @@ package main
 import (
 	"go.bytecodealliance.org/cm"
 
-	geoapi    "hotel-components/components/search/hotel/geo/geo"
-	rateapi   "hotel-components/components/search/hotel/rate/rate"
-	searchapi "hotel-components/components/search/hotel/search/search"
+	geoapi    "hotel-components/components/search/hotel/api/geo"
+	rateapi   "hotel-components/components/search/hotel/api/rate"
+	searchapi "hotel-components/components/search/hotel/api/search"
 )
 
 func main() {}

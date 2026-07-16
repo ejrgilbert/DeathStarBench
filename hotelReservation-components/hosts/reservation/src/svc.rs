@@ -1,5 +1,4 @@
 use anyhow::Result;
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use wasmtime::Store;
@@ -14,6 +13,11 @@ use store_proto::{
     InitRequest, LoadNumbersRequest, LoadReservationsRequest, InsertReservationRequest,
 };
 
+mod cache_proto {
+    tonic::include_proto!("cache");
+}
+use cache_proto::{cache_client::CacheClient, GetRequest, SetRequest};
+
 wasmtime::component::bindgen!({
     path: "../../components/reservation/wit",
     world: "reservation-host-world",
@@ -24,7 +28,7 @@ pub struct HostData {
     pub wasi:         wasmtime_wasi::WasiCtx,
     pub table:        wasmtime_wasi::ResourceTable,
     pub store_client: Arc<Mutex<ReservationStoreClient<tonic::transport::Channel>>>,
-    pub cache:        Arc<Mutex<HashMap<String, Vec<u8>>>>,
+    pub cache_client: Arc<Mutex<CacheClient<tonic::transport::Channel>>>,
 }
 
 impl wasmtime_wasi::WasiView for HostData {
@@ -92,10 +96,17 @@ impl hotel::reservation_data::reservation_store::Host for HostData {
 #[async_trait::async_trait]
 impl host::cache::keyvalue::Host for HostData {
     async fn get(&mut self, key: String) -> Option<Vec<u8>> {
-        self.cache.lock().await.get(&key).cloned()
+        let resp = self.cache_client.lock().await
+            .get(tonic::Request::new(GetRequest { key })).await
+            .expect("gRPC cache Get failed")
+            .into_inner();
+        if resp.found { Some(resp.value) } else { None }
     }
+
     async fn set(&mut self, key: String, value: Vec<u8>) {
-        self.cache.lock().await.insert(key, value);
+        self.cache_client.lock().await
+            .set(tonic::Request::new(SetRequest { key, value })).await
+            .expect("gRPC cache Set failed");
     }
 }
 
@@ -138,6 +149,8 @@ pub async fn run() -> anyhow::Result<()> {
 
     let store_addr  = std::env::var("STORE_ADDR")
         .unwrap_or_else(|_| "http://localhost:8101".into());
+    let cache_addr  = std::env::var("CACHE_ADDR")
+        .unwrap_or_else(|_| "http://localhost:8102".into());
     let listen_addr: std::net::SocketAddr = std::env::var("LISTEN_ADDR")
         .unwrap_or_else(|_| "0.0.0.0:8100".into())
         .parse()?;
@@ -146,7 +159,8 @@ pub async fn run() -> anyhow::Result<()> {
 
     let store_client = ReservationStoreClient::connect(store_addr).await?;
     let store_client = Arc::new(Mutex::new(store_client));
-    let cache: Arc<Mutex<HashMap<String, Vec<u8>>>> = Arc::new(Mutex::new(HashMap::new()));
+    let cache_client = CacheClient::connect(cache_addr).await?;
+    let cache_client = Arc::new(Mutex::new(cache_client));
 
     let engine     = host_lib::make_engine()?;
     let mut linker: Linker<HostData> = Linker::new(&engine);
@@ -157,7 +171,7 @@ pub async fn run() -> anyhow::Result<()> {
         wasi:         host_lib::make_wasi_ctx(),
         table:        wasmtime_wasi::ResourceTable::new(),
         store_client,
-        cache,
+        cache_client,
     };
     let mut store = wasmtime::Store::new(&engine, data);
 

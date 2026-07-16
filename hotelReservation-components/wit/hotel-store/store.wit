@@ -1,0 +1,161 @@
+package hotel:store;
+
+interface geo-store {
+    record point {
+        id:  string,
+        lat: f64,
+        lon: f64,
+    }
+    init: func();
+    load-geo: func() -> list<point>;
+}
+
+interface rate-store {
+    record room-type {
+        bookable-rate:        f64,
+        code:                 string,
+        room-description:     string,
+        total-rate:           f64,
+        total-rate-inclusive: f64,
+    }
+    record rate-plan {
+        hotel-id:  string,
+        code:      string,
+        in-date:   string,
+        out-date:  string,
+        room-type: room-type,
+    }
+    init: func();
+    load-rates: func() -> list<rate-plan>;
+}
+
+interface profile-store {
+    record hotel {
+        id:           string,
+        name:         string,
+        phone-number: string,
+        description:  string,
+        addr:         address,
+        images:       list<image>,
+    }
+    record address {
+        street-number: string,
+        street-name:   string,
+        city:          string,
+        state:         string,
+        country:       string,
+        postal-code:   string,
+        lat:           f64,
+        lon:           f64,
+    }
+    record image {
+        url:     string,
+        default: bool,
+    }
+    init: func();
+    load-profiles: func() -> list<hotel>;
+}
+
+interface user-store {
+    record user {
+        username: string,
+        password: string,
+    }
+    init: func();
+    load-users: func() -> list<user>;
+}
+
+interface recommendation-store {
+    record hotel {
+        id:    string,
+        lat:   f64,
+        lon:   f64,
+        rate:  f64,
+        price: f64,
+    }
+    init: func();
+    load-hotels: func() -> list<hotel>;
+}
+
+interface attractions-store {
+    record hotel-position {
+        id:  string,
+        lat: f64,
+        lon: f64,
+    }
+    record restaurant {
+        id:       string,
+        lat:      f64,
+        lon:      f64,
+        name:     string,
+        rating:   f32,
+        category: string,
+    }
+    record museum {
+        id:       string,
+        lat:      f64,
+        lon:      f64,
+        name:     string,
+        category: string,
+    }
+    record cinema {
+        id:       string,
+        lat:      f64,
+        lon:      f64,
+        name:     string,
+        category: string,
+    }
+    init: func();
+    load-hotel-positions: func() -> list<hotel-position>;
+    load-restaurants:     func() -> list<restaurant>;
+    load-museums:         func() -> list<museum>;
+    load-cinemas:         func() -> list<cinema>;
+}
+
+interface review-store {
+    record image {
+        url:     string,
+        default: bool,
+    }
+    record review {
+        review-id:   string,
+        hotel-id:    string,
+        name:        string,
+        rating:      f32,
+        description: string,
+        image:       image,
+    }
+    init: func();
+    load-reviews: func() -> list<review>;
+}
+
+interface numbers-col {
+    type document = list<u8>;
+    count:       func() -> u64;
+    find-all:    func() -> list<document>;
+    insert-many: func(docs: list<document>);
+}
+
+interface reservations-col {
+    type document = list<u8>;
+    find-all:  func() -> list<document>;
+    insert-one: func(doc: document);
+}
+
+interface reservation-store {
+    record number-rec {
+        hotel-id:       string,
+        number-of-room: u32,
+    }
+    record reservation-rec {
+        hotel-id:      string,
+        customer-name: string,
+        in-date:       string,
+        out-date:      string,
+        number:        u32,
+    }
+    init:               func();
+    load-numbers:       func() -> list<number-rec>;
+    load-reservations:  func() -> list<reservation-rec>;
+    insert-reservation: func(r: reservation-rec);
+}

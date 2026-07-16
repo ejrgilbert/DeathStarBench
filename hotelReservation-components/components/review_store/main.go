@@ -7,7 +7,7 @@ import (
 	"go.bytecodealliance.org/cm"
 
 	col      "hotel-components/components/review_store/host/storage/collection"
-	revstore "hotel-components/components/review_store/hotel/review-data/review-store"
+	revstore "hotel-components/components/review_store/hotel/store/review-store"
 )
 
 type seedImage struct {

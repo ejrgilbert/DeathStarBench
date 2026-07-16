@@ -6,9 +6,9 @@ import (
 
 	"go.bytecodealliance.org/cm"
 
-	ncol     "hotel-components/components/reservation_store/hotel/reservation-data/numbers-col"
-	rcol     "hotel-components/components/reservation_store/hotel/reservation-data/reservations-col"
-	revstore "hotel-components/components/reservation_store/hotel/reservation-data/reservation-store"
+	ncol     "hotel-components/components/reservation_store/hotel/store/numbers-col"
+	rcol     "hotel-components/components/reservation_store/hotel/store/reservations-col"
+	revstore "hotel-components/components/reservation_store/hotel/store/reservation-store"
 )
 
 type seedNumber struct {

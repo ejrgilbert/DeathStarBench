@@ -1,0 +1,24 @@
+package hotel:frontend;
+
+world frontend-world {
+    include wasi:cli/imports@0.2.0;
+    import hotel:api/search;
+    import hotel:api/profile;
+    import hotel:api/recommendation;
+    import hotel:api/user;
+    import hotel:api/review;
+    import hotel:api/attractions;
+    import hotel:api/reservation;
+    export wasi:http/incoming-handler@0.2.0;
+}
+
+world frontend-host-world {
+    import hotel:api/search;
+    import hotel:api/profile;
+    import hotel:api/recommendation;
+    import hotel:api/user;
+    import hotel:api/review;
+    import hotel:api/attractions;
+    import hotel:api/reservation;
+    export wasi:http/incoming-handler@0.2.0;
+}

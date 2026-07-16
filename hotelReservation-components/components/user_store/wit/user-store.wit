@@ -1,24 +1,12 @@
-package hotel:user-data;
+package hotel:user-data-wasm;
 
-interface user-store {
-    record user {
-        username: string,
-        password: string,
-    }
-
-    init: func();
-    load-users: func() -> list<user>;
-}
-
-// Full world used by TinyGo.
 world user-store-world {
     include wasi:cli/imports@0.2.0;
     import host:storage/collection;
-    export user-store;
+    export hotel:store/user-store;
 }
 
-// Minimal world used by the Rust host's bindgen!
 world user-store-host-world {
     import host:storage/collection;
-    export user-store;
+    export hotel:store/user-store;
 }

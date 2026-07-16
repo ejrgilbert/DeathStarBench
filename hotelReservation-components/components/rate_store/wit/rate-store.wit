@@ -1,34 +1,12 @@
-package hotel:rate-data;
-
-interface rate-store {
-  record room-type {
-    bookable-rate: f64,
-    code: string,
-    room-description: string,
-    total-rate: f64,
-    total-rate-inclusive: f64,
-  }
-
-  record rate-plan {
-    hotel-id: string,
-    code: string,
-    in-date: string,
-    out-date: string,
-    room-type: room-type,
-  }
-
-  init: func();
-
-  load-rates: func() -> list<rate-plan>;
-}
+package hotel:rate-data-wasm;
 
 world rate-store-world {
-  include wasi:cli/imports@0.2.0;
-  import host:storage/collection;
-  export rate-store;
+    include wasi:cli/imports@0.2.0;
+    import host:storage/collection;
+    export hotel:store/rate-store;
 }
 
 world rate-store-host-world {
-  import host:storage/collection;
-  export rate-store;
+    import host:storage/collection;
+    export hotel:store/rate-store;
 }

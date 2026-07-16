@@ -7,7 +7,7 @@ import (
 	"go.bytecodealliance.org/cm"
 
 	col "hotel-components/components/rate_store/host/storage/collection"
-	ratestore "hotel-components/components/rate_store/hotel/rate-data/rate-store"
+	ratestore "hotel-components/components/rate_store/hotel/store/rate-store"
 )
 
 type seedRoomType struct {

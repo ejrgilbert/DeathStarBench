@@ -1,53 +1,12 @@
-package hotel:attractions-data;
+package hotel:attractions-data-wasm;
 
-interface attractions-store {
-    record hotel-position {
-        id:  string,
-        lat: f64,
-        lon: f64,
-    }
-
-    record restaurant {
-        id:       string,
-        lat:      f64,
-        lon:      f64,
-        name:     string,
-        rating:   f32,
-        category: string,
-    }
-
-    record museum {
-        id:       string,
-        lat:      f64,
-        lon:      f64,
-        name:     string,
-        category: string,
-    }
-
-    record cinema {
-        id:       string,
-        lat:      f64,
-        lon:      f64,
-        name:     string,
-        category: string,
-    }
-
-    init: func();
-    load-hotel-positions: func() -> list<hotel-position>;
-    load-restaurants:     func() -> list<restaurant>;
-    load-museums:         func() -> list<museum>;
-    load-cinemas:         func() -> list<cinema>;
-}
-
-// Full world used by TinyGo.
 world attractions-store-world {
     include wasi:cli/imports@0.2.0;
     import host:storage/collection;
-    export attractions-store;
+    export hotel:store/attractions-store;
 }
 
-// Minimal world used by the Rust host's bindgen!
 world attractions-store-host-world {
     import host:storage/collection;
-    export attractions-store;
+    export hotel:store/attractions-store;
 }

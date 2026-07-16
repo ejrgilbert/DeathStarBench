@@ -1,36 +1,12 @@
-package hotel:recommendation;
+package hotel:recommendation-wasm;
 
-interface recommendation {
-    enum requirement {
-        distance,
-        rate,
-        price,
-    }
-
-    init: func();
-
-    recommend: func(
-        requirement: requirement,
-        lat: f64,
-        lon: f64,
-    ) -> list<string>;
-}
-
-// Full world used by TinyGo.
 world recommendation-world {
     include wasi:cli/imports@0.2.0;
-    import hotel:recommendation-data/recommendation-store;
-    export recommendation;
+    import hotel:store/recommendation-store;
+    export hotel:api/recommendation;
 }
 
-// Minimal world used by the Rust host's bindgen!
 world recommendation-host-world {
-    import hotel:recommendation-data/recommendation-store;
-    export recommendation;
-}
-
-// Host world for the wac-composed component.
-world recommendation-composed-host-world {
-    import host:storage/collection;
-    export recommendation;
+    import hotel:store/recommendation-store;
+    export hotel:api/recommendation;
 }

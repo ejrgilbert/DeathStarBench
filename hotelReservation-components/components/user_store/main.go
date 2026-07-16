@@ -7,7 +7,7 @@ import (
 	"go.bytecodealliance.org/cm"
 
 	col "hotel-components/components/user_store/host/storage/collection"
-	userstore "hotel-components/components/user_store/hotel/user-data/user-store"
+	userstore "hotel-components/components/user_store/hotel/store/user-store"
 )
 
 type seedUser struct {

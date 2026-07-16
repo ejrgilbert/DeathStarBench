@@ -7,7 +7,7 @@ import (
 	"go.bytecodealliance.org/cm"
 
 	col "hotel-components/components/profile_store/host/storage/collection"
-	profstore "hotel-components/components/profile_store/hotel/profile-data/profile-store"
+	profstore "hotel-components/components/profile_store/hotel/store/profile-store"
 )
 
 type seedAddress struct {

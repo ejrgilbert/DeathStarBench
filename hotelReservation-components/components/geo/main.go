@@ -3,8 +3,8 @@ package main
 import (
 	"go.bytecodealliance.org/cm"
 
-	store "hotel-components/components/geo/hotel/geo-data/geo-store"
-	attapi "hotel-components/components/geo/hotel/geo/geo"
+	store "hotel-components/components/geo/hotel/store/geo-store"
+	attapi "hotel-components/components/geo/hotel/api/geo"
 )
 
 var svc = NewService()

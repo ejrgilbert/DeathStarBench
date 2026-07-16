@@ -7,7 +7,7 @@ import (
 	"go.bytecodealliance.org/cm"
 
 	col "hotel-components/components/geo_store/host/storage/collection"
-	attstore "hotel-components/components/geo_store/hotel/geo-data/geo-store"
+	attstore "hotel-components/components/geo_store/hotel/store/geo-store"
 )
 
 type seedPoint struct {

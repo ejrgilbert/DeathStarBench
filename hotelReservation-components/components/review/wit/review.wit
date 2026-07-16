@@ -1,39 +1,14 @@
-package hotel:review;
-
-interface review {
-  record image {
-    url:     string,
-    default: bool,
-  }
-
-  record review-comm {
-    review-id:   string,
-    hotel-id:    string,
-    name:        string,
-    rating:      f32,
-    description: string,
-    image:       image,
-  }
-
-  init:        func();
-  get-reviews: func(hotel-id: string) -> list<review-comm>;
-}
+package hotel:review-wasm;
 
 world review-world {
-  include wasi:cli/imports@0.2.0;
-  import hotel:review-data/review-store;
-  import host:cache/keyvalue;
-  export review;
+    include wasi:cli/imports@0.2.0;
+    import hotel:store/review-store;
+    import cache:keyvalue/keyvalue;
+    export hotel:api/review;
 }
 
 world review-host-world {
-  import hotel:review-data/review-store;
-  import host:cache/keyvalue;
-  export review;
-}
-
-world review-composed-host-world {
-  import host:storage/collection;
-  import host:cache/keyvalue;
-  export review;
+    import hotel:store/review-store;
+    import cache:keyvalue/keyvalue;
+    export hotel:api/review;
 }

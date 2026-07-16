@@ -1,5 +1,4 @@
 use anyhow::Result;
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use wasmtime::Store;
@@ -16,7 +15,6 @@ pub struct AbiData {
     pub wasi:       wasmtime_wasi::WasiCtx,
     pub table:      wasmtime_wasi::ResourceTable,
     pub collection: Arc<mongodb::Collection<bson::Document>>,
-    pub cache:      Arc<Mutex<HashMap<String, Vec<u8>>>>,
 }
 
 impl wasmtime_wasi::WasiView for AbiData {
@@ -25,17 +23,6 @@ impl wasmtime_wasi::WasiView for AbiData {
 }
 
 host_lib::impl_collection_host!(AbiData);
-
-#[async_trait::async_trait]
-impl host::cache::keyvalue::Host for AbiData {
-    async fn get(&mut self, key: String) -> Option<Vec<u8>> {
-        self.cache.lock().await.get(&key).cloned()
-    }
-
-    async fn set(&mut self, key: String, value: Vec<u8>) {
-        self.cache.lock().await.insert(key, value);
-    }
-}
 
 #[async_trait::async_trait]
 impl RateComponent for RateComposedHostWorld {
@@ -79,7 +66,6 @@ pub async fn run() -> anyhow::Result<()> {
 
     let mongo = mongodb::Client::with_uri_str(&mongo_uri).await?;
     let collection = Arc::new(mongo.database("rate-db").collection("inventory"));
-    let cache: Arc<Mutex<HashMap<String, Vec<u8>>>> = Arc::new(Mutex::new(HashMap::new()));
 
     let engine = host_lib::make_engine()?;
     let mut linker: Linker<AbiData> = Linker::new(&engine);
@@ -90,7 +76,6 @@ pub async fn run() -> anyhow::Result<()> {
         wasi:       host_lib::make_store_wasi_ctx(&data_dir)?,
         table:      wasmtime_wasi::ResourceTable::new(),
         collection,
-        cache,
     };
     let mut store = Store::new(&engine, data);
 

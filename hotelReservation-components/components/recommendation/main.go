@@ -3,8 +3,8 @@ package main
 import (
 	"go.bytecodealliance.org/cm"
 
-	store "hotel-components/components/recommendation/hotel/recommendation-data/recommendation-store"
-	recapi "hotel-components/components/recommendation/hotel/recommendation/recommendation"
+	store "hotel-components/components/recommendation/hotel/store/recommendation-store"
+	recapi "hotel-components/components/recommendation/hotel/api/recommendation"
 )
 
 var svc = NewService()

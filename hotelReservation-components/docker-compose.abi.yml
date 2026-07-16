@@ -224,6 +224,33 @@ services:
       - mongodb-reservation
     restart: on-failure
 
+  frontend:
+    build:
+      context: .
+      target: runtime
+      args:
+        SERVICE: frontend
+    environment:
+      LISTEN_ADDR:         "0.0.0.0:8080"
+      SEARCH_ADDR:         "http://search:8097"
+      PROFILE_ADDR:        "http://profile:8095"
+      RECOMMENDATION_ADDR: "http://recommendation:8085"
+      USER_ADDR:           "http://user:8091"
+      REVIEW_ADDR:         "http://review:8098"
+      ATTRACTIONS_ADDR:    "http://attractions:8087"
+      RESERVATION_ADDR:    "http://reservation:8100"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - search
+      - profile
+      - recommendation
+      - user
+      - review
+      - attractions
+      - reservation
+    restart: on-failure
+
 volumes:
   recommendation-data:
   attractions-data:

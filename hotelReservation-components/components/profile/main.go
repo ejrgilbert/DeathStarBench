@@ -3,9 +3,9 @@ package main
 import (
 	"go.bytecodealliance.org/cm"
 
-	kv "hotel-components/components/profile/host/cache/keyvalue"
-	store "hotel-components/components/profile/hotel/profile-data/profile-store"
-	profapi "hotel-components/components/profile/hotel/profile/profile"
+	kv "hotel-components/components/profile/cache/keyvalue/keyvalue"
+	store "hotel-components/components/profile/hotel/store/profile-store"
+	profapi "hotel-components/components/profile/hotel/api/profile"
 )
 
 var svc = NewService()

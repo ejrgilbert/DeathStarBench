@@ -7,7 +7,7 @@ import (
 	"go.bytecodealliance.org/cm"
 
 	col "hotel-components/components/recommendation_store/host/storage/collection"
-	recstore "hotel-components/components/recommendation_store/hotel/recommendation-data/recommendation-store"
+	recstore "hotel-components/components/recommendation_store/hotel/store/recommendation-store"
 )
 
 type seedRecord struct {

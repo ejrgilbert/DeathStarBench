@@ -1,25 +1,12 @@
-package hotel:user;
+package hotel:user-wasm;
 
-interface user {
-    init: func();
-    check-user: func(username: string, password: string) -> bool;
-}
-
-// Full world used by TinyGo.
 world user-world {
     include wasi:cli/imports@0.2.0;
-    import hotel:user-data/user-store;
-    export user;
+    import hotel:store/user-store;
+    export hotel:api/user;
 }
 
-// Minimal world used by the Rust host's bindgen!
 world user-host-world {
-    import hotel:user-data/user-store;
-    export user;
-}
-
-// Host world for the wac-composed component.
-world user-composed-host-world {
-    import host:storage/collection;
-    export user;
+    import hotel:store/user-store;
+    export hotel:api/user;
 }

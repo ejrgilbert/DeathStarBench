@@ -1,8 +1,8 @@
 package main
 
 import (
-	store "hotel-components/components/user/hotel/user-data/user-store"
-	userapi "hotel-components/components/user/hotel/user/user"
+	store "hotel-components/components/user/hotel/store/user-store"
+	userapi "hotel-components/components/user/hotel/api/user"
 )
 
 var svc = NewService()
