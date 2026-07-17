@@ -21,6 +21,7 @@ type seedRecord struct {
 }
 
 var (
+	conn           col.Connection
 	hotelPositions []attstore.HotelPosition
 	restaurants    []attstore.Restaurant
 	museums        []attstore.Museum
@@ -39,7 +40,8 @@ func init() {
 }
 
 func doInit() {
-	if col.Count() > 0 {
+	conn = col.ConnectionOpen("attractions")
+	if col.Count(conn) > 0 {
 		return
 	}
 
@@ -58,14 +60,14 @@ func doInit() {
 		b, _ := json.Marshal(s)
 		docs[i] = col.Document(cm.ToList(b))
 	}
-	col.InsertMany(cm.ToList(docs))
+	col.InsertMany(conn, cm.ToList(docs))
 }
 
 func ensureLoaded() {
 	if allLoaded {
 		return
 	}
-	rawDocs := col.FindAll().Slice()
+	rawDocs := col.FindAll(conn).Slice()
 	for _, raw := range rawDocs {
 		var s seedRecord
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
@@ -83,22 +85,7 @@ func ensureLoaded() {
 	allLoaded = true
 }
 
-func loadHotelPositions() cm.List[attstore.HotelPosition] {
-	ensureLoaded()
-	return cm.ToList(hotelPositions)
-}
-
-func loadRestaurants() cm.List[attstore.Restaurant] {
-	ensureLoaded()
-	return cm.ToList(restaurants)
-}
-
-func loadMuseums() cm.List[attstore.Museum] {
-	ensureLoaded()
-	return cm.ToList(museums)
-}
-
-func loadCinemas() cm.List[attstore.Cinema] {
-	ensureLoaded()
-	return cm.ToList(cinemas)
-}
+func loadHotelPositions() cm.List[attstore.HotelPosition] { ensureLoaded(); return cm.ToList(hotelPositions) }
+func loadRestaurants() cm.List[attstore.Restaurant]        { ensureLoaded(); return cm.ToList(restaurants) }
+func loadMuseums() cm.List[attstore.Museum]                { ensureLoaded(); return cm.ToList(museums) }
+func loadCinemas() cm.List[attstore.Cinema]                { ensureLoaded(); return cm.ToList(cinemas) }

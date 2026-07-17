@@ -7,6 +7,9 @@ wasmtime::component::bindgen!({
     path: "../../components/recommendation/wit",
     world: "recommendation-composed-host-world",
     async: true,
+    with: {
+        "host:storage/collection/connection": host_lib::MongoCollection,
+    },
 });
 
 use exports::hotel::api::recommendation::Requirement as WitRequirement;
@@ -36,6 +39,6 @@ impl RecommendComponent for RecommendationComposedHostWorld {
 
 host_lib::run_abi!(
     RecommendationComposedHostWorld, hotel_api_recommendation,
-    "recommendation-db", "recommendation",
+    "recommendation-db",
     "0.0.0.0:8085", "recommendation-composed.wasm", "recommendation-host"
 );

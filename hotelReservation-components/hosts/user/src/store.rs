@@ -15,6 +15,9 @@ wasmtime::component::bindgen!({
     path: "../../components/user_store/wit",
     world: "user-store-host-world",
     async: true,
+    with: {
+        "host:storage/collection/connection": host_lib::MongoCollection,
+    },
 });
 
 host_lib::impl_collection_host!(StoreData);
@@ -51,6 +54,6 @@ impl UserStore for StoreGrpcService {
 
 host_lib::run_store!(
     UserStoreHostWorld, UserStoreServer, hotel_store_user_store,
-    "user-db", "user",
+    "user-db",
     "0.0.0.0:8092", "user-store.wasm", "user-host"
 );

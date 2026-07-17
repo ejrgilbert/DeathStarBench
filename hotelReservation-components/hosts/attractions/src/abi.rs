@@ -7,6 +7,9 @@ wasmtime::component::bindgen!({
     path: "../../components/attractions/wit",
     world: "attractions-composed-host-world",
     async: true,
+    with: {
+        "host:storage/collection/connection": host_lib::MongoCollection,
+    },
 });
 
 host_lib::impl_collection_host!(StoreData);
@@ -45,6 +48,6 @@ impl AttractionsComponent for AttractionsComposedHostWorld {
 
 host_lib::run_abi!(
     AttractionsComposedHostWorld, hotel_api_attractions,
-    "attractions-db", "attractions",
+    "attractions-db",
     "0.0.0.0:8087", "attractions-composed.wasm", "attractions-host"
 );

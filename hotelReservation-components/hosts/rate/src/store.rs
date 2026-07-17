@@ -15,6 +15,9 @@ wasmtime::component::bindgen!({
     path: "../../components/rate_store/wit",
     world: "rate-store-host-world",
     async: true,
+    with: {
+        "host:storage/collection/connection": host_lib::MongoCollection,
+    },
 });
 
 host_lib::impl_collection_host!(StoreData);
@@ -60,6 +63,6 @@ impl RateStore for StoreGrpcService {
 
 host_lib::run_store!(
     RateStoreHostWorld, RateStoreServer, hotel_store_rate_store,
-    "rate-db", "inventory",
+    "rate-db",
     "0.0.0.0:8094", "rate-store.wasm", "rate-host"
 );

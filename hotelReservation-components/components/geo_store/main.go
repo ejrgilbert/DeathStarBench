@@ -11,14 +11,15 @@ import (
 )
 
 type seedPoint struct {
-	ID       string  `json:"id"`
-	Lat      float64 `json:"lat"`
-	Lon      float64 `json:"lon"`
+	ID  string  `json:"id"`
+	Lat float64 `json:"lat"`
+	Lon float64 `json:"lon"`
 }
 
 var (
-	points []attstore.Point
-	allLoaded      bool
+	conn      col.Connection
+	points    []attstore.Point
+	allLoaded bool
 )
 
 func main() {}
@@ -29,7 +30,8 @@ func init() {
 }
 
 func doInit() {
-	if col.Count() > 0 {
+	conn = col.ConnectionOpen("geo")
+	if col.Count(conn) > 0 {
 		return
 	}
 
@@ -48,18 +50,18 @@ func doInit() {
 		b, _ := json.Marshal(s)
 		docs[i] = col.Document(cm.ToList(b))
 	}
-	col.InsertMany(cm.ToList(docs))
+	col.InsertMany(conn, cm.ToList(docs))
 }
 
 func ensureLoaded() {
 	if allLoaded {
 		return
 	}
-	rawDocs := col.FindAll().Slice()
+	rawDocs := col.FindAll(conn).Slice()
 	for _, raw := range rawDocs {
 		var s seedPoint
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
-        points = append(points, attstore.Point{ID: s.ID, Lat: s.Lat, Lon: s.Lon})
+		points = append(points, attstore.Point{ID: s.ID, Lat: s.Lat, Lon: s.Lon})
 	}
 	allLoaded = true
 }

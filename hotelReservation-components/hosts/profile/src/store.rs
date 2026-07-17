@@ -15,6 +15,9 @@ wasmtime::component::bindgen!({
     path: "../../components/profile_store/wit",
     world: "profile-store-host-world",
     async: true,
+    with: {
+        "host:storage/collection/connection": host_lib::MongoCollection,
+    },
 });
 
 host_lib::impl_collection_host!(StoreData);
@@ -67,6 +70,6 @@ impl ProfileStore for StoreGrpcService {
 
 host_lib::run_store!(
     ProfileStoreHostWorld, ProfileStoreServer, hotel_store_profile_store,
-    "profile-db", "inventory",
+    "profile-db",
     "0.0.0.0:8096", "profile-store.wasm", "profile-host"
 );

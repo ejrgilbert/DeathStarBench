@@ -5,10 +5,15 @@ interface collection {
     // The host converts JSON to/from its backend format (e.g. BSON for MongoDB).
     type document = list<u8>;
 
-    count:       func() -> u64;
-    find-all:    func() -> list<document>;
-    find-one:    func(filter: document) -> option<document>;
-    find:        func(filter: document) -> list<document>;
-    insert-one:  func(doc: document);
-    insert-many: func(docs: list<document>);
+    // A handle to a named collection.
+    resource connection {
+        open: static func(name: string) -> connection;
+    }
+
+    count:       func(c: borrow<connection>) -> u64;
+    find-all:    func(c: borrow<connection>) -> list<document>;
+    find-one:    func(c: borrow<connection>, filter: document) -> option<document>;
+    find:        func(c: borrow<connection>, filter: document) -> list<document>;
+    insert-one:  func(c: borrow<connection>, doc: document);
+    insert-many: func(c: borrow<connection>, docs: list<document>);
 }

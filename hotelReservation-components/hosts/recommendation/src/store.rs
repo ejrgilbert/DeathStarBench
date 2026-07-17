@@ -14,6 +14,9 @@ wasmtime::component::bindgen!({
     path: "../../components/recommendation_store/wit",
     world: "recommendation-store-host-world",
     async: true,
+    with: {
+        "host:storage/collection/connection": host_lib::MongoCollection,
+    },
 });
 
 host_lib::impl_collection_host!(StoreData);
@@ -50,6 +53,6 @@ impl RecommendationStore for StoreGrpcService {
 host_lib::run_store!(
     RecommendationStoreHostWorld, RecommendationStoreServer,
     hotel_store_recommendation_store,
-    "recommendation-db", "recommendation",
+    "recommendation-db",
     "0.0.0.0:8086", "recommendation-store.wasm", "recommendation-host"
 );

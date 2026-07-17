@@ -15,6 +15,9 @@ wasmtime::component::bindgen!({
     path: "../../components/review_store/wit",
     world: "review-store-host-world",
     async: true,
+    with: {
+        "host:storage/collection/connection": host_lib::MongoCollection,
+    },
 });
 
 host_lib::impl_collection_host!(StoreData);
@@ -58,6 +61,6 @@ impl ReviewStore for StoreGrpcService {
 
 host_lib::run_store!(
     ReviewStoreHostWorld, ReviewStoreServer, hotel_store_review_store,
-    "review-db", "reviews",
+    "review-db",
     "0.0.0.0:8099", "review-store.wasm", "review-host"
 );

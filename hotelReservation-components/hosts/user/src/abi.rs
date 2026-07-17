@@ -7,6 +7,9 @@ wasmtime::component::bindgen!({
     path: "../../components/user/wit",
     world: "user-composed-host-world",
     async: true,
+    with: {
+        "host:storage/collection/connection": host_lib::MongoCollection,
+    },
 });
 
 host_lib::impl_collection_host!(StoreData);
@@ -28,6 +31,6 @@ impl UserComponent for UserComposedHostWorld {
 
 host_lib::run_abi!(
     UserComposedHostWorld, hotel_api_user,
-    "user-db", "user",
+    "user-db",
     "0.0.0.0:8091", "user-composed.wasm", "user-host"
 );

@@ -6,8 +6,7 @@ import (
 
 	"go.bytecodealliance.org/cm"
 
-	ncol     "hotel-components/components/reservation_store/hotel/store/numbers-col"
-	rcol     "hotel-components/components/reservation_store/hotel/store/reservations-col"
+	col      "hotel-components/components/reservation_store/host/storage/collection"
 	revstore "hotel-components/components/reservation_store/hotel/store/reservation-store"
 )
 
@@ -25,6 +24,8 @@ type seedReservation struct {
 }
 
 var (
+	numConn      col.Connection
+	resConn      col.Connection
 	numbers      []revstore.NumberRec
 	reservations []revstore.ReservationRec
 	numsLoaded   bool
@@ -41,7 +42,10 @@ func init() {
 }
 
 func doInit() {
-	if ncol.Count() == 0 {
+	numConn = col.ConnectionOpen("number")
+	resConn = col.ConnectionOpen("reservation")
+
+	if col.Count(numConn) == 0 {
 		data, err := os.ReadFile("/data/reservation-numbers-seed.json")
 		if err != nil {
 			panic("read numbers seed: " + err.Error())
@@ -50,15 +54,15 @@ func doInit() {
 		if err := json.Unmarshal(data, &seeds); err != nil {
 			panic("parse numbers seed: " + err.Error())
 		}
-		docs := make([]ncol.Document, len(seeds))
+		docs := make([]col.Document, len(seeds))
 		for i, s := range seeds {
 			b, _ := json.Marshal(s)
-			docs[i] = ncol.Document(cm.ToList(b))
+			docs[i] = col.Document(cm.ToList(b))
 		}
-		ncol.InsertMany(cm.ToList(docs))
+		col.InsertMany(numConn, cm.ToList(docs))
 	}
 
-	existing := rcol.FindAll().Slice()
+	existing := col.FindAll(resConn).Slice()
 	if len(existing) == 0 {
 		data, err := os.ReadFile("/data/reservation-reservations-seed.json")
 		if err != nil {
@@ -70,7 +74,7 @@ func doInit() {
 		}
 		for _, s := range seeds {
 			b, _ := json.Marshal(s)
-			rcol.InsertOne(rcol.Document(cm.ToList(b)))
+			col.InsertOne(resConn, col.Document(cm.ToList(b)))
 		}
 	}
 }
@@ -79,7 +83,7 @@ func ensureNumbers() {
 	if numsLoaded {
 		return
 	}
-	rawDocs := ncol.FindAll().Slice()
+	rawDocs := col.FindAll(numConn).Slice()
 	for _, raw := range rawDocs {
 		var s seedNumber
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
@@ -95,7 +99,7 @@ func ensureReservations() {
 	if resLoaded {
 		return
 	}
-	rawDocs := rcol.FindAll().Slice()
+	rawDocs := col.FindAll(resConn).Slice()
 	for _, raw := range rawDocs {
 		var s seedReservation
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
@@ -129,6 +133,6 @@ func doInsertReservation(r revstore.ReservationRec) {
 		Number:       r.Number,
 	}
 	b, _ := json.Marshal(s)
-	rcol.InsertOne(rcol.Document(cm.ToList(b)))
+	col.InsertOne(resConn, col.Document(cm.ToList(b)))
 	reservations = append(reservations, r)
 }

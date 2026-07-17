@@ -18,6 +18,8 @@ type seedRecord struct {
 	Price float64 `json:"price"`
 }
 
+var conn col.Connection
+
 func main() {}
 
 func init() {
@@ -26,7 +28,8 @@ func init() {
 }
 
 func doInit() {
-	if col.Count() > 0 {
+	conn = col.ConnectionOpen("recs")
+	if col.Count(conn) > 0 {
 		return
 	}
 
@@ -45,11 +48,11 @@ func doInit() {
 		b, _ := json.Marshal(s)
 		docs[i] = col.Document(cm.ToList(b))
 	}
-	col.InsertMany(cm.ToList(docs))
+	col.InsertMany(conn, cm.ToList(docs))
 }
 
 func loadHotels() cm.List[recstore.Hotel] {
-	rawDocs := col.FindAll().Slice()
+	rawDocs := col.FindAll(conn).Slice()
 	hotels := make([]recstore.Hotel, len(rawDocs))
 	for i, raw := range rawDocs {
 		var s seedRecord

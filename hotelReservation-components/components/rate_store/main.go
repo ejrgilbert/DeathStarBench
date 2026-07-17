@@ -27,6 +27,7 @@ type seedRatePlan struct {
 }
 
 var (
+	conn      col.Connection
 	rates     []ratestore.RatePlan
 	allLoaded bool
 )
@@ -39,7 +40,8 @@ func init() {
 }
 
 func doInit() {
-	if col.Count() > 0 {
+	conn = col.ConnectionOpen("rates")
+	if col.Count(conn) > 0 {
 		return
 	}
 
@@ -58,14 +60,14 @@ func doInit() {
 		b, _ := json.Marshal(s)
 		docs[i] = col.Document(cm.ToList(b))
 	}
-	col.InsertMany(cm.ToList(docs))
+	col.InsertMany(conn, cm.ToList(docs))
 }
 
 func ensureLoaded() {
 	if allLoaded {
 		return
 	}
-	rawDocs := col.FindAll().Slice()
+	rawDocs := col.FindAll(conn).Slice()
 	for _, raw := range rawDocs {
 		var s seedRatePlan
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)

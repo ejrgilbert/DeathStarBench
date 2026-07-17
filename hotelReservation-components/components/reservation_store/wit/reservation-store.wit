@@ -2,13 +2,11 @@ package hotel:reservation-data-wasm;
 
 world reservation-store-world {
     include wasi:cli/imports@0.2.0;
-    import hotel:store/numbers-col;
-    import hotel:store/reservations-col;
+    import host:storage/collection;
     export hotel:store/reservation-store;
 }
 
 world reservation-store-host-world {
-    import hotel:store/numbers-col;
-    import hotel:store/reservations-col;
+    import host:storage/collection;
     export hotel:store/reservation-store;
 }

@@ -28,13 +28,17 @@ pub fn make_store_wasi_ctx(data_dir: &str) -> Result<WasiCtx> {
         .build())
 }
 
-/// Store data shared by all single-collection store hosts.
-/// Each host's bindgen!-generated `host::storage::collection::Host` trait
-/// is implemented on this type in the host binary itself (local trait, foreign type — allowed).
+/// The Rust type stored in the resource table for each `host:storage/collection/connection`
+/// resource handle.  One handle per store, opened by name at init time.
+pub struct MongoCollection {
+    pub inner: Arc<mongodb::Collection<mongodb::bson::Document>>,
+}
+
+/// Store data for single-collection ABI and store-mode hosts.
 pub struct StoreData {
-    pub wasi: WasiCtx,
+    pub wasi:  WasiCtx,
     pub table: ResourceTable,
-    pub collection: Arc<mongodb::Collection<bson::Document>>,
+    pub db:    Arc<mongodb::Database>,
 }
 
 impl wasmtime_wasi::WasiView for StoreData {
@@ -46,23 +50,23 @@ impl wasmtime_wasi::WasiView for StoreData {
     }
 }
 
-pub fn bson_to_json(doc: &bson::Document) -> Result<Vec<u8>> {
+pub fn bson_to_json(doc: &mongodb::bson::Document) -> Result<Vec<u8>> {
     let mut doc = doc.clone();
     doc.remove("_id");
-    let val = bson::from_document::<serde_json::Value>(doc)?;
+    let val = mongodb::bson::from_document::<serde_json::Value>(doc)?;
     Ok(serde_json::to_vec(&val)?)
 }
 
-pub fn json_to_bson(bytes: &[u8]) -> Result<bson::Document> {
+pub fn json_to_bson(bytes: &[u8]) -> Result<mongodb::bson::Document> {
     let val: serde_json::Value = serde_json::from_slice(bytes)?;
-    Ok(bson::to_document(&val)?)
+    Ok(mongodb::bson::to_document(&val)?)
 }
 
 pub async fn mongo_find_all(
-    collection: &Arc<mongodb::Collection<bson::Document>>,
+    collection: &Arc<mongodb::Collection<mongodb::bson::Document>>,
 ) -> Result<Vec<Vec<u8>>> {
     use futures::TryStreamExt;
-    let mut cursor = collection.find(bson::doc! {}).await?;
+    let mut cursor = collection.find(mongodb::bson::doc! {}).await?;
     let mut out = Vec::new();
     while let Some(doc) = cursor.try_next().await? {
         out.push(bson_to_json(&doc)?);
@@ -70,22 +74,22 @@ pub async fn mongo_find_all(
     Ok(out)
 }
 
-pub async fn mongo_count(collection: &Arc<mongodb::Collection<bson::Document>>) -> Result<u64> {
-    Ok(collection.count_documents(bson::doc! {}).await?)
+pub async fn mongo_count(collection: &Arc<mongodb::Collection<mongodb::bson::Document>>) -> Result<u64> {
+    Ok(collection.count_documents(mongodb::bson::doc! {}).await?)
 }
 
 pub async fn mongo_insert_many(
-    collection: &Arc<mongodb::Collection<bson::Document>>,
+    collection: &Arc<mongodb::Collection<mongodb::bson::Document>>,
     docs: Vec<Vec<u8>>,
 ) -> Result<()> {
-    let bson_docs: Vec<bson::Document> =
+    let bson_docs: Vec<mongodb::bson::Document> =
         docs.iter().map(|b| json_to_bson(b)).collect::<Result<_>>()?;
     collection.insert_many(bson_docs).await?;
     Ok(())
 }
 
 pub async fn mongo_insert_one(
-    collection: &Arc<mongodb::Collection<bson::Document>>,
+    collection: &Arc<mongodb::Collection<mongodb::bson::Document>>,
     doc: Vec<u8>,
 ) -> Result<()> {
     let bson_doc = json_to_bson(&doc)?;
@@ -93,8 +97,7 @@ pub async fn mongo_insert_one(
     Ok(())
 }
 
-/// Host data for svc-mode hosts.  The store client generic keeps the struct identical
-/// across services; only the type parameter differs.
+/// Host data for svc-mode hosts.
 pub struct SvcHostData<C> {
     pub wasi:         WasiCtx,
     pub table:        ResourceTable,
@@ -106,42 +109,99 @@ impl<C: Send> wasmtime_wasi::WasiView for SvcHostData<C> {
     fn table(&mut self) -> &mut ResourceTable  { &mut self.table }
 }
 
-/// Implements `host::storage::collection::Host` on a type that has a `collection` field
-/// of type `Arc<mongodb::Collection<bson::Document>>`.
+/// Implements `host::storage::collection::HostConnection` (resource lifecycle) and
+/// `host::storage::collection::Host` (free functions) on a type that has:
+///   - `table(&mut self) -> &mut ResourceTable`  (via WasiView)
+///   - `pub db: Arc<mongodb::Database>`
 ///
-/// The trait is generated locally by each host's `bindgen!` call, so the impl must
-/// live in each host crate — this macro just eliminates the copy-paste of the body.
+/// The host's `bindgen!` must map `"host:storage/collection/connection"`
+/// to `host_lib::MongoCollection` via the `with` field.
 ///
-/// Usage: `host_lib::impl_collection_host!(YourStoreDataType);`
+/// Note: wasmtime generates the Host trait methods with bare return types (not Result),
+/// matching the WIT interface which has no error type on these functions.
 #[macro_export]
 macro_rules! impl_collection_host {
     ($T:ty) => {
         #[::async_trait::async_trait]
+        impl host::storage::collection::HostConnection for $T {
+            async fn open(
+                &mut self,
+                name: String,
+            ) -> ::wasmtime::component::Resource<$crate::MongoCollection> {
+                let col = self.db.collection::<::mongodb::bson::Document>(&name);
+                let mc = $crate::MongoCollection { inner: ::std::sync::Arc::new(col) };
+                <$T as ::wasmtime_wasi::WasiView>::table(self)
+                    .push(mc)
+                    .expect("resource table push")
+            }
+
+            async fn drop(
+                &mut self,
+                rep: ::wasmtime::component::Resource<$crate::MongoCollection>,
+            ) -> ::anyhow::Result<()> {
+                <$T as ::wasmtime_wasi::WasiView>::table(self).delete(rep)?;
+                Ok(())
+            }
+        }
+
+        #[::async_trait::async_trait]
         impl host::storage::collection::Host for $T {
-            async fn count(&mut self) -> u64 {
-                $crate::mongo_count(&self.collection).await.unwrap_or(0)
+            async fn count(
+                &mut self,
+                c: ::wasmtime::component::Resource<$crate::MongoCollection>,
+            ) -> u64 {
+                let col = <$T as ::wasmtime_wasi::WasiView>::table(self)
+                    .get(&c).unwrap().inner.clone();
+                $crate::mongo_count(&col).await.unwrap_or(0)
             }
-            async fn find_all(&mut self) -> ::std::vec::Vec<::std::vec::Vec<u8>> {
-                $crate::mongo_find_all(&self.collection).await.unwrap_or_default()
+
+            async fn find_all(
+                &mut self,
+                c: ::wasmtime::component::Resource<$crate::MongoCollection>,
+            ) -> ::std::vec::Vec<::std::vec::Vec<u8>> {
+                let col = <$T as ::wasmtime_wasi::WasiView>::table(self)
+                    .get(&c).unwrap().inner.clone();
+                $crate::mongo_find_all(&col).await.unwrap_or_default()
             }
-            async fn find_one(&mut self, _: ::std::vec::Vec<u8>) -> ::core::option::Option<::std::vec::Vec<u8>> {
+
+            async fn find_one(
+                &mut self,
+                _c: ::wasmtime::component::Resource<$crate::MongoCollection>,
+                _filter: ::std::vec::Vec<u8>,
+            ) -> ::core::option::Option<::std::vec::Vec<u8>> {
                 unimplemented!()
             }
-            async fn find(&mut self, _: ::std::vec::Vec<u8>) -> ::std::vec::Vec<::std::vec::Vec<u8>> {
+
+            async fn find(
+                &mut self,
+                _c: ::wasmtime::component::Resource<$crate::MongoCollection>,
+                _filter: ::std::vec::Vec<u8>,
+            ) -> ::std::vec::Vec<::std::vec::Vec<u8>> {
                 unimplemented!()
             }
-            async fn insert_one(&mut self, _: ::std::vec::Vec<u8>) {
+
+            async fn insert_one(
+                &mut self,
+                _c: ::wasmtime::component::Resource<$crate::MongoCollection>,
+                _doc: ::std::vec::Vec<u8>,
+            ) {
                 unimplemented!()
             }
-            async fn insert_many(&mut self, docs: ::std::vec::Vec<::std::vec::Vec<u8>>) {
-                $crate::mongo_insert_many(&self.collection, docs).await.unwrap()
+
+            async fn insert_many(
+                &mut self,
+                c: ::wasmtime::component::Resource<$crate::MongoCollection>,
+                docs: ::std::vec::Vec<::std::vec::Vec<u8>>,
+            ) {
+                let col = <$T as ::wasmtime_wasi::WasiView>::table(self)
+                    .get(&c).unwrap().inner.clone();
+                $crate::mongo_insert_many(&col, docs).await.unwrap()
             }
         }
     };
 }
 
-/// Generates `pub type HostData = SvcHostData<$Client>;` at module scope so that
-/// the store-trait impls written below can reference the short name `HostData`.
+/// Generates `pub type HostData = SvcHostData<$Client>;`
 #[macro_export]
 macro_rules! svc_host_data {
     ($Client:ty) => {
@@ -149,8 +209,7 @@ macro_rules! svc_host_data {
     };
 }
 
-/// Generates the boilerplate store-service types used in every store-mode host:
-/// `SharedStore`, `SharedInstance`, and `StoreGrpcService`.
+/// Boilerplate store-service types for store-mode hosts.
 #[macro_export]
 macro_rules! define_store_service {
     ($World:ty) => {
@@ -165,12 +224,10 @@ macro_rules! define_store_service {
 }
 
 /// Generates `pub async fn run()` for ABI-mode hosts (composed wasm + direct MongoDB).
-///
-/// Arguments: WorldType, init_accessor, "db-name", "collection", "default-addr",
-///            "default-wasm-file", "service-label"
+/// The wasm selects its collection via `connection::open(name)`.
 #[macro_export]
 macro_rules! run_abi {
-    ($World:ty, $accessor:ident, $db:literal, $coll:literal,
+    ($World:ty, $accessor:ident, $db:literal,
      $default_addr:literal, $default_wasm:literal, $label:literal) => {
         pub async fn run() -> ::anyhow::Result<()> {
             use ::std::sync::Arc;
@@ -188,8 +245,8 @@ macro_rules! run_abi {
             let wasm_file   = ::std::env::var("WASM_FILE")
                 .unwrap_or_else(|_| $default_wasm.into());
 
-            let mongo      = ::mongodb::Client::with_uri_str(&mongo_uri).await?;
-            let collection = Arc::new(mongo.database($db).collection($coll));
+            let mongo = ::mongodb::Client::with_uri_str(&mongo_uri).await?;
+            let db    = Arc::new(mongo.database($db));
 
             let engine     = $crate::make_engine()?;
             let mut linker: Linker<$crate::StoreData> = Linker::new(&engine);
@@ -197,9 +254,9 @@ macro_rules! run_abi {
             <$World>::add_to_linker(&mut linker, |d| d)?;
 
             let data = $crate::StoreData {
-                wasi:       $crate::make_store_wasi_ctx(&data_dir)?,
-                table:      ::wasmtime_wasi::ResourceTable::new(),
-                collection,
+                wasi:  $crate::make_store_wasi_ctx(&data_dir)?,
+                table: ::wasmtime_wasi::ResourceTable::new(),
+                db,
             };
             let mut store = Store::new(&engine, data);
 
@@ -215,9 +272,6 @@ macro_rules! run_abi {
 }
 
 /// Generates `pub async fn run()` for SVC-mode hosts (wasm service + gRPC store).
-///
-/// Arguments: WorldType, StoreClientType, init_accessor, "default-store-addr",
-///            "default-listen-addr", "default-wasm-file", "service-label"
 #[macro_export]
 macro_rules! run_svc {
     ($World:ty, $Client:ty, $accessor:ident,
@@ -262,13 +316,10 @@ macro_rules! run_svc {
 }
 
 /// Generates `pub async fn run()` for STORE-mode hosts (wasm store + gRPC server).
-/// Requires `define_store_service!` and the gRPC trait impl to appear before this call.
-///
-/// Arguments: WorldType, GrpcServerIdent, init_accessor, "db-name", "collection",
-///            "default-addr", "default-wasm-file", "service-label"
+/// The wasm selects its collection via `connection::open(name)`.
 #[macro_export]
 macro_rules! run_store {
-    ($World:ty, $GrpcServer:ident, $accessor:ident, $db:literal, $coll:literal,
+    ($World:ty, $GrpcServer:ident, $accessor:ident, $db:literal,
      $default_addr:literal, $default_wasm:literal, $label:literal) => {
         pub async fn run() -> ::anyhow::Result<()> {
             use ::std::sync::Arc;
@@ -286,8 +337,8 @@ macro_rules! run_store {
             let wasm_file  = ::std::env::var("WASM_FILE")
                 .unwrap_or_else(|_| $default_wasm.into());
 
-            let mongo      = ::mongodb::Client::with_uri_str(&mongo_uri).await?;
-            let collection = Arc::new(mongo.database($db).collection($coll));
+            let mongo = ::mongodb::Client::with_uri_str(&mongo_uri).await?;
+            let db    = Arc::new(mongo.database($db));
 
             let engine     = $crate::make_engine()?;
             let mut linker: Linker<$crate::StoreData> = Linker::new(&engine);
@@ -295,9 +346,9 @@ macro_rules! run_store {
             <$World>::add_to_linker(&mut linker, |d| d)?;
 
             let data = $crate::StoreData {
-                wasi:       $crate::make_store_wasi_ctx(&data_dir)?,
-                table:      ::wasmtime_wasi::ResourceTable::new(),
-                collection,
+                wasi:  $crate::make_store_wasi_ctx(&data_dir)?,
+                table: ::wasmtime_wasi::ResourceTable::new(),
+                db,
             };
             let mut store = Store::new(&engine, data);
 

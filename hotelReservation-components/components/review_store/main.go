@@ -25,6 +25,7 @@ type seedReview struct {
 }
 
 var (
+	conn      col.Connection
 	reviews   []revstore.Review
 	allLoaded bool
 )
@@ -32,12 +33,13 @@ var (
 func main() {}
 
 func init() {
-	revstore.Exports.Init        = doInit
+	revstore.Exports.Init = doInit
 	revstore.Exports.LoadReviews = loadReviews
 }
 
 func doInit() {
-	if col.Count() > 0 {
+	conn = col.ConnectionOpen("reviews")
+	if col.Count(conn) > 0 {
 		return
 	}
 	data, err := os.ReadFile("/data/review-seed.json")
@@ -53,14 +55,14 @@ func doInit() {
 		b, _ := json.Marshal(s)
 		docs[i] = col.Document(cm.ToList(b))
 	}
-	col.InsertMany(cm.ToList(docs))
+	col.InsertMany(conn, cm.ToList(docs))
 }
 
 func ensureLoaded() {
 	if allLoaded {
 		return
 	}
-	rawDocs := col.FindAll().Slice()
+	rawDocs := col.FindAll(conn).Slice()
 	for _, raw := range rawDocs {
 		var s seedReview
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)

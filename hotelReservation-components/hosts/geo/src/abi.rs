@@ -7,6 +7,9 @@ wasmtime::component::bindgen!({
     path: "../../components/geo/wit",
     world: "geo-composed-host-world",
     async: true,
+    with: {
+        "host:storage/collection/connection": host_lib::MongoCollection,
+    },
 });
 
 host_lib::impl_collection_host!(StoreData);
@@ -27,6 +30,6 @@ impl GeoComponent for GeoComposedHostWorld {
 
 host_lib::run_abi!(
     GeoComposedHostWorld, hotel_api_geo,
-    "geo-db", "geo",
+    "geo-db",
     "0.0.0.0:8089", "geo-composed.wasm", "geo-host"
 );

@@ -18,6 +18,9 @@ wasmtime::component::bindgen!({
     path: "../../components/attractions_store/wit",
     world: "attractions-store-host-world",
     async: true,
+    with: {
+        "host:storage/collection/connection": host_lib::MongoCollection,
+    },
 });
 
 host_lib::impl_collection_host!(StoreData);
@@ -100,6 +103,6 @@ impl AttractionsStore for StoreGrpcService {
 host_lib::run_store!(
     AttractionsStoreHostWorld, AttractionsStoreServer,
     hotel_store_attractions_store,
-    "attractions-db", "attractions",
+    "attractions-db",
     "0.0.0.0:8088", "attractions-store.wasm", "attractions-host"
 );

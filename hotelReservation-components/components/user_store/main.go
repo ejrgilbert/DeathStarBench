@@ -16,6 +16,7 @@ type seedUser struct {
 }
 
 var (
+	conn      col.Connection
 	users     []userstore.User
 	allLoaded bool
 )
@@ -28,7 +29,8 @@ func init() {
 }
 
 func doInit() {
-	if col.Count() > 0 {
+	conn = col.ConnectionOpen("users")
+	if col.Count(conn) > 0 {
 		return
 	}
 
@@ -47,14 +49,14 @@ func doInit() {
 		b, _ := json.Marshal(s)
 		docs[i] = col.Document(cm.ToList(b))
 	}
-	col.InsertMany(cm.ToList(docs))
+	col.InsertMany(conn, cm.ToList(docs))
 }
 
 func ensureLoaded() {
 	if allLoaded {
 		return
 	}
-	rawDocs := col.FindAll().Slice()
+	rawDocs := col.FindAll(conn).Slice()
 	for _, raw := range rawDocs {
 		var s seedUser
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)

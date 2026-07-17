@@ -15,6 +15,9 @@ wasmtime::component::bindgen!({
     path: "../../components/geo_store/wit",
     world: "geo-store-host-world",
     async: true,
+    with: {
+        "host:storage/collection/connection": host_lib::MongoCollection,
+    },
 });
 
 host_lib::impl_collection_host!(StoreData);
@@ -48,6 +51,6 @@ impl GeoStore for StoreGrpcService {
 
 host_lib::run_store!(
     GeoStoreHostWorld, GeoStoreServer, hotel_store_geo_store,
-    "geo-db", "geo",
+    "geo-db",
     "0.0.0.0:8090", "geo-store.wasm", "geo-host"
 );
