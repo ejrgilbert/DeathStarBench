@@ -3,7 +3,7 @@ package main
 import (
 	"go.bytecodealliance.org/cm"
 
-	kv     "hotel-components/components/review/cache/keyvalue/keyvalue"
+	hkv    "hotel-components/components/review/host/cache/keyvalue"
 	store  "hotel-components/components/review/hotel/store/review-store"
 	revapi "hotel-components/components/review/hotel/api/review"
 )
@@ -13,12 +13,7 @@ var svc = NewService()
 func main() {}
 
 func init() {
-	revapi.Exports.Init       = doInit
 	revapi.Exports.GetReviews = getReviews
-}
-
-func doInit() {
-	store.Init()
 }
 
 func getReviews(hotelId string) cm.List[revapi.ReviewComm] {
@@ -54,7 +49,7 @@ func loadAll() []Review {
 }
 
 func cacheGet(key string) ([]byte, bool) {
-	opt := kv.Get(key)
+	opt := hkv.Get(key)
 	if opt.None() {
 		return nil, false
 	}
@@ -62,5 +57,5 @@ func cacheGet(key string) ([]byte, bool) {
 }
 
 func cacheSet(key string, val []byte) {
-	kv.Set(key, cm.ToList(val))
+	hkv.Set(key, cm.ToList(val))
 }

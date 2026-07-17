@@ -14,6 +14,7 @@ wasmtime::component::bindgen!({
 });
 
 host_lib::svc_host_data!(UserStoreClient<tonic::transport::Channel>);
+host_lib::impl_cache_host!(HostData);
 
 #[async_trait::async_trait]
 impl hotel::store::user_store::Host for HostData {

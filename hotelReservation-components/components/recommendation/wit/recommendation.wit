@@ -3,15 +3,18 @@ package hotel:recommendation-wasm;
 world recommendation-world {
     include wasi:cli/imports@0.2.0;
     import hotel:store/recommendation-store;
+    import host:cache/keyvalue;
     export hotel:api/recommendation;
 }
 
 world recommendation-host-world {
     import hotel:store/recommendation-store;
+    import host:cache/keyvalue;
     export hotel:api/recommendation;
 }
 
 world recommendation-composed-host-world {
     import host:storage/collection;
+    import host:cache/keyvalue;
     export hotel:api/recommendation;
 }

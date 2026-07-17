@@ -3,17 +3,18 @@ package hotel:rate-wasm;
 world rate-world {
     include wasi:cli/imports@0.2.0;
     import hotel:store/rate-store;
-    import cache:keyvalue/keyvalue;
+    import host:cache/keyvalue;
     export hotel:api/rate;
 }
 
 world rate-host-world {
     import hotel:store/rate-store;
-    import cache:keyvalue/keyvalue;
+    import host:cache/keyvalue;
     export hotel:api/rate;
 }
 
 world rate-composed-host-world {
     import host:storage/collection;
+    import host:cache/keyvalue;
     export hotel:api/rate;
 }

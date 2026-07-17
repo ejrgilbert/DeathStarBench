@@ -3,17 +3,18 @@ package hotel:review-wasm;
 world review-world {
     include wasi:cli/imports@0.2.0;
     import hotel:store/review-store;
-    import cache:keyvalue/keyvalue;
+    import host:cache/keyvalue;
     export hotel:api/review;
 }
 
 world review-host-world {
     import hotel:store/review-store;
-    import cache:keyvalue/keyvalue;
+    import host:cache/keyvalue;
     export hotel:api/review;
 }
 
 world review-composed-host-world {
     import host:storage/collection;
+    import host:cache/keyvalue;
     export hotel:api/review;
 }

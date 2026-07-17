@@ -3,9 +3,9 @@ package main
 import (
 	"go.bytecodealliance.org/cm"
 
-	kv "hotel-components/components/rate/cache/keyvalue/keyvalue"
-	store "hotel-components/components/rate/hotel/store/rate-store"
-	rateapi "hotel-components/components/rate/hotel/api/rate"
+	hkv      "hotel-components/components/rate/host/cache/keyvalue"
+	store    "hotel-components/components/rate/hotel/store/rate-store"
+	rateapi  "hotel-components/components/rate/hotel/api/rate"
 )
 
 var svc = NewService()
@@ -13,12 +13,7 @@ var svc = NewService()
 func main() {}
 
 func init() {
-	rateapi.Exports.Init = doInit
 	rateapi.Exports.GetRates = getRates
-}
-
-func doInit() {
-	store.Init()
 }
 
 func getRates(hotelIds cm.List[string], inDate, outDate string) (result cm.List[rateapi.RatePlan]) {
@@ -48,9 +43,6 @@ func loadAll() []RatePlan {
 	witPlans := store.LoadRates().Slice()
 	plans := make([]RatePlan, len(witPlans))
 	for i, wp := range witPlans {
-        // bug workaround: string([]byte(s)) copies data out of the WIT-allocated buffer into
-        // Go-managed heap memory, preventing the GC from collecting the buffer
-        // while string headers still point into it.
 		plans[i] = RatePlan{
 			HotelId: string([]byte(wp.HotelID)),
 			Code:    string([]byte(wp.Code)),
@@ -69,7 +61,7 @@ func loadAll() []RatePlan {
 }
 
 func cacheGet(key string) ([]byte, bool) {
-	opt := kv.Get(key)
+	opt := hkv.Get(key)
 	if opt.None() {
 		return nil, false
 	}
@@ -77,5 +69,5 @@ func cacheGet(key string) ([]byte, bool) {
 }
 
 func cacheSet(key string, val []byte) {
-	kv.Set(key, cm.ToList(val))
+	hkv.Set(key, cm.ToList(val))
 }

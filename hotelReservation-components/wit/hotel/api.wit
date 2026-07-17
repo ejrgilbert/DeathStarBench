@@ -1,7 +1,6 @@
 package hotel:api;
 
 interface geo {
-    init: func();
     nearby: func(lat: f64, lon: f64) -> list<string>;
 }
 
@@ -20,12 +19,10 @@ interface rate {
         out-date:  string,
         room-type: room-type,
     }
-    init: func();
     get-rates: func(hotel-ids: list<string>, in-date: string, out-date: string) -> list<rate-plan>;
 }
 
 interface search {
-    init: func();
     nearby: func(lat: f64, lon: f64, in-date: string, out-date: string) -> list<string>;
 }
 
@@ -52,12 +49,10 @@ interface profile {
         url:     string,
         default: bool,
     }
-    init: func();
     get-profiles: func(hotel-ids: list<string>) -> list<hotel>;
 }
 
 interface user {
-    init: func();
     check-user: func(username: string, password: string) -> bool;
 }
 
@@ -74,19 +69,16 @@ interface review {
         description: string,
         image:       image,
     }
-    init: func();
     get-reviews: func(hotel-id: string) -> list<review-comm>;
 }
 
 interface attractions {
-    init: func();
     nearby-rest:   func(hotel-id: string) -> list<string>;
     nearby-mus:    func(hotel-id: string) -> list<string>;
     nearby-cinema: func(hotel-id: string) -> list<string>;
 }
 
 interface reservation {
-    init: func();
     check-availability: func(
         hotel-ids:   list<string>,
         in-date:     string,
@@ -108,7 +100,6 @@ interface recommendation {
         rate,
         price,
     }
-    init: func();
     recommend: func(
         requirement: requirement,
         lat: f64,

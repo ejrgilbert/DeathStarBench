@@ -3,9 +3,9 @@ package main
 import (
 	"go.bytecodealliance.org/cm"
 
-	kv       "hotel-components/components/reservation/cache/keyvalue/keyvalue"
-	store    "hotel-components/components/reservation/hotel/store/reservation-store"
-	resapi   "hotel-components/components/reservation/hotel/api/reservation"
+	hkv     "hotel-components/components/reservation/host/cache/keyvalue"
+	store   "hotel-components/components/reservation/hotel/store/reservation-store"
+	resapi  "hotel-components/components/reservation/hotel/api/reservation"
 )
 
 var svc = NewService()
@@ -13,13 +13,8 @@ var svc = NewService()
 func main() {}
 
 func init() {
-	resapi.Exports.Init              = doInit
 	resapi.Exports.CheckAvailability = checkAvailability
 	resapi.Exports.MakeReservation   = makeReservation
-}
-
-func doInit() {
-	store.Init()
 }
 
 func checkAvailability(hotelIds cm.List[string], inDate, outDate string, roomNumber int32) cm.List[string] {
@@ -87,7 +82,7 @@ func doInsertReservation(r ReservationRec) {
 }
 
 func cacheGet(key string) ([]byte, bool) {
-	opt := kv.Get(key)
+	opt := hkv.Get(key)
 	if opt.None() {
 		return nil, false
 	}
@@ -95,5 +90,5 @@ func cacheGet(key string) ([]byte, bool) {
 }
 
 func cacheSet(key string, val []byte) {
-	kv.Set(key, cm.ToList(val))
+	hkv.Set(key, cm.ToList(val))
 }

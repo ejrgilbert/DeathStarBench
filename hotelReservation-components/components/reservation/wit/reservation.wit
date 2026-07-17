@@ -3,17 +3,18 @@ package hotel:reservation-wasm;
 world reservation-world {
     include wasi:cli/imports@0.2.0;
     import hotel:store/reservation-store;
-    import cache:keyvalue/keyvalue;
+    import host:cache/keyvalue;
     export hotel:api/reservation;
 }
 
 world reservation-host-world {
     import hotel:store/reservation-store;
-    import cache:keyvalue/keyvalue;
+    import host:cache/keyvalue;
     export hotel:api/reservation;
 }
 
 world reservation-composed-host-world {
     import host:storage/collection;
+    import host:cache/keyvalue;
     export hotel:api/reservation;
 }

@@ -10,11 +10,6 @@ mod store_proto {
 }
 use store_proto::{review_store_client::ReviewStoreClient, InitRequest, LoadReviewsRequest};
 
-mod cache_proto {
-    tonic::include_proto!("cache");
-}
-use cache_proto::{cache_client::CacheClient, GetRequest, SetRequest};
-
 wasmtime::component::bindgen!({
     path: "../../components/review/wit",
     world: "review-host-world",
@@ -25,13 +20,15 @@ pub struct HostData {
     pub wasi:         wasmtime_wasi::WasiCtx,
     pub table:        wasmtime_wasi::ResourceTable,
     pub store_client: Arc<Mutex<ReviewStoreClient<tonic::transport::Channel>>>,
-    pub cache_client: Arc<Mutex<CacheClient<tonic::transport::Channel>>>,
+    pub cache:        Arc<host_lib::Cache>,
 }
 
 impl wasmtime_wasi::WasiView for HostData {
     fn ctx(&mut self)   -> &mut wasmtime_wasi::WasiCtx      { &mut self.wasi  }
     fn table(&mut self) -> &mut wasmtime_wasi::ResourceTable { &mut self.table }
 }
+
+host_lib::impl_cache_host!(HostData);
 
 #[async_trait::async_trait]
 impl hotel::store::review_store::Host for HostData {
@@ -60,23 +57,6 @@ impl hotel::store::review_store::Host for HostData {
                 },
             }
         }).collect()
-    }
-}
-
-#[async_trait::async_trait]
-impl cache::keyvalue::keyvalue::Host for HostData {
-    async fn get(&mut self, key: String) -> Option<Vec<u8>> {
-        let resp = self.cache_client.lock().await
-            .get(tonic::Request::new(GetRequest { key })).await
-            .expect("gRPC cache Get failed")
-            .into_inner();
-        if resp.found { Some(resp.value) } else { None }
-    }
-
-    async fn set(&mut self, key: String, value: Vec<u8>) {
-        self.cache_client.lock().await
-            .set(tonic::Request::new(SetRequest { key, value })).await
-            .expect("gRPC cache Set failed");
     }
 }
 
@@ -110,8 +90,6 @@ pub async fn run() -> anyhow::Result<()> {
 
     let store_addr = std::env::var("STORE_ADDR")
         .unwrap_or_else(|_| "http://localhost:8099".into());
-    let cache_addr = std::env::var("CACHE_ADDR")
-        .unwrap_or_else(|_| "http://localhost:8102".into());
     let listen_addr: std::net::SocketAddr = std::env::var("LISTEN_ADDR")
         .unwrap_or_else(|_| "0.0.0.0:8098".into())
         .parse()?;
@@ -120,8 +98,6 @@ pub async fn run() -> anyhow::Result<()> {
 
     let store_client = ReviewStoreClient::connect(store_addr).await?;
     let store_client = Arc::new(Mutex::new(store_client));
-    let cache_client = CacheClient::connect(cache_addr).await?;
-    let cache_client = Arc::new(Mutex::new(cache_client));
 
     let engine = host_lib::make_engine()?;
     let mut linker: Linker<HostData> = Linker::new(&engine);
@@ -132,13 +108,12 @@ pub async fn run() -> anyhow::Result<()> {
         wasi:         host_lib::make_wasi_ctx(),
         table:        wasmtime_wasi::ResourceTable::new(),
         store_client,
-        cache_client,
+        cache:        Arc::new(host_lib::Cache::new(std::collections::HashMap::new())),
     };
     let mut store = wasmtime::Store::new(&engine, data);
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let instance = ReviewHostWorld::instantiate_async(&mut store, &component, &linker).await?;
-    instance.hotel_api_review().call_init(&mut store).await?;
 
     println!("review-host [svc] listening on {listen_addr}");
 

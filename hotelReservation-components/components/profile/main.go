@@ -3,8 +3,8 @@ package main
 import (
 	"go.bytecodealliance.org/cm"
 
-	kv "hotel-components/components/profile/cache/keyvalue/keyvalue"
-	store "hotel-components/components/profile/hotel/store/profile-store"
+	hkv     "hotel-components/components/profile/host/cache/keyvalue"
+	store   "hotel-components/components/profile/hotel/store/profile-store"
 	profapi "hotel-components/components/profile/hotel/api/profile"
 )
 
@@ -13,12 +13,7 @@ var svc = NewService()
 func main() {}
 
 func init() {
-	profapi.Exports.Init = doInit
 	profapi.Exports.GetProfiles = getProfiles
-}
-
-func doInit() {
-	store.Init()
 }
 
 func getProfiles(hotelIds cm.List[string]) (result cm.List[profapi.Hotel]) {
@@ -59,9 +54,6 @@ func loadAll() []Hotel {
 		imgSlice := wh.Images.Slice()
 		images := make([]Image, len(imgSlice))
 		for k, img := range imgSlice {
-			// bug workaround: string([]byte(s)) copies data out of the WIT-allocated buffer into
-			// Go-managed heap memory, preventing the GC from collecting the buffer
-			// while string headers still point into it.
 			images[k] = Image{Url: string([]byte(img.URL)), Default: img.Default}
 		}
 		hotels[i] = Hotel{
@@ -86,7 +78,7 @@ func loadAll() []Hotel {
 }
 
 func cacheGet(key string) ([]byte, bool) {
-	opt := kv.Get(key)
+	opt := hkv.Get(key)
 	if opt.None() {
 		return nil, false
 	}
@@ -94,5 +86,5 @@ func cacheGet(key string) ([]byte, bool) {
 }
 
 func cacheSet(key string, val []byte) {
-	kv.Set(key, cm.ToList(val))
+	hkv.Set(key, cm.ToList(val))
 }

@@ -14,6 +14,7 @@ wasmtime::component::bindgen!({
 use host_lib::StoreData;
 
 host_lib::impl_collection_host!(StoreData);
+host_lib::impl_cache_host!(StoreData);
 
 #[async_trait::async_trait]
 impl ReservationComponent for ReservationComposedHostWorld {

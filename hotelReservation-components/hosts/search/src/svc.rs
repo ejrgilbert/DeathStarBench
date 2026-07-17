@@ -34,7 +34,6 @@ impl wasmtime_wasi::WasiView for HostData {
 
 #[async_trait::async_trait]
 impl hotel::api::geo::Host for HostData {
-    async fn init(&mut self) {}
 
     async fn nearby(&mut self, lat: f64, lon: f64) -> Vec<String> {
         self.geo_client.lock().await
@@ -48,7 +47,6 @@ impl hotel::api::geo::Host for HostData {
 
 #[async_trait::async_trait]
 impl hotel::api::rate::Host for HostData {
-    async fn init(&mut self) {}
 
     async fn get_rates(
         &mut self,
@@ -133,7 +131,6 @@ pub async fn run() -> anyhow::Result<()> {
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let instance  = SearchHostWorld::instantiate_async(&mut store, &component, &linker).await?;
-    instance.hotel_api_search().call_init(&mut store).await?;
 
     println!("search-host listening on {listen_addr}");
 

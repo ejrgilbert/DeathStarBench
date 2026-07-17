@@ -11,13 +11,7 @@ import (
 func main() {}
 
 func init() {
-	searchapi.Exports.Init   = doInit
 	searchapi.Exports.Nearby = nearby
-}
-
-func doInit() {
-	geoapi.Init()
-	rateapi.Init()
 }
 
 func nearby(lat, lon float64, inDate, outDate string) cm.List[string] {

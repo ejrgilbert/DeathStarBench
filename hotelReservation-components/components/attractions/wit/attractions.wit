@@ -3,15 +3,18 @@ package hotel:attractions-wasm;
 world attractions-world {
     include wasi:cli/imports@0.2.0;
     import hotel:store/attractions-store;
+    import host:cache/keyvalue;
     export hotel:api/attractions;
 }
 
 world attractions-host-world {
     import hotel:store/attractions-store;
+    import host:cache/keyvalue;
     export hotel:api/attractions;
 }
 
 world attractions-composed-host-world {
     import host:storage/collection;
+    import host:cache/keyvalue;
     export hotel:api/attractions;
 }

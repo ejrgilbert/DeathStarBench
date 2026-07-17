@@ -19,6 +19,7 @@ wasmtime::component::bindgen!({
 use exports::hotel::api::recommendation::Requirement as WitRequirement;
 
 host_lib::svc_host_data!(RecommendationStoreClient<tonic::transport::Channel>);
+host_lib::impl_cache_host!(HostData);
 
 #[async_trait::async_trait]
 impl hotel::store::recommendation_store::Host for HostData {

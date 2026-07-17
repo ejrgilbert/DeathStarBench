@@ -1,9 +1,8 @@
 BUILD_DIR    := build
 TINYGO_FLAGS := -target=wasip2 -scheduler=none
 SERVICES     := recommendation attractions geo user rate profile review reservation # append here to add a service
-CACHE_SERVICES := rate profile review reservation
 
-.PHONY: all all-composed wit-deps generate bench bench-tcp bench-abi \
+.PHONY: all all-composed frontend-all wit-deps generate bench bench-tcp bench-abi \
         tcp-up tcp-down abi-up abi-down teardown clean
 
 $(BUILD_DIR)/frontend.wasm: components/frontend | $(BUILD_DIR)
@@ -18,12 +17,6 @@ $(BUILD_DIR)/search.wasm: components/search | $(BUILD_DIR)
 	  -wit-world search-world \
 	  -o $@ ./components/search/
 
-$(BUILD_DIR)/cache.wasm: components/cache | $(BUILD_DIR)
-	tinygo build $(TINYGO_FLAGS) \
-	  -wit-package ./components/cache/wit \
-	  -wit-world cache-world \
-	  -o $@ ./components/cache/
-
 $(BUILD_DIR):
 	mkdir -p $@
 
@@ -34,7 +27,6 @@ wit-deps:
 	  cd components/$(s)       && wkg wit fetch && cd ../.. ;)
 	cd components/search   && wkg wit fetch && cd ../..
 	cd components/frontend && wkg wit fetch && cd ../..
-	cd components/cache    && wkg wit fetch && cd ../..
 
 # ── generate ──────────────────────────────────────────────────────────────────
 generate:
@@ -43,10 +35,9 @@ generate:
 	  wit-bindgen-go generate --world $(s)-world       --out ./components/$(s)       ./components/$(s)/wit ;)
 	wit-bindgen-go generate --world search-world        --out ./components/search   ./components/search/wit
 	wit-bindgen-go generate --world frontend-host-world --out ./components/frontend ./components/frontend/wit
-	wit-bindgen-go generate --world cache-world    --out ./components/cache    ./components/cache/wit
 
 # ── wasm build targets ────────────────────────────────────────────────────────
-all: $(BUILD_DIR) $(foreach s,$(SERVICES),$(BUILD_DIR)/$(s)-store.wasm $(BUILD_DIR)/$(s).wasm) $(BUILD_DIR)/search.wasm $(BUILD_DIR)/frontend.wasm $(BUILD_DIR)/cache.wasm
+all: $(BUILD_DIR) $(foreach s,$(SERVICES),$(BUILD_DIR)/$(s)-store.wasm $(BUILD_DIR)/$(s).wasm) $(BUILD_DIR)/search.wasm $(BUILD_DIR)/frontend.wasm
 all-composed: $(BUILD_DIR) $(foreach s,$(SERVICES),$(BUILD_DIR)/$(s)-composed.wasm)
 
 $(BUILD_DIR)/%-store.wasm: components/%_store | $(BUILD_DIR)
@@ -61,17 +52,41 @@ $(BUILD_DIR)/%.wasm: components/% | $(BUILD_DIR)
 	  -wit-world $*-world \
 	  -o $@ ./components/$*/
 
-# Compose services with a cache
-define cache-composed-rule
-$(BUILD_DIR)/$(1)-composed.wasm: $(BUILD_DIR)/$(1).wasm $(BUILD_DIR)/$(1)-store.wasm $(BUILD_DIR)/cache.wasm
-	wac plug --plug $(BUILD_DIR)/$(1)-store.wasm $(BUILD_DIR)/$(1).wasm -o $(BUILD_DIR)/$(1)-with-store.wasm
-	wac plug --plug $(BUILD_DIR)/cache.wasm $(BUILD_DIR)/$(1)-with-store.wasm -o $$@
-endef
-$(foreach s,$(CACHE_SERVICES),$(eval $(call cache-composed-rule,$(s))))
-
-# Compose non-cache services
+# Compose all services with their stores (no in-wasm cache needed)
 $(BUILD_DIR)/%-composed.wasm: $(BUILD_DIR)/%.wasm $(BUILD_DIR)/%-store.wasm
 	wac plug --plug $(BUILD_DIR)/$*-store.wasm $(BUILD_DIR)/$*.wasm -o $@
+
+# Compose search with geo-composed + rate-composed
+$(BUILD_DIR)/search-all.wasm: $(BUILD_DIR)/search.wasm $(BUILD_DIR)/geo-composed.wasm $(BUILD_DIR)/rate-composed.wasm
+	wac plug \
+	  --plug $(BUILD_DIR)/geo-composed.wasm \
+	  --plug $(BUILD_DIR)/rate-composed.wasm \
+	  $(BUILD_DIR)/search.wasm -o $@
+
+# Compose frontend with all service-composed wasms
+$(BUILD_DIR)/frontend-all.wasm: $(BUILD_DIR)/frontend.wasm \
+    $(BUILD_DIR)/recommendation-composed.wasm \
+    $(BUILD_DIR)/geo-composed.wasm \
+    $(BUILD_DIR)/attractions-composed.wasm \
+    $(BUILD_DIR)/user-composed.wasm \
+    $(BUILD_DIR)/rate-composed.wasm \
+    $(BUILD_DIR)/profile-composed.wasm \
+    $(BUILD_DIR)/review-composed.wasm \
+    $(BUILD_DIR)/reservation-composed.wasm \
+    $(BUILD_DIR)/search-all.wasm
+	wac plug \
+	  --plug $(BUILD_DIR)/recommendation-composed.wasm \
+	  --plug $(BUILD_DIR)/geo-composed.wasm \
+	  --plug $(BUILD_DIR)/attractions-composed.wasm \
+	  --plug $(BUILD_DIR)/user-composed.wasm \
+	  --plug $(BUILD_DIR)/rate-composed.wasm \
+	  --plug $(BUILD_DIR)/profile-composed.wasm \
+	  --plug $(BUILD_DIR)/review-composed.wasm \
+	  --plug $(BUILD_DIR)/reservation-composed.wasm \
+	  --plug $(BUILD_DIR)/search-all.wasm \
+	  $(BUILD_DIR)/frontend.wasm -o $@
+
+frontend-all: $(BUILD_DIR)/frontend-all.wasm
 
 # ── docker compose ────────────────────────────────────────────────────────────
 tcp-up: all

@@ -1,33 +1,50 @@
 package main
 
 import (
+	"encoding/json"
+
 	"go.bytecodealliance.org/cm"
 
+	hkv   "hotel-components/components/recommendation/host/cache/keyvalue"
 	store "hotel-components/components/recommendation/hotel/store/recommendation-store"
 	recapi "hotel-components/components/recommendation/hotel/api/recommendation"
 )
 
-var svc = NewService()
-
 func main() {}
 
 func init() {
-	recapi.Exports.Init = doInit
 	recapi.Exports.Recommend = recommend
 }
 
-func doInit() {
-	store.Init()
-
+func loadHotels() []Hotel {
+	const key = "rec:hotels"
+	if opt := hkv.Get(key); !opt.None() {
+		var hotels []Hotel
+		if err := json.Unmarshal(opt.Some().Slice(), &hotels); err == nil {
+			return hotels
+		}
+	}
 	witHotels := store.LoadHotels().Slice()
 	hotels := make([]Hotel, len(witHotels))
 	for i, h := range witHotels {
-		hotels[i] = Hotel{ID: h.ID, Lat: h.Lat, Lon: h.Lon, Rate: h.Rate, Price: h.Price}
+		hotels[i] = Hotel{
+			ID:    string([]byte(h.ID)),
+			Lat:   h.Lat,
+			Lon:   h.Lon,
+			Rate:  h.Rate,
+			Price: h.Price,
+		}
 	}
-	svc.Load(hotels)
+	if b, err := json.Marshal(hotels); err == nil {
+		hkv.Set(key, cm.ToList(b))
+	}
+	return hotels
 }
 
 func recommend(req recapi.Requirement, lat float64, lon float64) cm.List[string] {
+	svc := NewService()
+	svc.Load(loadHotels())
+
 	var r Requirement
 	switch req {
 	case recapi.RequirementDistance:

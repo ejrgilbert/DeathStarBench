@@ -13,6 +13,7 @@ wasmtime::component::bindgen!({
 });
 
 host_lib::impl_collection_host!(StoreData);
+host_lib::impl_cache_host!(StoreData);
 
 #[async_trait::async_trait]
 impl UserComponent for UserComposedHostWorld {

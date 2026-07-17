@@ -3,6 +3,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use wasmtime::{Config, Engine};
 use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder};
+pub type Cache = std::sync::RwLock<std::collections::HashMap<String, Vec<u8>>>;
 
 pub fn make_engine() -> Result<Engine> {
     let mut config = Config::new();
@@ -39,6 +40,7 @@ pub struct StoreData {
     pub wasi:  WasiCtx,
     pub table: ResourceTable,
     pub db:    Arc<mongodb::Database>,
+    pub cache: Arc<Cache>,
 }
 
 impl wasmtime_wasi::WasiView for StoreData {
@@ -102,6 +104,7 @@ pub struct SvcHostData<C> {
     pub wasi:         WasiCtx,
     pub table:        ResourceTable,
     pub store_client: Arc<Mutex<C>>,
+    pub cache:        Arc<Cache>,
 }
 
 impl<C: Send> wasmtime_wasi::WasiView for SvcHostData<C> {
@@ -201,6 +204,21 @@ macro_rules! impl_collection_host {
     };
 }
 
+#[macro_export]
+macro_rules! impl_cache_host {
+    ($T:ty) => {
+        #[::async_trait::async_trait]
+        impl host::cache::keyvalue::Host for $T {
+            async fn get(&mut self, key: String) -> ::core::option::Option<::std::vec::Vec<u8>> {
+                self.cache.read().unwrap().get(&key).cloned()
+            }
+            async fn set(&mut self, key: String, value: ::std::vec::Vec<u8>) {
+                self.cache.write().unwrap().insert(key, value);
+            }
+        }
+    };
+}
+
 /// Generates `pub type HostData = SvcHostData<$Client>;`
 #[macro_export]
 macro_rules! svc_host_data {
@@ -257,12 +275,12 @@ macro_rules! run_abi {
                 wasi:  $crate::make_store_wasi_ctx(&data_dir)?,
                 table: ::wasmtime_wasi::ResourceTable::new(),
                 db,
+                cache: ::std::sync::Arc::new($crate::Cache::new(::std::collections::HashMap::new())),
             };
             let mut store = Store::new(&engine, data);
 
             let component = Component::from_file(&engine, &wasm_file)?;
             let instance  = <$World>::instantiate_async(&mut store, &component, &linker).await?;
-            instance.$accessor().call_init(&mut store).await?;
 
             println!("{} [abi] listening on {listen_addr}", $label);
 
@@ -301,12 +319,12 @@ macro_rules! run_svc {
                 wasi:         $crate::make_wasi_ctx(),
                 table:        ::wasmtime_wasi::ResourceTable::new(),
                 store_client,
+                cache:        ::std::sync::Arc::new($crate::Cache::new(::std::collections::HashMap::new())),
             };
             let mut store = ::wasmtime::Store::new(&engine, data);
 
             let component = ::wasmtime::component::Component::from_file(&engine, &wasm_file)?;
             let instance  = <$World>::instantiate_async(&mut store, &component, &linker).await?;
-            instance.$accessor().call_init(&mut store).await?;
 
             println!("{} [svc] listening on {listen_addr}", $label);
 
@@ -349,6 +367,7 @@ macro_rules! run_store {
                 wasi:  $crate::make_store_wasi_ctx(&data_dir)?,
                 table: ::wasmtime_wasi::ResourceTable::new(),
                 db,
+                cache: ::std::sync::Arc::new($crate::Cache::new(::std::collections::HashMap::new())),
             };
             let mut store = Store::new(&engine, data);
 
