@@ -21,12 +21,12 @@ impl GeoComponent for GeoComposedHostWorld {
         lat: f64,
         lon: f64,
     ) -> Result<Vec<String>> {
-        Ok(self.hotel_geo_geo().call_nearby(store, lat, lon).await?)
+        Ok(self.hotel_api_geo().call_nearby(store, lat, lon).await?)
     }
 }
 
 host_lib::run_abi!(
-    GeoComposedHostWorld, hotel_geo_geo,
+    GeoComposedHostWorld, hotel_api_geo,
     "geo-db", "geo",
     "0.0.0.0:8089", "geo-composed.wasm", "geo-host"
 );

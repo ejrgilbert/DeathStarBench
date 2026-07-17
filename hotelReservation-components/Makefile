@@ -106,10 +106,12 @@ teardown:
 
 bench-tcp: teardown tcp-up
 	@until nc -z $(BENCH_HOST) $(BENCH_PORT); do sleep 1; done
+	@sleep 3
 	$(MAKE) bench tcp-down
 
 bench-abi: teardown abi-up
 	@until nc -z $(BENCH_HOST) $(BENCH_PORT); do sleep 1; done
+	@sleep 3
 	$(MAKE) bench abi-down
 
 clean:

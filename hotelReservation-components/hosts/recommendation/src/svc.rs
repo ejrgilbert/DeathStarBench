@@ -16,24 +16,24 @@ wasmtime::component::bindgen!({
     async: true,
 });
 
-use exports::hotel::recommendation::recommendation::Requirement as WitRequirement;
+use exports::hotel::api::recommendation::Requirement as WitRequirement;
 
 host_lib::svc_host_data!(RecommendationStoreClient<tonic::transport::Channel>);
 
 #[async_trait::async_trait]
-impl hotel::recommendation_data::recommendation_store::Host for HostData {
+impl hotel::store::recommendation_store::Host for HostData {
     async fn init(&mut self) {
         self.store_client.lock().await
             .init(tonic::Request::new(InitRequest {})).await
             .expect("gRPC store Init failed");
     }
 
-    async fn load_hotels(&mut self) -> Vec<hotel::recommendation_data::recommendation_store::Hotel> {
+    async fn load_hotels(&mut self) -> Vec<hotel::store::recommendation_store::Hotel> {
         let resp = self.store_client.lock().await
             .load_hotels(tonic::Request::new(LoadHotelsRequest {})).await
             .expect("gRPC store LoadHotels failed")
             .into_inner();
-        resp.hotels.into_iter().map(|h| hotel::recommendation_data::recommendation_store::Hotel {
+        resp.hotels.into_iter().map(|h| hotel::store::recommendation_store::Hotel {
             id: h.id, lat: h.lat, lon: h.lon, rate: h.rate, price: h.price,
         }).collect()
     }
@@ -55,7 +55,7 @@ impl RecommendComponent for RecommendationHostWorld {
             Requirement::Rate    => WitRequirement::Rate,
             Requirement::Price   => WitRequirement::Price,
         };
-        Ok(self.hotel_recommendation_recommendation()
+        Ok(self.hotel_api_recommendation()
             .call_recommend(store, r, lat, lon).await?)
     }
 }
@@ -63,7 +63,7 @@ impl RecommendComponent for RecommendationHostWorld {
 host_lib::run_svc!(
     RecommendationHostWorld,
     RecommendationStoreClient<tonic::transport::Channel>,
-    hotel_recommendation_recommendation,
+    hotel_api_recommendation,
     "http://localhost:8086",
     "0.0.0.0:8085",
     "recommendation.wasm",

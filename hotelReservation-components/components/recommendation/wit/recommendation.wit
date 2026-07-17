@@ -10,3 +10,8 @@ world recommendation-host-world {
     import hotel:store/recommendation-store;
     export hotel:api/recommendation;
 }
+
+world recommendation-composed-host-world {
+    import host:storage/collection;
+    export hotel:api/recommendation;
+}

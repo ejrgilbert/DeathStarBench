@@ -24,7 +24,7 @@ impl wasmtime_wasi::WasiView for AbiData {
 }
 
 #[async_trait::async_trait]
-impl hotel::reservation_data::numbers_col::Host for AbiData {
+impl hotel::store::numbers_col::Host for AbiData {
     async fn count(&mut self) -> u64 {
         host_lib::mongo_count(&self.numbers_col).await.unwrap_or(0)
     }
@@ -37,7 +37,7 @@ impl hotel::reservation_data::numbers_col::Host for AbiData {
 }
 
 #[async_trait::async_trait]
-impl hotel::reservation_data::reservations_col::Host for AbiData {
+impl hotel::store::reservations_col::Host for AbiData {
     async fn find_all(&mut self) -> Vec<Vec<u8>> {
         host_lib::mongo_find_all(&self.reservations_col).await.unwrap_or_default()
     }
@@ -58,7 +58,7 @@ impl ReservationComponent for ReservationComposedHostWorld {
         out_date:    String,
         room_number: i32,
     ) -> Result<Vec<String>> {
-        Ok(self.hotel_reservation_reservation()
+        Ok(self.hotel_api_reservation()
             .call_check_availability(store, &hotel_ids, &in_date, &out_date, room_number)
             .await?)
     }
@@ -72,7 +72,7 @@ impl ReservationComponent for ReservationComposedHostWorld {
         out_date:      String,
         room_number:   i32,
     ) -> Result<Vec<String>> {
-        Ok(self.hotel_reservation_reservation()
+        Ok(self.hotel_api_reservation()
             .call_make_reservation(store, &hotel_id, &customer_name, &in_date, &out_date, room_number)
             .await?)
     }
@@ -109,7 +109,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let instance  = ReservationComposedHostWorld::instantiate_async(&mut store, &component, &linker).await?;
-    instance.hotel_reservation_reservation().call_init(&mut store).await?;
+    instance.hotel_api_reservation().call_init(&mut store).await?;
 
     println!("reservation-host [abi] listening on {listen_addr}");
 

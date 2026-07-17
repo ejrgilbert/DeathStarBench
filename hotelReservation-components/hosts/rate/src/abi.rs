@@ -35,7 +35,7 @@ impl RateComponent for RateComposedHostWorld {
         in_date: String,
         out_date: String,
     ) -> Result<Vec<RatePlan>> {
-        let wit_plans = self.hotel_rate_rate()
+        let wit_plans = self.hotel_api_rate()
             .call_get_rates(store, &hotel_ids, &in_date, &out_date).await?;
         Ok(wit_plans.into_iter().map(|p| RatePlan {
             hotel_id: p.hotel_id,
@@ -81,7 +81,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let instance = RateComposedHostWorld::instantiate_async(&mut store, &component, &linker).await?;
-    instance.hotel_rate_rate().call_init(&mut store).await?;
+    instance.hotel_api_rate().call_init(&mut store).await?;
 
     println!("rate-host [abi] listening on {listen_addr}");
 

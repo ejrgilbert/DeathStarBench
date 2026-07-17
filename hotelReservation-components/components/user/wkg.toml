@@ -1,3 +1,4 @@
 [overrides]
-"hotel:api"   = { path = "../../wit/hotel" }
-"hotel:store" = { path = "../../wit/hotel-store" }
+"hotel:api"      = { path = "../../wit/hotel" }
+"hotel:store"    = { path = "../../wit/hotel-store" }
+"host:storage"   = { path = "../../wit/host-storage" }

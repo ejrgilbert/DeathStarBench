@@ -34,26 +34,26 @@ impl wasmtime_wasi::WasiView for HostData {
 }
 
 #[async_trait::async_trait]
-impl hotel::profile_data::profile_store::Host for HostData {
+impl hotel::store::profile_store::Host for HostData {
     async fn init(&mut self) {
         self.store_client.lock().await
             .init(tonic::Request::new(InitRequest {})).await
             .expect("gRPC profile-store Init failed");
     }
 
-    async fn load_profiles(&mut self) -> Vec<hotel::profile_data::profile_store::Hotel> {
+    async fn load_profiles(&mut self) -> Vec<hotel::store::profile_store::Hotel> {
         let resp = self.store_client.lock().await
             .load_profiles(tonic::Request::new(LoadProfilesRequest {})).await
             .expect("gRPC profile-store LoadProfiles failed")
             .into_inner();
         resp.profs.into_iter().map(|h| {
             let a = h.address.unwrap_or_default();
-            hotel::profile_data::profile_store::Hotel {
+            hotel::store::profile_store::Hotel {
                 id:           h.id,
                 name:         h.name,
                 phone_number: h.phone_number,
                 description:  h.description,
-                addr: hotel::profile_data::profile_store::Address {
+                addr: hotel::store::profile_store::Address {
                     street_number: a.street_number,
                     street_name:   a.street_name,
                     city:          a.city,
@@ -63,7 +63,7 @@ impl hotel::profile_data::profile_store::Host for HostData {
                     lat:           a.lat as f64,
                     lon:           a.lon as f64,
                 },
-                images: h.images.into_iter().map(|img| hotel::profile_data::profile_store::Image {
+                images: h.images.into_iter().map(|img| hotel::store::profile_store::Image {
                     url:     img.url,
                     default: img.default,
                 }).collect(),
@@ -73,7 +73,7 @@ impl hotel::profile_data::profile_store::Host for HostData {
 }
 
 #[async_trait::async_trait]
-impl host::cache::keyvalue::Host for HostData {
+impl cache::keyvalue::keyvalue::Host for HostData {
     async fn get(&mut self, key: String) -> Option<Vec<u8>> {
         let resp = self.cache_client.lock().await
             .get(tonic::Request::new(GetRequest { key })).await
@@ -98,7 +98,7 @@ impl ProfileComponent for ProfileHostWorld {
         store: &mut Store<HostData>,
         hotel_ids: Vec<String>,
     ) -> Result<Vec<Hotel>> {
-        let wit_hotels = self.hotel_profile_profile()
+        let wit_hotels = self.hotel_api_profile()
             .call_get_profiles(store, &hotel_ids).await?;
         Ok(wit_hotels.into_iter().map(|p| Hotel {
             id:           p.id,
@@ -156,7 +156,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let instance = ProfileHostWorld::instantiate_async(&mut store, &component, &linker).await?;
-    instance.hotel_profile_profile().call_init(&mut store).await?;
+    instance.hotel_api_profile().call_init(&mut store).await?;
 
     println!("profile-host [svc] listening on {listen_addr}");
 

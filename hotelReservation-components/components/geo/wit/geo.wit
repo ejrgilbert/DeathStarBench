@@ -10,3 +10,8 @@ world geo-host-world {
     import hotel:store/geo-store;
     export hotel:api/geo;
 }
+
+world geo-composed-host-world {
+    import host:storage/collection;
+    export hotel:api/geo;
+}

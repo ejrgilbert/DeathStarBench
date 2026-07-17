@@ -12,3 +12,8 @@ world profile-host-world {
     import cache:keyvalue/keyvalue;
     export hotel:api/profile;
 }
+
+world profile-composed-host-world {
+    import host:storage/collection;
+    export hotel:api/profile;
+}

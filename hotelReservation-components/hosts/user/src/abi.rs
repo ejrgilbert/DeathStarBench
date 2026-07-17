@@ -21,13 +21,13 @@ impl UserComponent for UserComposedHostWorld {
         username: String,
         password: String,
     ) -> Result<bool> {
-        Ok(self.hotel_user_user()
+        Ok(self.hotel_api_user()
             .call_check_user(store, &username, &password).await?)
     }
 }
 
 host_lib::run_abi!(
-    UserComposedHostWorld, hotel_user_user,
+    UserComposedHostWorld, hotel_api_user,
     "user-db", "user",
     "0.0.0.0:8091", "user-composed.wasm", "user-host"
 );

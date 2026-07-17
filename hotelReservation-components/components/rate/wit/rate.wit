@@ -12,3 +12,8 @@ world rate-host-world {
     import cache:keyvalue/keyvalue;
     export hotel:api/rate;
 }
+
+world rate-composed-host-world {
+    import host:storage/collection;
+    export hotel:api/rate;
+}

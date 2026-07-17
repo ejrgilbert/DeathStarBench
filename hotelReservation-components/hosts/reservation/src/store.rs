@@ -36,7 +36,7 @@ impl wasmtime_wasi::WasiView for ReservationStoreData {
 }
 
 #[async_trait::async_trait]
-impl hotel::reservation_data::numbers_col::Host for ReservationStoreData {
+impl hotel::store::numbers_col::Host for ReservationStoreData {
     async fn count(&mut self) -> u64 {
         host_lib::mongo_count(&self.numbers_col).await.unwrap_or(0)
     }
@@ -49,7 +49,7 @@ impl hotel::reservation_data::numbers_col::Host for ReservationStoreData {
 }
 
 #[async_trait::async_trait]
-impl hotel::reservation_data::reservations_col::Host for ReservationStoreData {
+impl hotel::store::reservations_col::Host for ReservationStoreData {
     async fn find_all(&mut self) -> Vec<Vec<u8>> {
         host_lib::mongo_find_all(&self.reservations_col).await.unwrap_or_default()
     }
@@ -72,7 +72,7 @@ impl ReservationStore for StoreGrpcService {
         &self, _: Request<InitRequest>,
     ) -> Result<Response<InitResponse>, Status> {
         let mut s = self.store.lock().await;
-        self.instance.hotel_reservation_data_reservation_store()
+        self.instance.hotel_store_reservation_store()
             .call_init(&mut *s).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(InitResponse {}))
@@ -82,7 +82,7 @@ impl ReservationStore for StoreGrpcService {
         &self, _: Request<LoadNumbersRequest>,
     ) -> Result<Response<LoadNumbersResponse>, Status> {
         let mut s = self.store.lock().await;
-        let nums = self.instance.hotel_reservation_data_reservation_store()
+        let nums = self.instance.hotel_store_reservation_store()
             .call_load_numbers(&mut *s).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadNumbersResponse {
@@ -97,7 +97,7 @@ impl ReservationStore for StoreGrpcService {
         &self, _: Request<LoadReservationsRequest>,
     ) -> Result<Response<LoadReservationsResponse>, Status> {
         let mut s = self.store.lock().await;
-        let recs = self.instance.hotel_reservation_data_reservation_store()
+        let recs = self.instance.hotel_store_reservation_store()
             .call_load_reservations(&mut *s).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadReservationsResponse {
@@ -116,9 +116,9 @@ impl ReservationStore for StoreGrpcService {
     ) -> Result<Response<InsertReservationResponse>, Status> {
         let r = req.into_inner();
         let mut s = self.store.lock().await;
-        self.instance.hotel_reservation_data_reservation_store()
+        self.instance.hotel_store_reservation_store()
             .call_insert_reservation(&mut *s,
-                &exports::hotel::reservation_data::reservation_store::ReservationRec {
+                &exports::hotel::store::reservation_store::ReservationRec {
                     hotel_id:      r.hotel_id,
                     customer_name: r.customer_name,
                     in_date:       r.in_date,
@@ -161,7 +161,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let instance  = ReservationStoreHostWorld::instantiate_async(&mut store, &component, &linker).await?;
-    instance.hotel_reservation_data_reservation_store()
+    instance.hotel_store_reservation_store()
         .call_init(&mut store).await?;
 
     let store    = Arc::new(Mutex::new(store));

@@ -20,7 +20,7 @@ impl AttractionsComponent for AttractionsComposedHostWorld {
         store: &mut Store<Self::Data>,
         hotel_id: String,
     ) -> Result<Vec<String>> {
-        Ok(self.hotel_attractions_attractions()
+        Ok(self.hotel_api_attractions()
             .call_nearby_rest(store, &hotel_id).await?)
     }
 
@@ -29,7 +29,7 @@ impl AttractionsComponent for AttractionsComposedHostWorld {
         store: &mut Store<Self::Data>,
         hotel_id: String,
     ) -> Result<Vec<String>> {
-        Ok(self.hotel_attractions_attractions()
+        Ok(self.hotel_api_attractions()
             .call_nearby_mus(store, &hotel_id).await?)
     }
 
@@ -38,13 +38,13 @@ impl AttractionsComponent for AttractionsComposedHostWorld {
         store: &mut Store<Self::Data>,
         hotel_id: String,
     ) -> Result<Vec<String>> {
-        Ok(self.hotel_attractions_attractions()
+        Ok(self.hotel_api_attractions()
             .call_nearby_cinema(store, &hotel_id).await?)
     }
 }
 
 host_lib::run_abi!(
-    AttractionsComposedHostWorld, hotel_attractions_attractions,
+    AttractionsComposedHostWorld, hotel_api_attractions,
     "attractions-db", "attractions",
     "0.0.0.0:8087", "attractions-composed.wasm", "attractions-host"
 );

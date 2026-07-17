@@ -25,7 +25,7 @@ impl RateStore for StoreGrpcService {
     async fn init(&self, _req: Request<InitRequest>) -> Result<Response<InitResponse>, Status> {
         let mut store = self.store.lock().await;
         self.instance
-            .hotel_rate_data_rate_store()
+            .hotel_store_rate_store()
             .call_init(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(InitResponse {}))
@@ -37,7 +37,7 @@ impl RateStore for StoreGrpcService {
     ) -> Result<Response<LoadRatesResponse>, Status> {
         let mut store = self.store.lock().await;
         let wit_rates = self.instance
-            .hotel_rate_data_rate_store()
+            .hotel_store_rate_store()
             .call_load_rates(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadRatesResponse {
@@ -59,7 +59,7 @@ impl RateStore for StoreGrpcService {
 }
 
 host_lib::run_store!(
-    RateStoreHostWorld, RateStoreServer, hotel_rate_data_rate_store,
+    RateStoreHostWorld, RateStoreServer, hotel_store_rate_store,
     "rate-db", "inventory",
     "0.0.0.0:8094", "rate-store.wasm", "rate-host"
 );

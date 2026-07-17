@@ -12,3 +12,8 @@ world review-host-world {
     import cache:keyvalue/keyvalue;
     export hotel:api/review;
 }
+
+world review-composed-host-world {
+    import host:storage/collection;
+    export hotel:api/review;
+}

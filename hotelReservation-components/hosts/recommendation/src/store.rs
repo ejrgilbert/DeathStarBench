@@ -24,7 +24,7 @@ impl RecommendationStore for StoreGrpcService {
     async fn init(&self, _req: Request<InitRequest>) -> Result<Response<InitResponse>, Status> {
         let mut store = self.store.lock().await;
         self.instance
-            .hotel_recommendation_data_recommendation_store()
+            .hotel_store_recommendation_store()
             .call_init(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(InitResponse {}))
@@ -36,7 +36,7 @@ impl RecommendationStore for StoreGrpcService {
     ) -> Result<Response<LoadHotelsResponse>, Status> {
         let mut store = self.store.lock().await;
         let wit_hotels = self.instance
-            .hotel_recommendation_data_recommendation_store()
+            .hotel_store_recommendation_store()
             .call_load_hotels(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadHotelsResponse {
@@ -49,7 +49,7 @@ impl RecommendationStore for StoreGrpcService {
 
 host_lib::run_store!(
     RecommendationStoreHostWorld, RecommendationStoreServer,
-    hotel_recommendation_data_recommendation_store,
+    hotel_store_recommendation_store,
     "recommendation-db", "recommendation",
     "0.0.0.0:8086", "recommendation-store.wasm", "recommendation-host"
 );

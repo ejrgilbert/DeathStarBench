@@ -33,7 +33,7 @@ impl ProfileComponent for ProfileComposedHostWorld {
         store: &mut Store<AbiData>,
         hotel_ids: Vec<String>,
     ) -> Result<Vec<Hotel>> {
-        let wit_hotels = self.hotel_profile_profile()
+        let wit_hotels = self.hotel_api_profile()
             .call_get_profiles(store, &hotel_ids).await?;
         Ok(wit_hotels.into_iter().map(|p| Hotel {
             id:           p.id,
@@ -86,7 +86,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let instance = ProfileComposedHostWorld::instantiate_async(&mut store, &component, &linker).await?;
-    instance.hotel_profile_profile().call_init(&mut store).await?;
+    instance.hotel_api_profile().call_init(&mut store).await?;
 
     println!("profile-host [abi] listening on {listen_addr}");
 

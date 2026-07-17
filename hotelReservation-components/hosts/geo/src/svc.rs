@@ -16,19 +16,19 @@ wasmtime::component::bindgen!({
 host_lib::svc_host_data!(GeoStoreClient<tonic::transport::Channel>);
 
 #[async_trait::async_trait]
-impl hotel::geo_data::geo_store::Host for HostData {
+impl hotel::store::geo_store::Host for HostData {
     async fn init(&mut self) {
         self.store_client.lock().await
             .init(tonic::Request::new(InitRequest {})).await
             .expect("gRPC geo-store Init failed");
     }
 
-    async fn load_geo(&mut self) -> Vec<hotel::geo_data::geo_store::Point> {
+    async fn load_geo(&mut self) -> Vec<hotel::store::geo_store::Point> {
         let resp = self.store_client.lock().await
             .load_geo(tonic::Request::new(LoadRequest {})).await
             .expect("gRPC geo-store LoadGeo failed")
             .into_inner();
-        resp.geo.into_iter().map(|p| hotel::geo_data::geo_store::Point {
+        resp.geo.into_iter().map(|p| hotel::store::geo_store::Point {
             id: p.id, lat: p.lat, lon: p.lon,
         }).collect()
     }
@@ -44,14 +44,14 @@ impl GeoComponent for GeoHostWorld {
         lat: f64,
         lon: f64,
     ) -> Result<Vec<String>> {
-        Ok(self.hotel_geo_geo().call_nearby(store, lat, lon).await?)
+        Ok(self.hotel_api_geo().call_nearby(store, lat, lon).await?)
     }
 }
 
 host_lib::run_svc!(
     GeoHostWorld,
     GeoStoreClient<tonic::transport::Channel>,
-    hotel_geo_geo,
+    hotel_api_geo,
     "http://localhost:8090",
     "0.0.0.0:8089",
     "geo.wasm",

@@ -10,3 +10,8 @@ world attractions-host-world {
     import hotel:store/attractions-store;
     export hotel:api/attractions;
 }
+
+world attractions-composed-host-world {
+    import host:storage/collection;
+    export hotel:api/attractions;
+}

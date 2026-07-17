@@ -28,7 +28,7 @@ impl AttractionsStore for StoreGrpcService {
     async fn init(&self, _req: Request<InitRequest>) -> Result<Response<InitResponse>, Status> {
         let mut store = self.store.lock().await;
         self.instance
-            .hotel_attractions_data_attractions_store()
+            .hotel_store_attractions_store()
             .call_init(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(InitResponse {}))
@@ -40,7 +40,7 @@ impl AttractionsStore for StoreGrpcService {
     ) -> Result<Response<LoadHotelPositionsResponse>, Status> {
         let mut store = self.store.lock().await;
         let items = self.instance
-            .hotel_attractions_data_attractions_store()
+            .hotel_store_attractions_store()
             .call_load_hotel_positions(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadHotelPositionsResponse {
@@ -54,7 +54,7 @@ impl AttractionsStore for StoreGrpcService {
     ) -> Result<Response<LoadRestaurantsResponse>, Status> {
         let mut store = self.store.lock().await;
         let items = self.instance
-            .hotel_attractions_data_attractions_store()
+            .hotel_store_attractions_store()
             .call_load_restaurants(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadRestaurantsResponse {
@@ -70,7 +70,7 @@ impl AttractionsStore for StoreGrpcService {
     ) -> Result<Response<LoadMuseumsResponse>, Status> {
         let mut store = self.store.lock().await;
         let items = self.instance
-            .hotel_attractions_data_attractions_store()
+            .hotel_store_attractions_store()
             .call_load_museums(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadMuseumsResponse {
@@ -86,7 +86,7 @@ impl AttractionsStore for StoreGrpcService {
     ) -> Result<Response<LoadCinemasResponse>, Status> {
         let mut store = self.store.lock().await;
         let items = self.instance
-            .hotel_attractions_data_attractions_store()
+            .hotel_store_attractions_store()
             .call_load_cinemas(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadCinemasResponse {
@@ -99,7 +99,7 @@ impl AttractionsStore for StoreGrpcService {
 
 host_lib::run_store!(
     AttractionsStoreHostWorld, AttractionsStoreServer,
-    hotel_attractions_data_attractions_store,
+    hotel_store_attractions_store,
     "attractions-db", "attractions",
     "0.0.0.0:8088", "attractions-store.wasm", "attractions-host"
 );

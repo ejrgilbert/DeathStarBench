@@ -34,27 +34,27 @@ impl wasmtime_wasi::WasiView for HostData {
 }
 
 #[async_trait::async_trait]
-impl hotel::review_data::review_store::Host for HostData {
+impl hotel::store::review_store::Host for HostData {
     async fn init(&mut self) {
         self.store_client.lock().await
             .init(tonic::Request::new(InitRequest {})).await
             .expect("gRPC review-store Init failed");
     }
 
-    async fn load_reviews(&mut self) -> Vec<hotel::review_data::review_store::Review> {
+    async fn load_reviews(&mut self) -> Vec<hotel::store::review_store::Review> {
         let resp = self.store_client.lock().await
             .load_reviews(tonic::Request::new(LoadReviewsRequest {})).await
             .expect("gRPC review-store LoadReviews failed")
             .into_inner();
         resp.reviews.into_iter().map(|r| {
             let img = r.image.unwrap_or_default();
-            hotel::review_data::review_store::Review {
+            hotel::store::review_store::Review {
                 review_id:   r.review_id,
                 hotel_id:    r.hotel_id,
                 name:        r.name,
                 rating:      r.rating,
                 description: r.description,
-                image: hotel::review_data::review_store::Image {
+                image: hotel::store::review_store::Image {
                     url:     img.url,
                     default: img.default,
                 },
@@ -64,7 +64,7 @@ impl hotel::review_data::review_store::Host for HostData {
 }
 
 #[async_trait::async_trait]
-impl host::cache::keyvalue::Host for HostData {
+impl cache::keyvalue::keyvalue::Host for HostData {
     async fn get(&mut self, key: String) -> Option<Vec<u8>> {
         let resp = self.cache_client.lock().await
             .get(tonic::Request::new(GetRequest { key })).await
@@ -89,7 +89,7 @@ impl ReviewComponent for ReviewHostWorld {
         store: &mut Store<HostData>,
         hotel_id: String,
     ) -> Result<Vec<ReviewComm>> {
-        let wit_reviews = self.hotel_review_review()
+        let wit_reviews = self.hotel_api_review()
             .call_get_reviews(store, &hotel_id).await?;
         Ok(wit_reviews.into_iter().map(|r| ReviewComm {
             review_id:   r.review_id,
@@ -138,7 +138,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let instance = ReviewHostWorld::instantiate_async(&mut store, &component, &linker).await?;
-    instance.hotel_review_review().call_init(&mut store).await?;
+    instance.hotel_api_review().call_init(&mut store).await?;
 
     println!("review-host [svc] listening on {listen_addr}");
 

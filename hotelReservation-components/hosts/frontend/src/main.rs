@@ -89,7 +89,7 @@ impl WasiHttpView for HostData {
 // ─── hotel service trait impls ───────────────────────────────────────────────
 
 #[async_trait::async_trait]
-impl hotel::search::search::Host for HostData {
+impl hotel::api::search::Host for HostData {
     async fn init(&mut self) {}
 
     async fn nearby(
@@ -115,13 +115,13 @@ impl hotel::search::search::Host for HostData {
 }
 
 #[async_trait::async_trait]
-impl hotel::profile::profile::Host for HostData {
+impl hotel::api::profile::Host for HostData {
     async fn init(&mut self) {}
 
     async fn get_profiles(
         &mut self,
         hotel_ids: Vec<String>,
-    ) -> Vec<hotel::profile::profile::Hotel> {
+    ) -> Vec<hotel::api::profile::Hotel> {
         self.clients
             .profile
             .clone()
@@ -135,14 +135,14 @@ impl hotel::profile::profile::Host for HostData {
     }
 }
 
-fn proto_hotel_to_wit(h: profile_proto::Hotel) -> hotel::profile::profile::Hotel {
+fn proto_hotel_to_wit(h: profile_proto::Hotel) -> hotel::api::profile::Hotel {
     let a = h.address.as_ref();
-    hotel::profile::profile::Hotel {
+    hotel::api::profile::Hotel {
         id:           h.id,
         name:         h.name,
         phone_number: h.phone_number,
         description:  h.description,
-        addr: hotel::profile::profile::Address {
+        addr: hotel::api::profile::Address {
             street_number: a.map(|x| x.street_number.clone()).unwrap_or_default(),
             street_name:   a.map(|x| x.street_name.clone()).unwrap_or_default(),
             city:          a.map(|x| x.city.clone()).unwrap_or_default(),
@@ -155,22 +155,22 @@ fn proto_hotel_to_wit(h: profile_proto::Hotel) -> hotel::profile::profile::Hotel
         images: h
             .images
             .into_iter()
-            .map(|i| hotel::profile::profile::Image { url: i.url, default: i.default })
+            .map(|i| hotel::api::profile::Image { url: i.url, default: i.default })
             .collect(),
     }
 }
 
 #[async_trait::async_trait]
-impl hotel::recommendation::recommendation::Host for HostData {
+impl hotel::api::recommendation::Host for HostData {
     async fn init(&mut self) {}
 
     async fn recommend(
         &mut self,
-        requirement: hotel::recommendation::recommendation::Requirement,
+        requirement: hotel::api::recommendation::Requirement,
         lat:         f64,
         lon:         f64,
     ) -> Vec<String> {
-        use hotel::recommendation::recommendation::Requirement::*;
+        use hotel::api::recommendation::Requirement::*;
         let require = match requirement {
             Distance => "dis",
             Rate     => "rate",
@@ -191,7 +191,7 @@ impl hotel::recommendation::recommendation::Host for HostData {
 }
 
 #[async_trait::async_trait]
-impl hotel::user::user::Host for HostData {
+impl hotel::api::user::Host for HostData {
     async fn init(&mut self) {}
 
     async fn check_user(&mut self, username: String, password: String) -> bool {
@@ -206,13 +206,13 @@ impl hotel::user::user::Host for HostData {
 }
 
 #[async_trait::async_trait]
-impl hotel::review::review::Host for HostData {
+impl hotel::api::review::Host for HostData {
     async fn init(&mut self) {}
 
     async fn get_reviews(
         &mut self,
         hotel_id: String,
-    ) -> Vec<hotel::review::review::ReviewComm> {
+    ) -> Vec<hotel::api::review::ReviewComm> {
         self.clients
             .review
             .clone()
@@ -222,13 +222,13 @@ impl hotel::review::review::Host for HostData {
                 r.into_inner()
                     .reviews
                     .into_iter()
-                    .map(|rv| hotel::review::review::ReviewComm {
+                    .map(|rv| hotel::api::review::ReviewComm {
                         review_id:   rv.review_id,
                         hotel_id:    rv.hotel_id,
                         name:        rv.name,
                         rating:      rv.rating,
                         description: rv.description,
-                        image: hotel::review::review::Image {
+                        image: hotel::api::review::Image {
                             url:     rv.images.as_ref().map(|i| i.url.clone()).unwrap_or_default(),
                             default: rv.images.as_ref().map(|i| i.default).unwrap_or_default(),
                         },
@@ -240,7 +240,7 @@ impl hotel::review::review::Host for HostData {
 }
 
 #[async_trait::async_trait]
-impl hotel::attractions::attractions::Host for HostData {
+impl hotel::api::attractions::Host for HostData {
     async fn init(&mut self) {}
 
     async fn nearby_rest(&mut self, hotel_id: String) -> Vec<String> {
@@ -275,7 +275,7 @@ impl hotel::attractions::attractions::Host for HostData {
 }
 
 #[async_trait::async_trait]
-impl hotel::reservation::reservation::Host for HostData {
+impl hotel::api::reservation::Host for HostData {
     async fn init(&mut self) {}
 
     async fn check_availability(
@@ -398,13 +398,13 @@ async fn main() -> Result<()> {
     wasmtime_wasi::add_to_linker_async(&mut linker)?;
     wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
     // Link each hotel service import individually to avoid requiring wasi Host traits on HostData
-    hotel::search::search::add_to_linker(&mut linker, |d| d)?;
-    hotel::profile::profile::add_to_linker(&mut linker, |d| d)?;
-    hotel::recommendation::recommendation::add_to_linker(&mut linker, |d| d)?;
-    hotel::user::user::add_to_linker(&mut linker, |d| d)?;
-    hotel::review::review::add_to_linker(&mut linker, |d| d)?;
-    hotel::attractions::attractions::add_to_linker(&mut linker, |d| d)?;
-    hotel::reservation::reservation::add_to_linker(&mut linker, |d| d)?;
+    hotel::api::search::add_to_linker(&mut linker, |d| d)?;
+    hotel::api::profile::add_to_linker(&mut linker, |d| d)?;
+    hotel::api::recommendation::add_to_linker(&mut linker, |d| d)?;
+    hotel::api::user::add_to_linker(&mut linker, |d| d)?;
+    hotel::api::review::add_to_linker(&mut linker, |d| d)?;
+    hotel::api::attractions::add_to_linker(&mut linker, |d| d)?;
+    hotel::api::reservation::add_to_linker(&mut linker, |d| d)?;
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let pre = FrontendHostWorldPre::new(linker.instantiate_pre(&component)?)?;

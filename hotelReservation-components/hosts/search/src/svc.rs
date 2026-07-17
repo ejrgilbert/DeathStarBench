@@ -33,7 +33,7 @@ impl wasmtime_wasi::WasiView for HostData {
 }
 
 #[async_trait::async_trait]
-impl hotel::geo::geo::Host for HostData {
+impl hotel::api::geo::Host for HostData {
     async fn init(&mut self) {}
 
     async fn nearby(&mut self, lat: f64, lon: f64) -> Vec<String> {
@@ -47,7 +47,7 @@ impl hotel::geo::geo::Host for HostData {
 }
 
 #[async_trait::async_trait]
-impl hotel::rate::rate::Host for HostData {
+impl hotel::api::rate::Host for HostData {
     async fn init(&mut self) {}
 
     async fn get_rates(
@@ -55,7 +55,7 @@ impl hotel::rate::rate::Host for HostData {
         hotel_ids: Vec<String>,
         in_date: String,
         out_date: String,
-    ) -> Vec<hotel::rate::rate::RatePlan> {
+    ) -> Vec<hotel::api::rate::RatePlan> {
         let resp = self.rate_client.lock().await
             .get_rates(tonic::Request::new(rate_proto::Request {
                 hotel_ids,
@@ -68,12 +68,12 @@ impl hotel::rate::rate::Host for HostData {
 
         resp.rate_plans.into_iter().map(|rp| {
             let rt = rp.room_type.unwrap_or_default();
-            hotel::rate::rate::RatePlan {
+            hotel::api::rate::RatePlan {
                 hotel_id: rp.hotel_id,
                 code:     rp.code,
                 in_date:  rp.in_date,
                 out_date: rp.out_date,
-                room_type: hotel::rate::rate::RoomType {
+                room_type: hotel::api::rate::RoomType {
                     bookable_rate:        rt.bookable_rate,
                     code:                 rt.code,
                     room_description:     rt.room_description,
@@ -97,7 +97,7 @@ impl SearchComponent for SearchHostWorld {
         in_date: String,
         out_date: String,
     ) -> Result<Vec<String>> {
-        Ok(self.hotel_search_search()
+        Ok(self.hotel_api_search()
             .call_nearby(store, lat, lon, &in_date, &out_date).await?)
     }
 }
@@ -133,7 +133,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let instance  = SearchHostWorld::instantiate_async(&mut store, &component, &linker).await?;
-    instance.hotel_search_search().call_init(&mut store).await?;
+    instance.hotel_api_search().call_init(&mut store).await?;
 
     println!("search-host listening on {listen_addr}");
 

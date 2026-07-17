@@ -33,7 +33,7 @@ impl ReviewComponent for ReviewComposedHostWorld {
         store: &mut Store<AbiData>,
         hotel_id: String,
     ) -> Result<Vec<ReviewComm>> {
-        let wit_reviews = self.hotel_review_review()
+        let wit_reviews = self.hotel_api_review()
             .call_get_reviews(store, &hotel_id).await?;
         Ok(wit_reviews.into_iter().map(|r| ReviewComm {
             review_id:   r.review_id,
@@ -77,7 +77,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let instance = ReviewComposedHostWorld::instantiate_async(&mut store, &component, &linker).await?;
-    instance.hotel_review_review().call_init(&mut store).await?;
+    instance.hotel_api_review().call_init(&mut store).await?;
 
     println!("review-host [abi] listening on {listen_addr}");
 

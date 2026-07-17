@@ -34,26 +34,26 @@ impl wasmtime_wasi::WasiView for HostData {
 }
 
 #[async_trait::async_trait]
-impl hotel::rate_data::rate_store::Host for HostData {
+impl hotel::store::rate_store::Host for HostData {
     async fn init(&mut self) {
         self.store_client.lock().await
             .init(tonic::Request::new(InitRequest {})).await
             .expect("gRPC rate-store Init failed");
     }
 
-    async fn load_rates(&mut self) -> Vec<hotel::rate_data::rate_store::RatePlan> {
+    async fn load_rates(&mut self) -> Vec<hotel::store::rate_store::RatePlan> {
         let resp = self.store_client.lock().await
             .load_rates(tonic::Request::new(LoadRatesRequest {})).await
             .expect("gRPC rate-store LoadRates failed")
             .into_inner();
         resp.rates.into_iter().map(|r| {
             let rt = r.room_type.unwrap_or_default();
-            hotel::rate_data::rate_store::RatePlan {
+            hotel::store::rate_store::RatePlan {
                 hotel_id: r.hotel_id,
                 code: r.code,
                 in_date: r.in_date,
                 out_date: r.out_date,
-                room_type: hotel::rate_data::rate_store::RoomType {
+                room_type: hotel::store::rate_store::RoomType {
                     bookable_rate: rt.bookable_rate,
                     code: rt.code,
                     room_description: rt.room_description,
@@ -66,7 +66,7 @@ impl hotel::rate_data::rate_store::Host for HostData {
 }
 
 #[async_trait::async_trait]
-impl host::cache::keyvalue::Host for HostData {
+impl cache::keyvalue::keyvalue::Host for HostData {
     async fn get(&mut self, key: String) -> Option<Vec<u8>> {
         let resp = self.cache_client.lock().await
             .get(tonic::Request::new(GetRequest { key })).await
@@ -93,7 +93,7 @@ impl RateComponent for RateHostWorld {
         in_date: String,
         out_date: String,
     ) -> Result<Vec<RatePlan>> {
-        let wit_plans = self.hotel_rate_rate()
+        let wit_plans = self.hotel_api_rate()
             .call_get_rates(store, &hotel_ids, &in_date, &out_date).await?;
         Ok(wit_plans.into_iter().map(|p| RatePlan {
             hotel_id: p.hotel_id,
@@ -144,7 +144,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let instance = RateHostWorld::instantiate_async(&mut store, &component, &linker).await?;
-    instance.hotel_rate_rate().call_init(&mut store).await?;
+    instance.hotel_api_rate().call_init(&mut store).await?;
 
     println!("rate-host [svc] listening on {listen_addr}");
 

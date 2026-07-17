@@ -25,7 +25,7 @@ impl UserStore for StoreGrpcService {
     async fn init(&self, _req: Request<InitRequest>) -> Result<Response<InitResponse>, Status> {
         let mut store = self.store.lock().await;
         self.instance
-            .hotel_user_data_user_store()
+            .hotel_store_user_store()
             .call_init(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(InitResponse {}))
@@ -37,7 +37,7 @@ impl UserStore for StoreGrpcService {
     ) -> Result<Response<LoadUsersResponse>, Status> {
         let mut store = self.store.lock().await;
         let wit_users = self.instance
-            .hotel_user_data_user_store()
+            .hotel_store_user_store()
             .call_load_users(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadUsersResponse {
@@ -50,7 +50,7 @@ impl UserStore for StoreGrpcService {
 }
 
 host_lib::run_store!(
-    UserStoreHostWorld, UserStoreServer, hotel_user_data_user_store,
+    UserStoreHostWorld, UserStoreServer, hotel_store_user_store,
     "user-db", "user",
     "0.0.0.0:8092", "user-store.wasm", "user-host"
 );

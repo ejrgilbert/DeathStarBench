@@ -44,7 +44,7 @@ impl Cache for CacheService {
         let key = req.into_inner().key;
         let mut store = self.store.lock().await;
         let result = self.instance
-            .host_cache_keyvalue()
+            .cache_keyvalue_keyvalue()
             .call_get(&mut *store, &key).await
             .map_err(|e| Status::internal(e.to_string()))?;
         match result {
@@ -57,7 +57,7 @@ impl Cache for CacheService {
         let r = req.into_inner();
         let mut store = self.store.lock().await;
         self.instance
-            .host_cache_keyvalue()
+            .cache_keyvalue_keyvalue()
             .call_set(&mut *store, &r.key, &r.value).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(SetResponse {}))

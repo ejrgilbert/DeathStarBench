@@ -9,7 +9,7 @@ wasmtime::component::bindgen!({
     async: true,
 });
 
-use exports::hotel::recommendation::recommendation::Requirement as WitRequirement;
+use exports::hotel::api::recommendation::Requirement as WitRequirement;
 
 host_lib::impl_collection_host!(StoreData);
 
@@ -29,13 +29,13 @@ impl RecommendComponent for RecommendationComposedHostWorld {
             Requirement::Rate    => WitRequirement::Rate,
             Requirement::Price   => WitRequirement::Price,
         };
-        Ok(self.hotel_recommendation_recommendation()
+        Ok(self.hotel_api_recommendation()
             .call_recommend(store, r, lat, lon).await?)
     }
 }
 
 host_lib::run_abi!(
-    RecommendationComposedHostWorld, hotel_recommendation_recommendation,
+    RecommendationComposedHostWorld, hotel_api_recommendation,
     "recommendation-db", "recommendation",
     "0.0.0.0:8085", "recommendation-composed.wasm", "recommendation-host"
 );

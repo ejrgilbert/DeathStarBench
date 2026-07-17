@@ -10,3 +10,8 @@ world user-host-world {
     import hotel:store/user-store;
     export hotel:api/user;
 }
+
+world user-composed-host-world {
+    import host:storage/collection;
+    export hotel:api/user;
+}

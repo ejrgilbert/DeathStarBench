@@ -19,7 +19,7 @@ wasmtime::component::bindgen!({
 host_lib::svc_host_data!(AttractionsStoreClient<tonic::transport::Channel>);
 
 #[async_trait::async_trait]
-impl hotel::attractions_data::attractions_store::Host for HostData {
+impl hotel::store::attractions_store::Host for HostData {
     async fn init(&mut self) {
         self.store_client.lock().await
             .init(tonic::Request::new(InitRequest {})).await
@@ -28,48 +28,48 @@ impl hotel::attractions_data::attractions_store::Host for HostData {
 
     async fn load_hotel_positions(
         &mut self,
-    ) -> Vec<hotel::attractions_data::attractions_store::HotelPosition> {
+    ) -> Vec<hotel::store::attractions_store::HotelPosition> {
         let resp = self.store_client.lock().await
             .load_hotel_positions(tonic::Request::new(LoadRequest {})).await
             .expect("gRPC LoadHotelPositions failed")
             .into_inner();
-        resp.hotels.into_iter().map(|h| hotel::attractions_data::attractions_store::HotelPosition {
+        resp.hotels.into_iter().map(|h| hotel::store::attractions_store::HotelPosition {
             id: h.id, lat: h.lat, lon: h.lon,
         }).collect()
     }
 
     async fn load_restaurants(
         &mut self,
-    ) -> Vec<hotel::attractions_data::attractions_store::Restaurant> {
+    ) -> Vec<hotel::store::attractions_store::Restaurant> {
         let resp = self.store_client.lock().await
             .load_restaurants(tonic::Request::new(LoadRequest {})).await
             .expect("gRPC LoadRestaurants failed")
             .into_inner();
-        resp.restaurants.into_iter().map(|r| hotel::attractions_data::attractions_store::Restaurant {
+        resp.restaurants.into_iter().map(|r| hotel::store::attractions_store::Restaurant {
             id: r.id, lat: r.lat, lon: r.lon, name: r.name, rating: r.rating, category: r.category,
         }).collect()
     }
 
     async fn load_museums(
         &mut self,
-    ) -> Vec<hotel::attractions_data::attractions_store::Museum> {
+    ) -> Vec<hotel::store::attractions_store::Museum> {
         let resp = self.store_client.lock().await
             .load_museums(tonic::Request::new(LoadRequest {})).await
             .expect("gRPC LoadMuseums failed")
             .into_inner();
-        resp.museums.into_iter().map(|m| hotel::attractions_data::attractions_store::Museum {
+        resp.museums.into_iter().map(|m| hotel::store::attractions_store::Museum {
             id: m.id, lat: m.lat, lon: m.lon, name: m.name, category: m.category,
         }).collect()
     }
 
     async fn load_cinemas(
         &mut self,
-    ) -> Vec<hotel::attractions_data::attractions_store::Cinema> {
+    ) -> Vec<hotel::store::attractions_store::Cinema> {
         let resp = self.store_client.lock().await
             .load_cinemas(tonic::Request::new(LoadRequest {})).await
             .expect("gRPC LoadCinemas failed")
             .into_inner();
-        resp.cinemas.into_iter().map(|c| hotel::attractions_data::attractions_store::Cinema {
+        resp.cinemas.into_iter().map(|c| hotel::store::attractions_store::Cinema {
             id: c.id, lat: c.lat, lon: c.lon, name: c.name, category: c.category,
         }).collect()
     }
@@ -84,7 +84,7 @@ impl AttractionsComponent for AttractionsHostWorld {
         store: &mut Store<HostData>,
         hotel_id: String,
     ) -> Result<Vec<String>> {
-        Ok(self.hotel_attractions_attractions()
+        Ok(self.hotel_api_attractions()
             .call_nearby_rest(store, &hotel_id).await?)
     }
 
@@ -93,7 +93,7 @@ impl AttractionsComponent for AttractionsHostWorld {
         store: &mut Store<HostData>,
         hotel_id: String,
     ) -> Result<Vec<String>> {
-        Ok(self.hotel_attractions_attractions()
+        Ok(self.hotel_api_attractions()
             .call_nearby_mus(store, &hotel_id).await?)
     }
 
@@ -102,7 +102,7 @@ impl AttractionsComponent for AttractionsHostWorld {
         store: &mut Store<HostData>,
         hotel_id: String,
     ) -> Result<Vec<String>> {
-        Ok(self.hotel_attractions_attractions()
+        Ok(self.hotel_api_attractions()
             .call_nearby_cinema(store, &hotel_id).await?)
     }
 }
@@ -110,7 +110,7 @@ impl AttractionsComponent for AttractionsHostWorld {
 host_lib::run_svc!(
     AttractionsHostWorld,
     AttractionsStoreClient<tonic::transport::Channel>,
-    hotel_attractions_attractions,
+    hotel_api_attractions,
     "http://localhost:8088",
     "0.0.0.0:8087",
     "attractions.wasm",

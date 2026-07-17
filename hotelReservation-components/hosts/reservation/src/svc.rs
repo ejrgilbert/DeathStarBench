@@ -37,7 +37,7 @@ impl wasmtime_wasi::WasiView for HostData {
 }
 
 #[async_trait::async_trait]
-impl hotel::reservation_data::reservation_store::Host for HostData {
+impl hotel::store::reservation_store::Host for HostData {
     async fn init(&mut self) {
         self.store_client.lock().await
             .init(tonic::Request::new(InitRequest {})).await
@@ -46,13 +46,13 @@ impl hotel::reservation_data::reservation_store::Host for HostData {
 
     async fn load_numbers(
         &mut self,
-    ) -> Vec<hotel::reservation_data::reservation_store::NumberRec> {
+    ) -> Vec<hotel::store::reservation_store::NumberRec> {
         let resp = self.store_client.lock().await
             .load_numbers(tonic::Request::new(LoadNumbersRequest {})).await
             .expect("gRPC reservation-store LoadNumbers failed")
             .into_inner();
         resp.numbers.into_iter().map(|n| {
-            hotel::reservation_data::reservation_store::NumberRec {
+            hotel::store::reservation_store::NumberRec {
                 hotel_id:       n.hotel_id,
                 number_of_room: n.number_of_room,
             }
@@ -61,13 +61,13 @@ impl hotel::reservation_data::reservation_store::Host for HostData {
 
     async fn load_reservations(
         &mut self,
-    ) -> Vec<hotel::reservation_data::reservation_store::ReservationRec> {
+    ) -> Vec<hotel::store::reservation_store::ReservationRec> {
         let resp = self.store_client.lock().await
             .load_reservations(tonic::Request::new(LoadReservationsRequest {})).await
             .expect("gRPC reservation-store LoadReservations failed")
             .into_inner();
         resp.reservations.into_iter().map(|r| {
-            hotel::reservation_data::reservation_store::ReservationRec {
+            hotel::store::reservation_store::ReservationRec {
                 hotel_id:      r.hotel_id,
                 customer_name: r.customer_name,
                 in_date:       r.in_date,
@@ -79,7 +79,7 @@ impl hotel::reservation_data::reservation_store::Host for HostData {
 
     async fn insert_reservation(
         &mut self,
-        r: hotel::reservation_data::reservation_store::ReservationRec,
+        r: hotel::store::reservation_store::ReservationRec,
     ) {
         self.store_client.lock().await
             .insert_reservation(tonic::Request::new(InsertReservationRequest {
@@ -94,7 +94,7 @@ impl hotel::reservation_data::reservation_store::Host for HostData {
 }
 
 #[async_trait::async_trait]
-impl host::cache::keyvalue::Host for HostData {
+impl cache::keyvalue::keyvalue::Host for HostData {
     async fn get(&mut self, key: String) -> Option<Vec<u8>> {
         let resp = self.cache_client.lock().await
             .get(tonic::Request::new(GetRequest { key })).await
@@ -122,7 +122,7 @@ impl ReservationComponent for ReservationHostWorld {
         out_date:    String,
         room_number: i32,
     ) -> Result<Vec<String>> {
-        let result = self.hotel_reservation_reservation()
+        let result = self.hotel_api_reservation()
             .call_check_availability(store, &hotel_ids, &in_date, &out_date, room_number)
             .await?;
         Ok(result)
@@ -137,7 +137,7 @@ impl ReservationComponent for ReservationHostWorld {
         out_date:      String,
         room_number:   i32,
     ) -> Result<Vec<String>> {
-        let result = self.hotel_reservation_reservation()
+        let result = self.hotel_api_reservation()
             .call_make_reservation(store, &hotel_id, &customer_name, &in_date, &out_date, room_number)
             .await?;
         Ok(result)
@@ -177,7 +177,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let instance  = ReservationHostWorld::instantiate_async(&mut store, &component, &linker).await?;
-    instance.hotel_reservation_reservation().call_init(&mut store).await?;
+    instance.hotel_api_reservation().call_init(&mut store).await?;
 
     println!("reservation-host [svc] listening on {listen_addr}");
 
