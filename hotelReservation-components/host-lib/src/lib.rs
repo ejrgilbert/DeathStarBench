@@ -221,6 +221,34 @@ macro_rules! impl_cache_host {
     };
 }
 
+pub struct SvcHost<Pre, Client> {
+    pub engine:       Arc<wasmtime::Engine>,
+    pub pre:          Arc<Pre>,
+    pub store_client: Arc<Mutex<Client>>,
+    pub cache:        Arc<Cache>,
+}
+
+impl<Pre: Send + Sync, Client: Send + Sync + 'static> SvcHost<Pre, Client> {
+    pub fn new(
+        engine:       Arc<wasmtime::Engine>,
+        pre:          Arc<Pre>,
+        store_client: Arc<Mutex<Client>>,
+        cache:        Arc<Cache>,
+    ) -> Self {
+        Self { engine, pre, store_client, cache }
+    }
+
+    pub fn make_store(&self) -> (wasmtime::Store<SvcHostData<Client>>, Arc<Pre>) {
+        let data = SvcHostData {
+            wasi:         make_wasi_ctx(),
+            table:        ResourceTable::new(),
+            store_client: self.store_client.clone(),
+            cache:        self.cache.clone(),
+        };
+        (wasmtime::Store::new(&self.engine, data), self.pre.clone())
+    }
+}
+
 /// Generates `pub type HostData = SvcHostData<$Client>;`
 #[macro_export]
 macro_rules! svc_host_data {
@@ -259,94 +287,60 @@ macro_rules! define_store_service {
     };
 }
 
-/// Generates `pub async fn run()` for ABI-mode hosts (composed wasm + direct MongoDB).
-/// The wasm selects its collection via `connection::open(name)`.
+/// Generates `pub async fn run()` for SVC-Pre-mode hosts (wasm service + gRPC store, per-request instantiation).
+/// Uses `host_lib::SvcHost<$Pre, $Client>` as the concrete host type.
 #[macro_export]
-macro_rules! run_abi {
-    ($World:ty, $accessor:ident, $db:literal,
-     $default_addr:literal, $default_wasm:literal, $label:literal) => {
-        pub async fn run() -> ::anyhow::Result<()> {
-            use ::std::sync::Arc;
-            use ::tokio::sync::Mutex;
-            use ::wasmtime::component::{Component, Linker};
-            use ::wasmtime::Store;
-
-            let mongo_uri   = ::std::env::var("MONGO_URI")
-                .unwrap_or_else(|_| "mongodb://localhost:27017".into());
-            let listen_addr: ::std::net::SocketAddr = ::std::env::var("LISTEN_ADDR")
-                .unwrap_or_else(|_| $default_addr.into())
-                .parse()?;
-            let data_dir    = ::std::env::var("DATA_DIR")
-                .unwrap_or_else(|_| "/data".into());
-            let wasm_file   = ::std::env::var("WASM_FILE")
-                .unwrap_or_else(|_| $default_wasm.into());
-
-            let mongo = ::mongodb::Client::with_uri_str(&mongo_uri).await?;
-            let db    = Arc::new(mongo.database($db));
-
-            let engine     = $crate::make_engine()?;
-            let mut linker: Linker<$crate::StoreData> = Linker::new(&engine);
-            ::wasmtime_wasi::add_to_linker_async(&mut linker)?;
-            <$World>::add_to_linker(&mut linker, |d| d)?;
-
-            let data = $crate::StoreData {
-                wasi:  $crate::make_store_wasi_ctx(&data_dir)?,
-                table: ::wasmtime_wasi::ResourceTable::new(),
-                db,
-                cache: ::std::sync::Arc::new($crate::Cache::new(::std::collections::HashMap::new())),
-            };
-            let mut store = Store::new(&engine, data);
-
-            let component = Component::from_file(&engine, &wasm_file)?;
-            let instance  = <$World>::instantiate_async(&mut store, &component, &linker).await?;
-
-            println!("{} [abi] listening on {listen_addr}", $label);
-
-            crate::grpc::serve(Arc::new(Mutex::new(store)), Arc::new(instance), listen_addr).await
-        }
-    };
-}
-
-/// Generates `pub async fn run()` for SVC-mode hosts (wasm service + gRPC store).
-#[macro_export]
-macro_rules! run_svc {
-    ($World:ty, $Client:ty, $accessor:ident,
+macro_rules! run_svc_pre {
+    ($World:ty, $Pre:ty, $Client:ty,
      $default_store:literal, $default_addr:literal, $default_wasm:literal, $label:literal) => {
         pub async fn run() -> ::anyhow::Result<()> {
             use ::std::sync::Arc;
             use ::tokio::sync::Mutex;
-            use ::wasmtime::component::Linker;
+            use ::wasmtime::component::{Component, Linker};
 
-            let store_addr  = ::std::env::var("STORE_ADDR")
-                .unwrap_or_else(|_| $default_store.into());
+            let store_addr  = ::std::env::var("STORE_ADDR").unwrap_or_else(|_| $default_store.into());
             let listen_addr: ::std::net::SocketAddr = ::std::env::var("LISTEN_ADDR")
-                .unwrap_or_else(|_| $default_addr.into())
-                .parse()?;
-            let wasm_file   = ::std::env::var("WASM_FILE")
-                .unwrap_or_else(|_| $default_wasm.into());
+                .unwrap_or_else(|_| $default_addr.into()).parse()?;
+            let wasm_file   = ::std::env::var("WASM_FILE").unwrap_or_else(|_| $default_wasm.into());
 
             let store_client = <$Client>::connect(store_addr).await?;
             let store_client = Arc::new(Mutex::new(store_client));
+            let cache        = Arc::new($crate::Cache::new(::std::collections::HashMap::new()));
 
-            let engine     = $crate::make_engine()?;
+            let engine = Arc::new($crate::make_engine()?);
             let mut linker: Linker<$crate::SvcHostData<$Client>> = Linker::new(&engine);
             ::wasmtime_wasi::add_to_linker_async(&mut linker)?;
             <$World>::add_to_linker(&mut linker, |d| d)?;
 
-            let data = $crate::SvcHostData {
-                wasi:         $crate::make_wasi_ctx(),
-                table:        ::wasmtime_wasi::ResourceTable::new(),
-                store_client,
-                cache:        ::std::sync::Arc::new($crate::Cache::new(::std::collections::HashMap::new())),
-            };
-            let mut store = ::wasmtime::Store::new(&engine, data);
+            let component = Component::from_file(&engine, &wasm_file)?;
+            let pre = Arc::new(<$Pre>::new(linker.instantiate_pre(&component)?)?);
 
-            let component = ::wasmtime::component::Component::from_file(&engine, &wasm_file)?;
-            let instance  = <$World>::instantiate_async(&mut store, &component, &linker).await?;
+            println!("{} listening on {listen_addr}", $label);
+            crate::grpc::serve(
+                Arc::new($crate::SvcHost::new(engine, pre, store_client, cache)),
+                listen_addr,
+            ).await
+        }
+    };
+}
 
-            println!("{} [svc] listening on {listen_addr}", $label);
+/// Entry point for hosts that have both `store` and `svc` modes.
+/// Declares `mod grpc; mod store; mod svc;` and dispatches via the `MODE` env var.
+#[macro_export]
+macro_rules! store_svc_main {
+    () => {
+        mod grpc;
+        mod store;
+        mod svc;
 
-            crate::grpc::serve(Arc::new(Mutex::new(store)), Arc::new(instance), listen_addr).await
+        #[tokio::main]
+        async fn main() -> ::anyhow::Result<()> {
+            let mode = ::std::env::var("MODE").unwrap_or_else(|_| "svc".into());
+            match mode.as_str() {
+                "store" => store::run().await,
+                "svc"   => svc::run().await,
+                other   => ::anyhow::bail!("unknown MODE={other}; expected store|svc"),
+            }
         }
     };
 }

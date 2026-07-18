@@ -1,9 +1,4 @@
 use anyhow::Result;
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use wasmtime::component::{Component, Linker};
-use wasmtime::Store;
-use wasmtime_wasi::ResourceTable;
 use crate::grpc::GeoComponent;
 
 mod store_proto {
@@ -33,46 +28,18 @@ impl hotel::store::geo_store::Host for HostData {
     }
 }
 
-struct GeoSvcHost {
-    engine:       Arc<wasmtime::Engine>,
-    pre:          Arc<GeoHostWorldPre<HostData>>,
-    store_client: Arc<Mutex<GeoStoreClient<tonic::transport::Channel>>>,
-    cache:        Arc<host_lib::Cache>,
-}
+type GeoSvcHost = host_lib::SvcHost<GeoHostWorldPre<HostData>, GeoStoreClient<tonic::transport::Channel>>;
 
 #[async_trait::async_trait]
 impl GeoComponent for GeoSvcHost {
     async fn nearby(&self, lat: f64, lon: f64) -> Result<Vec<String>> {
-        let data = HostData {
-            wasi:         host_lib::make_wasi_ctx(),
-            table:        ResourceTable::new(),
-            store_client: self.store_client.clone(),
-            cache:        self.cache.clone(),
-        };
-        let mut store = Store::new(&self.engine, data);
-        let instance = self.pre.instantiate_async(&mut store).await?;
+        let (mut store, pre) = self.make_store();
+        let instance = pre.instantiate_async(&mut store).await?;
         Ok(instance.hotel_api_geo().call_nearby(&mut store, lat, lon).await?)
     }
 }
 
-pub async fn run() -> Result<()> {
-    let store_addr  = std::env::var("STORE_ADDR").unwrap_or("http://localhost:8090".into());
-    let listen_addr: std::net::SocketAddr = std::env::var("LISTEN_ADDR")
-        .unwrap_or("0.0.0.0:8089".into()).parse()?;
-    let wasm_file = std::env::var("WASM_FILE").unwrap_or("geo.wasm".into());
-
-    let store_client = GeoStoreClient::connect(store_addr).await?;
-    let store_client = Arc::new(Mutex::new(store_client));
-    let cache        = Arc::new(host_lib::Cache::new(Default::default()));
-
-    let engine = Arc::new(host_lib::make_engine()?);
-    let mut linker: Linker<HostData> = Linker::new(&engine);
-    wasmtime_wasi::add_to_linker_async(&mut linker)?;
-    GeoHostWorld::add_to_linker(&mut linker, |d| d)?;
-
-    let component = Component::from_file(&engine, &wasm_file)?;
-    let pre = Arc::new(GeoHostWorldPre::new(linker.instantiate_pre(&component)?)?);
-
-    println!("geo-host [svc] listening on {listen_addr}");
-    crate::grpc::serve(Arc::new(GeoSvcHost { engine, pre, store_client, cache }), listen_addr).await
-}
+host_lib::run_svc_pre!(
+    GeoHostWorld, GeoHostWorldPre<HostData>, GeoStoreClient<tonic::transport::Channel>,
+    "http://localhost:8090", "0.0.0.0:8089", "geo.wasm", "geo-host [svc]"
+);
