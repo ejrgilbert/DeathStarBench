@@ -1,14 +1,15 @@
 use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use wasmtime::component::{Component, Linker};
 use wasmtime::Store;
-use wasmtime::component::Linker;
+use wasmtime_wasi::ResourceTable;
 use crate::grpc::{ReviewComponent, ReviewComm, Image};
 
 mod store_proto {
     tonic::include_proto!("review_store");
 }
-use store_proto::{review_store_client::ReviewStoreClient, InitRequest, LoadReviewsRequest};
+use store_proto::{review_store_client::ReviewStoreClient, LoadReviewsRequest};
 
 wasmtime::component::bindgen!({
     path: "../../components/review/wit",
@@ -32,17 +33,10 @@ host_lib::impl_cache_host!(HostData);
 
 #[async_trait::async_trait]
 impl hotel::store::review_store::Host for HostData {
-    async fn init(&mut self) {
-        self.store_client.lock().await
-            .init(tonic::Request::new(InitRequest {})).await
-            .expect("gRPC review-store Init failed");
-    }
-
     async fn load_reviews(&mut self) -> Vec<hotel::store::review_store::Review> {
         let resp = self.store_client.lock().await
             .load_reviews(tonic::Request::new(LoadReviewsRequest {})).await
-            .expect("gRPC review-store LoadReviews failed")
-            .into_inner();
+            .expect("gRPC review-store LoadReviews failed").into_inner();
         resp.reviews.into_iter().map(|r| {
             let img = r.image.unwrap_or_default();
             hotel::store::review_store::Review {
@@ -60,17 +54,26 @@ impl hotel::store::review_store::Host for HostData {
     }
 }
 
-#[async_trait::async_trait]
-impl ReviewComponent for ReviewHostWorld {
-    type Data = HostData;
+struct ReviewSvcHost {
+    engine:       Arc<wasmtime::Engine>,
+    pre:          Arc<ReviewHostWorldPre<HostData>>,
+    store_client: Arc<Mutex<ReviewStoreClient<tonic::transport::Channel>>>,
+    cache:        Arc<host_lib::Cache>,
+}
 
-    async fn get_reviews(
-        &self,
-        store: &mut Store<HostData>,
-        hotel_id: String,
-    ) -> Result<Vec<ReviewComm>> {
-        let wit_reviews = self.hotel_api_review()
-            .call_get_reviews(store, &hotel_id).await?;
+#[async_trait::async_trait]
+impl ReviewComponent for ReviewSvcHost {
+    async fn get_reviews(&self, hotel_id: String) -> Result<Vec<ReviewComm>> {
+        let data = HostData {
+            wasi:         host_lib::make_wasi_ctx(),
+            table:        ResourceTable::new(),
+            store_client: self.store_client.clone(),
+            cache:        self.cache.clone(),
+        };
+        let mut store = Store::new(&self.engine, data);
+        let instance = self.pre.instantiate_async(&mut store).await?;
+        let wit_reviews = instance.hotel_api_review()
+            .call_get_reviews(&mut store, &hotel_id).await?;
         Ok(wit_reviews.into_iter().map(|r| ReviewComm {
             review_id:   r.review_id,
             hotel_id:    r.hotel_id,
@@ -86,36 +89,23 @@ impl ReviewComponent for ReviewHostWorld {
 }
 
 pub async fn run() -> anyhow::Result<()> {
-    use wasmtime::component::Component;
-
-    let store_addr = std::env::var("STORE_ADDR")
-        .unwrap_or_else(|_| "http://localhost:8099".into());
+    let store_addr = std::env::var("STORE_ADDR").unwrap_or("http://localhost:8099".into());
     let listen_addr: std::net::SocketAddr = std::env::var("LISTEN_ADDR")
-        .unwrap_or_else(|_| "0.0.0.0:8098".into())
-        .parse()?;
-    let wasm_file = std::env::var("WASM_FILE")
-        .unwrap_or_else(|_| "review.wasm".into());
+        .unwrap_or("0.0.0.0:8098".into()).parse()?;
+    let wasm_file = std::env::var("WASM_FILE").unwrap_or("review.wasm".into());
 
     let store_client = ReviewStoreClient::connect(store_addr).await?;
     let store_client = Arc::new(Mutex::new(store_client));
+    let cache        = Arc::new(host_lib::Cache::new(Default::default()));
 
-    let engine = host_lib::make_engine()?;
+    let engine = Arc::new(host_lib::make_engine()?);
     let mut linker: Linker<HostData> = Linker::new(&engine);
     wasmtime_wasi::add_to_linker_async(&mut linker)?;
     ReviewHostWorld::add_to_linker(&mut linker, |d| d)?;
 
-    let data = HostData {
-        wasi:         host_lib::make_wasi_ctx(),
-        table:        wasmtime_wasi::ResourceTable::new(),
-        store_client,
-        cache:        Arc::new(host_lib::Cache::new(std::collections::HashMap::new())),
-    };
-    let mut store = wasmtime::Store::new(&engine, data);
-
     let component = Component::from_file(&engine, &wasm_file)?;
-    let instance = ReviewHostWorld::instantiate_async(&mut store, &component, &linker).await?;
+    let pre = Arc::new(ReviewHostWorldPre::new(linker.instantiate_pre(&component)?)?);
 
     println!("review-host [svc] listening on {listen_addr}");
-
-    crate::grpc::serve(Arc::new(Mutex::new(store)), Arc::new(instance), listen_addr).await
+    crate::grpc::serve(Arc::new(ReviewSvcHost { engine, pre, store_client, cache }), listen_addr).await
 }

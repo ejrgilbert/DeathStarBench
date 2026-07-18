@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"os"
 
 	"go.bytecodealliance.org/cm"
 
@@ -26,6 +25,7 @@ type seedReservation struct {
 var (
 	numConn      col.Connection
 	resConn      col.Connection
+	connOpen     bool
 	numbers      []revstore.NumberRec
 	reservations []revstore.ReservationRec
 	numsLoaded   bool
@@ -35,54 +35,25 @@ var (
 func main() {}
 
 func init() {
-	revstore.Exports.Init              = doInit
 	revstore.Exports.LoadNumbers       = loadNumbers
 	revstore.Exports.LoadReservations  = loadReservations
 	revstore.Exports.InsertReservation = doInsertReservation
 }
 
-func doInit() {
+func ensureConn() {
+	if connOpen {
+		return
+	}
 	numConn = col.ConnectionOpen("number")
 	resConn = col.ConnectionOpen("reservation")
-
-	if col.Count(numConn) == 0 {
-		data, err := os.ReadFile("/data/reservation-numbers-seed.json")
-		if err != nil {
-			panic("read numbers seed: " + err.Error())
-		}
-		var seeds []seedNumber
-		if err := json.Unmarshal(data, &seeds); err != nil {
-			panic("parse numbers seed: " + err.Error())
-		}
-		docs := make([]col.Document, len(seeds))
-		for i, s := range seeds {
-			b, _ := json.Marshal(s)
-			docs[i] = col.Document(cm.ToList(b))
-		}
-		col.InsertMany(numConn, cm.ToList(docs))
-	}
-
-	existing := col.FindAll(resConn).Slice()
-	if len(existing) == 0 {
-		data, err := os.ReadFile("/data/reservation-reservations-seed.json")
-		if err != nil {
-			panic("read reservations seed: " + err.Error())
-		}
-		var seeds []seedReservation
-		if err := json.Unmarshal(data, &seeds); err != nil {
-			panic("parse reservations seed: " + err.Error())
-		}
-		for _, s := range seeds {
-			b, _ := json.Marshal(s)
-			col.InsertOne(resConn, col.Document(cm.ToList(b)))
-		}
-	}
+	connOpen = true
 }
 
 func ensureNumbers() {
 	if numsLoaded {
 		return
 	}
+	ensureConn()
 	rawDocs := col.FindAll(numConn).Slice()
 	for _, raw := range rawDocs {
 		var s seedNumber
@@ -99,6 +70,7 @@ func ensureReservations() {
 	if resLoaded {
 		return
 	}
+	ensureConn()
 	rawDocs := col.FindAll(resConn).Slice()
 	for _, raw := range rawDocs {
 		var s seedReservation
@@ -125,6 +97,7 @@ func loadReservations() cm.List[revstore.ReservationRec] {
 }
 
 func doInsertReservation(r revstore.ReservationRec) {
+	ensureConn()
 	s := seedReservation{
 		HotelId:      r.HotelID,
 		CustomerName: r.CustomerName,

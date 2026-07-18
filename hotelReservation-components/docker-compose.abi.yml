@@ -1,228 +1,14 @@
-# Config 3 (ABI): each service-pair composed into one wasm, one host process per service.
-# No inter-component gRPC — store logic runs inside the composed component via ABI call.
+# ABI config: everything composed into frontend-all.wasm, single host process.
 #
-# Prerequisite: run `make all-composed` to build *-composed.wasm files
-# before bringing this stack up.
+# Prerequisite: run `make frontend-all` to build frontend-all.wasm before bringing this up.
 
 services:
-  mongodb-recommendation:
+  mongodb:
     image: mongo:5.0
     volumes:
-      - recommendation-data:/data/db
-
-  recommendation:
-    build:
-      context: .
-      target: runtime
-      args:
-        SERVICE: recommendation
-    environment:
-      MODE: abi
-      MONGO_URI: "mongodb://mongodb-recommendation:27017"
-      LISTEN_ADDR: "0.0.0.0:8085"
-      DATA_DIR: /data
-      WASM_FILE: /app/recommendation-composed.wasm
-    ports:
-      - "8085:8085"
-    volumes:
-      - ./data/recommendation-seed.json:/data/recommendation-seed.json:ro
-    depends_on:
-      - mongodb-recommendation
-    restart: on-failure
-
-  mongodb-attractions:
-    image: mongo:5.0
-    volumes:
-      - attractions-data:/data/db
-
-  attractions:
-    build:
-      context: .
-      target: runtime
-      args:
-        SERVICE: attractions
-    environment:
-      MODE: abi
-      MONGO_URI: "mongodb://mongodb-attractions:27017"
-      LISTEN_ADDR: "0.0.0.0:8087"
-      DATA_DIR: /data
-      WASM_FILE: /app/attractions-composed.wasm
-    ports:
-      - "8087:8087"
-    volumes:
-      - ./data/attractions-seed.json:/data/attractions-seed.json:ro
-    depends_on:
-      - mongodb-attractions
-    restart: on-failure
-
-  mongodb-geo:
-    image: mongo:5.0
-    volumes:
-      - geo-data:/data/db
-
-  geo:
-    build:
-      context: .
-      target: runtime
-      args:
-        SERVICE: geo
-    environment:
-      MODE: abi
-      MONGO_URI: "mongodb://mongodb-geo:27017"
-      LISTEN_ADDR: "0.0.0.0:8089"
-      DATA_DIR: /data
-      WASM_FILE: /app/geo-composed.wasm
-    ports:
-      - "8089:8089"
-    volumes:
-      - ./data/geo-seed.json:/data/geo-seed.json:ro
-    depends_on:
-      - mongodb-geo
-    restart: on-failure
-
-  mongodb-user:
-    image: mongo:5.0
-    volumes:
-      - user-data:/data/db
-
-  user:
-    build:
-      context: .
-      target: runtime
-      args:
-        SERVICE: user
-    environment:
-      MODE: abi
-      MONGO_URI: "mongodb://mongodb-user:27017"
-      LISTEN_ADDR: "0.0.0.0:8091"
-      DATA_DIR: /data
-      WASM_FILE: /app/user-composed.wasm
-    ports:
-      - "8091:8091"
-    volumes:
-      - ./data/user-seed.json:/data/user-seed.json:ro
-    depends_on:
-      - mongodb-user
-    restart: on-failure
-
-  mongodb-rate:
-    image: mongo:5.0
-    volumes:
-      - rate-data:/data/db
-
-  rate:
-    build:
-      context: .
-      target: runtime
-      args:
-        SERVICE: rate
-    environment:
-      MODE: abi
-      MONGO_URI: "mongodb://mongodb-rate:27017"
-      LISTEN_ADDR: "0.0.0.0:8093"
-      DATA_DIR: /data
-      WASM_FILE: /app/rate-composed.wasm
-    ports:
-      - "8093:8093"
-    volumes:
-      - ./data/rate-seed.json:/data/rate-seed.json:ro
-    depends_on:
-      - mongodb-rate
-    restart: on-failure
-
-  mongodb-profile:
-    image: mongo:5.0
-    volumes:
-      - profile-data:/data/db
-
-  profile:
-    build:
-      context: .
-      target: runtime
-      args:
-        SERVICE: profile
-    environment:
-      MODE: abi
-      MONGO_URI: "mongodb://mongodb-profile:27017"
-      LISTEN_ADDR: "0.0.0.0:8095"
-      DATA_DIR: /data
-      WASM_FILE: /app/profile-composed.wasm
-    ports:
-      - "8095:8095"
-    volumes:
-      - ./data/profile-seed.json:/data/profile-seed.json:ro
-    depends_on:
-      - mongodb-profile
-    restart: on-failure
-
-  search:
-    build:
-      context: .
-      target: runtime
-      args:
-        SERVICE: search
-    environment:
-      GEO_ADDR:    "http://geo:8089"
-      RATE_ADDR:   "http://rate:8093"
-      LISTEN_ADDR: "0.0.0.0:8097"
-      WASM_FILE:   /app/search.wasm
-    ports:
-      - "8097:8097"
-    depends_on:
-      - geo
-      - rate
-    restart: on-failure
-
-  mongodb-review:
-    image: mongo:5.0
-    volumes:
-      - review-data:/data/db
-
-  review:
-    build:
-      context: .
-      target: runtime
-      args:
-        SERVICE: review
-    environment:
-      MODE: abi
-      MONGO_URI: "mongodb://mongodb-review:27017"
-      LISTEN_ADDR: "0.0.0.0:8098"
-      DATA_DIR: /data
-      WASM_FILE: /app/review-composed.wasm
-    ports:
-      - "8098:8098"
-    volumes:
-      - ./data/review-seed.json:/data/review-seed.json:ro
-    depends_on:
-      - mongodb-review
-    restart: on-failure
-
-  mongodb-reservation:
-    image: mongo:5.0
-    volumes:
-      - reservation-data:/data/db
-
-  reservation:
-    build:
-      context: .
-      target: runtime
-      args:
-        SERVICE: reservation
-    environment:
-      MODE: abi
-      MONGO_URI: "mongodb://mongodb-reservation:27017"
-      LISTEN_ADDR: "0.0.0.0:8100"
-      DATA_DIR: /data
-      WASM_FILE: /app/reservation-composed.wasm
-    ports:
-      - "8100:8100"
-    volumes:
-      - ./data/reservation-numbers-seed.json:/data/reservation-numbers-seed.json:ro
-      - ./data/reservation-reservations-seed.json:/data/reservation-reservations-seed.json:ro
-    depends_on:
-      - mongodb-reservation
-    restart: on-failure
+      - hotel-data:/data/db
+      - ./data:/seed:ro
+      - ./data/init/hotel-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
 
   frontend:
     build:
@@ -231,32 +17,17 @@ services:
       args:
         SERVICE: frontend
     environment:
-      LISTEN_ADDR:         "0.0.0.0:8080"
-      SEARCH_ADDR:         "http://search:8097"
-      PROFILE_ADDR:        "http://profile:8095"
-      RECOMMENDATION_ADDR: "http://recommendation:8085"
-      USER_ADDR:           "http://user:8091"
-      REVIEW_ADDR:         "http://review:8098"
-      ATTRACTIONS_ADDR:    "http://attractions:8087"
-      RESERVATION_ADDR:    "http://reservation:8100"
+      MODE:                      abi
+      WASM_FILE:                 /app/frontend-all.wasm
+      MONGO_URI:                 "mongodb://mongodb:27017"
+      MONGO_DB:                  hotel
+      LISTEN_ADDR:               "0.0.0.0:8080"
+      WASMTIME_BACKTRACE_DETAILS: "1"
     ports:
       - "8080:8080"
     depends_on:
-      - search
-      - profile
-      - recommendation
-      - user
-      - review
-      - attractions
-      - reservation
+      - mongodb
     restart: on-failure
 
 volumes:
-  recommendation-data:
-  attractions-data:
-  geo-data:
-  user-data:
-  rate-data:
-  profile-data:
-  review-data:
-  reservation-data:
+  hotel-data:

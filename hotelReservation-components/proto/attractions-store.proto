@@ -2,7 +2,6 @@ syntax = "proto3";
 package attractions_store;
 
 service AttractionsStore {
-    rpc Init(InitRequest)                       returns (InitResponse);
     rpc LoadHotelPositions(LoadRequest)         returns (LoadHotelPositionsResponse);
     rpc LoadRestaurants(LoadRequest)            returns (LoadRestaurantsResponse);
     rpc LoadMuseums(LoadRequest)                returns (LoadMuseumsResponse);
@@ -40,8 +39,6 @@ message Cinema {
     string category = 5;
 }
 
-message InitRequest {}
-message InitResponse {}
 message LoadRequest {}
 message LoadHotelPositionsResponse { repeated HotelPosition hotels      = 1; }
 message LoadRestaurantsResponse    { repeated Restaurant     restaurants = 1; }

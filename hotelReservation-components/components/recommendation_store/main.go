@@ -2,11 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"os"
 
 	"go.bytecodealliance.org/cm"
 
-	col "hotel-components/components/recommendation_store/host/storage/collection"
+	col      "hotel-components/components/recommendation_store/host/storage/collection"
 	recstore "hotel-components/components/recommendation_store/hotel/store/recommendation-store"
 )
 
@@ -18,40 +17,27 @@ type seedRecord struct {
 	Price float64 `json:"price"`
 }
 
-var conn col.Connection
+var (
+	conn     col.Connection
+	connOpen bool
+)
 
 func main() {}
 
 func init() {
-	recstore.Exports.Init = doInit
 	recstore.Exports.LoadHotels = loadHotels
 }
 
-func doInit() {
-	conn = col.ConnectionOpen("recs")
-	if col.Count(conn) > 0 {
+func ensureConn() {
+	if connOpen {
 		return
 	}
-
-	data, err := os.ReadFile("/data/recommendation-seed.json")
-	if err != nil {
-		panic("read seed file: " + err.Error())
-	}
-
-	var seeds []seedRecord
-	if err := json.Unmarshal(data, &seeds); err != nil {
-		panic("parse seed data: " + err.Error())
-	}
-
-	docs := make([]col.Document, len(seeds))
-	for i, s := range seeds {
-		b, _ := json.Marshal(s)
-		docs[i] = col.Document(cm.ToList(b))
-	}
-	col.InsertMany(conn, cm.ToList(docs))
+	conn = col.ConnectionOpen("recs")
+	connOpen = true
 }
 
 func loadHotels() cm.List[recstore.Hotel] {
+	ensureConn()
 	rawDocs := col.FindAll(conn).Slice()
 	hotels := make([]recstore.Hotel, len(rawDocs))
 	for i, raw := range rawDocs {

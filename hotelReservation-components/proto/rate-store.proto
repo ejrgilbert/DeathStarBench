@@ -3,7 +3,6 @@ syntax = "proto3";
 package rate_store;
 
 service RateStore {
-  rpc Init(InitRequest) returns (InitResponse);
   rpc LoadRates(LoadRatesRequest) returns (LoadRatesResponse);
 }
 
@@ -23,8 +22,6 @@ message RatePlan {
   RoomType room_type = 5;
 }
 
-message InitRequest {}
-message InitResponse {}
 
 message LoadRatesRequest {}
 message LoadRatesResponse {

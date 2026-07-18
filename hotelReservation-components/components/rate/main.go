@@ -17,7 +17,12 @@ func init() {
 }
 
 func getRates(hotelIds cm.List[string], inDate, outDate string) (result cm.List[rateapi.RatePlan]) {
-	plans := svc.GetRates(hotelIds.Slice(), loadAll, cacheGet, cacheSet)
+    // tinygo string bug workaround
+	lowerIds := make([]string, len(hotelIds.Slice()))
+	for i, id := range hotelIds.Slice() {
+	    lowerIds[i] = string([]byte(id))
+	}
+	plans := svc.GetRates(lowerIds, loadAll, cacheGet, cacheSet)
 
 	witResult := make([]rateapi.RatePlan, len(plans))
 	for i, p := range plans {

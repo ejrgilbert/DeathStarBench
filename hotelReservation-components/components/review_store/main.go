@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"os"
 
 	"go.bytecodealliance.org/cm"
 
@@ -26,6 +25,7 @@ type seedReview struct {
 
 var (
 	conn      col.Connection
+	connOpen  bool
 	reviews   []revstore.Review
 	allLoaded bool
 )
@@ -33,35 +33,22 @@ var (
 func main() {}
 
 func init() {
-	revstore.Exports.Init = doInit
 	revstore.Exports.LoadReviews = loadReviews
 }
 
-func doInit() {
-	conn = col.ConnectionOpen("reviews")
-	if col.Count(conn) > 0 {
+func ensureConn() {
+	if connOpen {
 		return
 	}
-	data, err := os.ReadFile("/data/review-seed.json")
-	if err != nil {
-		panic("read seed file: " + err.Error())
-	}
-	var seeds []seedReview
-	if err := json.Unmarshal(data, &seeds); err != nil {
-		panic("parse seed data: " + err.Error())
-	}
-	docs := make([]col.Document, len(seeds))
-	for i, s := range seeds {
-		b, _ := json.Marshal(s)
-		docs[i] = col.Document(cm.ToList(b))
-	}
-	col.InsertMany(conn, cm.ToList(docs))
+	conn = col.ConnectionOpen("reviews")
+	connOpen = true
 }
 
 func ensureLoaded() {
 	if allLoaded {
 		return
 	}
+	ensureConn()
 	rawDocs := col.FindAll(conn).Slice()
 	for _, raw := range rawDocs {
 		var s seedReview

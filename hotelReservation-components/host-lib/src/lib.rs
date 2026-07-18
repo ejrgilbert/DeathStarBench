@@ -185,10 +185,12 @@ macro_rules! impl_collection_host {
 
             async fn insert_one(
                 &mut self,
-                _c: ::wasmtime::component::Resource<$crate::MongoCollection>,
-                _doc: ::std::vec::Vec<u8>,
+                c: ::wasmtime::component::Resource<$crate::MongoCollection>,
+                doc: ::std::vec::Vec<u8>,
             ) {
-                unimplemented!()
+                let col = <$T as ::wasmtime_wasi::WasiView>::table(self)
+                    .get(&c).unwrap().inner.clone();
+                $crate::mongo_insert_one(&col, doc).await.unwrap()
             }
 
             async fn insert_many(
@@ -228,15 +230,31 @@ macro_rules! svc_host_data {
 }
 
 /// Boilerplate store-service types for store-mode hosts.
+/// $Pre must be the wasmtime-generated `<WorldName>Pre<StoreData>` type.
 #[macro_export]
 macro_rules! define_store_service {
-    ($World:ty) => {
-        type SharedStore    = ::std::sync::Arc<::tokio::sync::Mutex<::wasmtime::Store<$crate::StoreData>>>;
-        type SharedInstance = ::std::sync::Arc<$World>;
-
+    ($World:ty, $Pre:ty) => {
         struct StoreGrpcService {
-            store:    SharedStore,
-            instance: SharedInstance,
+            engine: ::std::sync::Arc<::wasmtime::Engine>,
+            pre:    ::std::sync::Arc<$Pre>,
+            db:     ::std::sync::Arc<::mongodb::Database>,
+            cache:  ::std::sync::Arc<$crate::Cache>,
+        }
+
+        impl StoreGrpcService {
+            async fn new_instance(
+                &self,
+            ) -> ::anyhow::Result<(::wasmtime::Store<$crate::StoreData>, $World)> {
+                let data = $crate::StoreData {
+                    wasi:  $crate::make_wasi_ctx(),
+                    table: ::wasmtime_wasi::ResourceTable::new(),
+                    db:    self.db.clone(),
+                    cache: self.cache.clone(),
+                };
+                let mut store = ::wasmtime::Store::new(&self.engine, data);
+                let instance = self.pre.instantiate_async(&mut store).await?;
+                Ok((store, instance))
+            }
         }
     };
 }
@@ -335,53 +353,46 @@ macro_rules! run_svc {
 
 /// Generates `pub async fn run()` for STORE-mode hosts (wasm store + gRPC server).
 /// The wasm selects its collection via `connection::open(name)`.
+/// $Pre must be the wasmtime-generated `<WorldName>Pre<StoreData>` type.
 #[macro_export]
 macro_rules! run_store {
-    ($World:ty, $GrpcServer:ident, $accessor:ident, $db:literal,
+    ($World:ty, $Pre:ty, $GrpcServer:ident, $db:literal,
      $default_addr:literal, $default_wasm:literal, $label:literal) => {
         pub async fn run() -> ::anyhow::Result<()> {
             use ::std::sync::Arc;
-            use ::tokio::sync::Mutex;
             use ::wasmtime::component::{Component, Linker};
-            use ::wasmtime::Store;
             use ::tonic::transport::Server;
 
             let mongo_uri  = ::std::env::var("MONGO_URI")
                 .unwrap_or_else(|_| "mongodb://localhost:27017".into());
             let listen_addr = ::std::env::var("LISTEN_ADDR")
                 .unwrap_or_else(|_| $default_addr.into());
-            let data_dir   = ::std::env::var("DATA_DIR")
-                .unwrap_or_else(|_| "/data".into());
             let wasm_file  = ::std::env::var("WASM_FILE")
                 .unwrap_or_else(|_| $default_wasm.into());
 
             let mongo = ::mongodb::Client::with_uri_str(&mongo_uri).await?;
             let db    = Arc::new(mongo.database($db));
+            let cache = Arc::new($crate::Cache::new(::std::collections::HashMap::new()));
 
             let engine     = $crate::make_engine()?;
             let mut linker: Linker<$crate::StoreData> = Linker::new(&engine);
             ::wasmtime_wasi::add_to_linker_async(&mut linker)?;
             <$World>::add_to_linker(&mut linker, |d| d)?;
 
-            let data = $crate::StoreData {
-                wasi:  $crate::make_store_wasi_ctx(&data_dir)?,
-                table: ::wasmtime_wasi::ResourceTable::new(),
-                db,
-                cache: ::std::sync::Arc::new($crate::Cache::new(::std::collections::HashMap::new())),
-            };
-            let mut store = Store::new(&engine, data);
-
             let component = Component::from_file(&engine, &wasm_file)?;
-            let instance  = <$World>::instantiate_async(&mut store, &component, &linker).await?;
-            instance.$accessor().call_init(&mut store).await?;
+            let pre       = <$Pre>::new(linker.instantiate_pre(&component)?)?;
 
-            let store    = Arc::new(Mutex::new(store));
-            let instance = Arc::new(instance);
+            let svc = StoreGrpcService {
+                engine: Arc::new(engine),
+                pre:    Arc::new(pre),
+                db,
+                cache,
+            };
 
             println!("{} [store] listening on {listen_addr}", $label);
 
             Server::builder()
-                .add_service($GrpcServer::new(StoreGrpcService { store, instance }))
+                .add_service($GrpcServer::new(svc))
                 .serve(listen_addr.parse()?)
                 .await?;
             Ok(())

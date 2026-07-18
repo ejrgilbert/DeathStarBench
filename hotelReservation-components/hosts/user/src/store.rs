@@ -8,7 +8,7 @@ mod proto {
 use proto::{
     user_store_server::{UserStore, UserStoreServer},
     User as ProtoUser,
-    InitRequest, InitResponse, LoadUsersRequest, LoadUsersResponse,
+    LoadUsersRequest, LoadUsersResponse,
 };
 
 wasmtime::component::bindgen!({
@@ -21,27 +21,19 @@ wasmtime::component::bindgen!({
 });
 
 host_lib::impl_collection_host!(StoreData);
-host_lib::define_store_service!(UserStoreHostWorld);
+host_lib::define_store_service!(UserStoreHostWorld, UserStoreHostWorldPre<host_lib::StoreData>);
 
 #[tonic::async_trait]
 impl UserStore for StoreGrpcService {
-    async fn init(&self, _req: Request<InitRequest>) -> Result<Response<InitResponse>, Status> {
-        let mut store = self.store.lock().await;
-        self.instance
-            .hotel_store_user_store()
-            .call_init(&mut *store).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        Ok(Response::new(InitResponse {}))
-    }
-
     async fn load_users(
         &self,
         _req: Request<LoadUsersRequest>,
     ) -> Result<Response<LoadUsersResponse>, Status> {
-        let mut store = self.store.lock().await;
-        let wit_users = self.instance
+        let (mut store, instance) = self.new_instance().await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        let wit_users = instance
             .hotel_store_user_store()
-            .call_load_users(&mut *store).await
+            .call_load_users(&mut store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadUsersResponse {
             users: wit_users.into_iter().map(|u| ProtoUser {
@@ -53,7 +45,7 @@ impl UserStore for StoreGrpcService {
 }
 
 host_lib::run_store!(
-    UserStoreHostWorld, UserStoreServer, hotel_store_user_store,
+    UserStoreHostWorld, UserStoreHostWorldPre<host_lib::StoreData>, UserStoreServer,
     "user-db",
     "0.0.0.0:8092", "user-store.wasm", "user-host"
 );

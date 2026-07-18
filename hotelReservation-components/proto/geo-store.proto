@@ -2,7 +2,6 @@ syntax = "proto3";
 package geo_store;
 
 service GeoStore {
-    rpc Init(InitRequest)                       returns (InitResponse);
     rpc LoadGeo(LoadRequest)                    returns (LoadGeoResponse);
 }
 
@@ -12,7 +11,5 @@ message Point {
     double lon = 3;
 }
 
-message InitRequest {}
-message InitResponse {}
 message LoadRequest {}
 message LoadGeoResponse { repeated Point geo = 1; }

@@ -2,7 +2,6 @@ syntax = "proto3";
 package recommendation_store;
 
 service RecommendationStore {
-    rpc Init(InitRequest) returns (InitResponse);
     rpc LoadHotels(LoadHotelsRequest) returns (LoadHotelsResponse);
 }
 
@@ -14,7 +13,5 @@ message Hotel {
     double price = 5;
 }
 
-message InitRequest {}
-message InitResponse {}
 message LoadHotelsRequest {}
 message LoadHotelsResponse { repeated Hotel hotels = 1; }

@@ -95,7 +95,7 @@ tcp-up: all
 tcp-down:
 	docker compose -f docker-compose.tcp.yml down -v --remove-orphans
 
-abi-up: all-composed
+abi-up: all-composed $(BUILD_DIR)/frontend-all.wasm
 	docker compose -f docker-compose.abi.yml up --build -d --remove-orphans
 
 abi-down:
@@ -105,15 +105,12 @@ abi-down:
 BENCH_N    = 10000
 BENCH_C    = 10
 BENCH_HOST = localhost
-BENCH_PORT = 8100
-BENCH_ADDR = $(BENCH_HOST):$(BENCH_PORT)
+BENCH_PORT = 8080
+BENCH_URL  = 'http://$(BENCH_HOST):$(BENCH_PORT)/hotels?lat=37.7867&lon=-122.4112&inDate=2015-04-09&outDate=2015-04-10'
 
 bench:
 	@echo "=== MakeReservation ==="
-	ghz --insecure --proto proto/reservation.proto \
-	  --call reservation.Reservation/MakeReservation \
-      -d '{"customerName":"Elizabeth","hotelId":"1","inDate":"2015-04-09","outDate":"2015-04-10","roomNumber":200}' \
-	  -n $(BENCH_N) -c $(BENCH_C) $(BENCH_ADDR)
+	ab -l -n $(BENCH_N) -c $(BENCH_C) $(BENCH_URL)
 
 teardown:
 	-docker compose -f docker-compose.tcp.yml down -v --remove-orphans
@@ -121,12 +118,12 @@ teardown:
 
 bench-tcp: teardown tcp-up
 	@until nc -z $(BENCH_HOST) $(BENCH_PORT); do sleep 1; done
-	@sleep 3
+	@sleep 5
 	$(MAKE) bench tcp-down
 
 bench-abi: teardown abi-up
 	@until nc -z $(BENCH_HOST) $(BENCH_PORT); do sleep 1; done
-	@sleep 3
+	@sleep 5
 	$(MAKE) bench abi-down
 
 clean:

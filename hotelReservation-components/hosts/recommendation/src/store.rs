@@ -7,7 +7,7 @@ mod proto {
 }
 use proto::{
     recommendation_store_server::{RecommendationStore, RecommendationStoreServer},
-    Hotel as ProtoHotel, InitRequest, InitResponse, LoadHotelsRequest, LoadHotelsResponse,
+    Hotel as ProtoHotel, LoadHotelsRequest, LoadHotelsResponse,
 };
 
 wasmtime::component::bindgen!({
@@ -20,27 +20,19 @@ wasmtime::component::bindgen!({
 });
 
 host_lib::impl_collection_host!(StoreData);
-host_lib::define_store_service!(RecommendationStoreHostWorld);
+host_lib::define_store_service!(RecommendationStoreHostWorld, RecommendationStoreHostWorldPre<host_lib::StoreData>);
 
 #[tonic::async_trait]
 impl RecommendationStore for StoreGrpcService {
-    async fn init(&self, _req: Request<InitRequest>) -> Result<Response<InitResponse>, Status> {
-        let mut store = self.store.lock().await;
-        self.instance
-            .hotel_store_recommendation_store()
-            .call_init(&mut *store).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        Ok(Response::new(InitResponse {}))
-    }
-
     async fn load_hotels(
         &self,
         _req: Request<LoadHotelsRequest>,
     ) -> Result<Response<LoadHotelsResponse>, Status> {
-        let mut store = self.store.lock().await;
-        let wit_hotels = self.instance
+        let (mut store, instance) = self.new_instance().await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        let wit_hotels = instance
             .hotel_store_recommendation_store()
-            .call_load_hotels(&mut *store).await
+            .call_load_hotels(&mut store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadHotelsResponse {
             hotels: wit_hotels.into_iter().map(|h| ProtoHotel {
@@ -51,8 +43,7 @@ impl RecommendationStore for StoreGrpcService {
 }
 
 host_lib::run_store!(
-    RecommendationStoreHostWorld, RecommendationStoreServer,
-    hotel_store_recommendation_store,
+    RecommendationStoreHostWorld, RecommendationStoreHostWorldPre<host_lib::StoreData>, RecommendationStoreServer,
     "recommendation-db",
     "0.0.0.0:8086", "recommendation-store.wasm", "recommendation-host"
 );

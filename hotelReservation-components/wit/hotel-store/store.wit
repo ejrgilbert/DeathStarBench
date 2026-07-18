@@ -6,7 +6,6 @@ interface geo-store {
         lat: f64,
         lon: f64,
     }
-    init: func();
     load-geo: func() -> list<point>;
 }
 
@@ -25,7 +24,6 @@ interface rate-store {
         out-date:  string,
         room-type: room-type,
     }
-    init: func();
     load-rates: func() -> list<rate-plan>;
 }
 
@@ -52,7 +50,6 @@ interface profile-store {
         url:     string,
         default: bool,
     }
-    init: func();
     load-profiles: func() -> list<hotel>;
 }
 
@@ -61,7 +58,6 @@ interface user-store {
         username: string,
         password: string,
     }
-    init: func();
     load-users: func() -> list<user>;
 }
 
@@ -73,7 +69,6 @@ interface recommendation-store {
         rate:  f64,
         price: f64,
     }
-    init: func();
     load-hotels: func() -> list<hotel>;
 }
 
@@ -105,7 +100,6 @@ interface attractions-store {
         name:     string,
         category: string,
     }
-    init: func();
     load-hotel-positions: func() -> list<hotel-position>;
     load-restaurants:     func() -> list<restaurant>;
     load-museums:         func() -> list<museum>;
@@ -125,7 +119,6 @@ interface review-store {
         description: string,
         image:       image,
     }
-    init: func();
     load-reviews: func() -> list<review>;
 }
 
@@ -154,7 +147,6 @@ interface reservation-store {
         out-date:      string,
         number:        u32,
     }
-    init:               func();
     load-numbers:       func() -> list<number-rec>;
     load-reservations:  func() -> list<reservation-rec>;
     insert-reservation: func(r: reservation-rec);

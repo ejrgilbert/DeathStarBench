@@ -9,7 +9,7 @@ use proto::{
     attractions_store_server::{AttractionsStore, AttractionsStoreServer},
     HotelPosition as ProtoHotel, Restaurant as ProtoRestaurant,
     Museum as ProtoMuseum, Cinema as ProtoCinema,
-    InitRequest, InitResponse, LoadRequest,
+    LoadRequest,
     LoadHotelPositionsResponse, LoadRestaurantsResponse,
     LoadMuseumsResponse, LoadCinemasResponse,
 };
@@ -24,27 +24,19 @@ wasmtime::component::bindgen!({
 });
 
 host_lib::impl_collection_host!(StoreData);
-host_lib::define_store_service!(AttractionsStoreHostWorld);
+host_lib::define_store_service!(AttractionsStoreHostWorld, AttractionsStoreHostWorldPre<host_lib::StoreData>);
 
 #[tonic::async_trait]
 impl AttractionsStore for StoreGrpcService {
-    async fn init(&self, _req: Request<InitRequest>) -> Result<Response<InitResponse>, Status> {
-        let mut store = self.store.lock().await;
-        self.instance
-            .hotel_store_attractions_store()
-            .call_init(&mut *store).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        Ok(Response::new(InitResponse {}))
-    }
-
     async fn load_hotel_positions(
         &self,
         _req: Request<LoadRequest>,
     ) -> Result<Response<LoadHotelPositionsResponse>, Status> {
-        let mut store = self.store.lock().await;
-        let items = self.instance
+        let (mut store, instance) = self.new_instance().await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        let items = instance
             .hotel_store_attractions_store()
-            .call_load_hotel_positions(&mut *store).await
+            .call_load_hotel_positions(&mut store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadHotelPositionsResponse {
             hotels: items.into_iter().map(|h| ProtoHotel { id: h.id, lat: h.lat, lon: h.lon }).collect(),
@@ -55,10 +47,11 @@ impl AttractionsStore for StoreGrpcService {
         &self,
         _req: Request<LoadRequest>,
     ) -> Result<Response<LoadRestaurantsResponse>, Status> {
-        let mut store = self.store.lock().await;
-        let items = self.instance
+        let (mut store, instance) = self.new_instance().await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        let items = instance
             .hotel_store_attractions_store()
-            .call_load_restaurants(&mut *store).await
+            .call_load_restaurants(&mut store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadRestaurantsResponse {
             restaurants: items.into_iter().map(|r| ProtoRestaurant {
@@ -71,10 +64,11 @@ impl AttractionsStore for StoreGrpcService {
         &self,
         _req: Request<LoadRequest>,
     ) -> Result<Response<LoadMuseumsResponse>, Status> {
-        let mut store = self.store.lock().await;
-        let items = self.instance
+        let (mut store, instance) = self.new_instance().await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        let items = instance
             .hotel_store_attractions_store()
-            .call_load_museums(&mut *store).await
+            .call_load_museums(&mut store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadMuseumsResponse {
             museums: items.into_iter().map(|m| ProtoMuseum {
@@ -87,10 +81,11 @@ impl AttractionsStore for StoreGrpcService {
         &self,
         _req: Request<LoadRequest>,
     ) -> Result<Response<LoadCinemasResponse>, Status> {
-        let mut store = self.store.lock().await;
-        let items = self.instance
+        let (mut store, instance) = self.new_instance().await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        let items = instance
             .hotel_store_attractions_store()
-            .call_load_cinemas(&mut *store).await
+            .call_load_cinemas(&mut store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadCinemasResponse {
             cinemas: items.into_iter().map(|c| ProtoCinema {
@@ -101,8 +96,7 @@ impl AttractionsStore for StoreGrpcService {
 }
 
 host_lib::run_store!(
-    AttractionsStoreHostWorld, AttractionsStoreServer,
-    hotel_store_attractions_store,
+    AttractionsStoreHostWorld, AttractionsStoreHostWorldPre<host_lib::StoreData>, AttractionsStoreServer,
     "attractions-db",
     "0.0.0.0:8088", "attractions-store.wasm", "attractions-host"
 );

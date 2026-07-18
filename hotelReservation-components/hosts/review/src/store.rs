@@ -8,7 +8,7 @@ mod proto {
 use proto::{
     review_store_server::{ReviewStore, ReviewStoreServer},
     Review as ProtoReview, Image as ProtoImage,
-    InitRequest, InitResponse, LoadReviewsRequest, LoadReviewsResponse,
+    LoadReviewsRequest, LoadReviewsResponse,
 };
 
 wasmtime::component::bindgen!({
@@ -21,27 +21,19 @@ wasmtime::component::bindgen!({
 });
 
 host_lib::impl_collection_host!(StoreData);
-host_lib::define_store_service!(ReviewStoreHostWorld);
+host_lib::define_store_service!(ReviewStoreHostWorld, ReviewStoreHostWorldPre<host_lib::StoreData>);
 
 #[tonic::async_trait]
 impl ReviewStore for StoreGrpcService {
-    async fn init(&self, _req: Request<InitRequest>) -> Result<Response<InitResponse>, Status> {
-        let mut store = self.store.lock().await;
-        self.instance
-            .hotel_store_review_store()
-            .call_init(&mut *store).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        Ok(Response::new(InitResponse {}))
-    }
-
     async fn load_reviews(
         &self,
         _req: Request<LoadReviewsRequest>,
     ) -> Result<Response<LoadReviewsResponse>, Status> {
-        let mut store = self.store.lock().await;
-        let wit_reviews = self.instance
+        let (mut store, instance) = self.new_instance().await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        let wit_reviews = instance
             .hotel_store_review_store()
-            .call_load_reviews(&mut *store).await
+            .call_load_reviews(&mut store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadReviewsResponse {
             reviews: wit_reviews.into_iter().map(|r| ProtoReview {
@@ -60,7 +52,7 @@ impl ReviewStore for StoreGrpcService {
 }
 
 host_lib::run_store!(
-    ReviewStoreHostWorld, ReviewStoreServer, hotel_store_review_store,
+    ReviewStoreHostWorld, ReviewStoreHostWorldPre<host_lib::StoreData>, ReviewStoreServer,
     "review-db",
     "0.0.0.0:8099", "review-store.wasm", "review-host"
 );

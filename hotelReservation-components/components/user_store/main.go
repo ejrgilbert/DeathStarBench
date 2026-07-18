@@ -2,11 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"os"
 
 	"go.bytecodealliance.org/cm"
 
-	col "hotel-components/components/user_store/host/storage/collection"
+	col       "hotel-components/components/user_store/host/storage/collection"
 	userstore "hotel-components/components/user_store/hotel/store/user-store"
 )
 
@@ -17,6 +16,7 @@ type seedUser struct {
 
 var (
 	conn      col.Connection
+	connOpen  bool
 	users     []userstore.User
 	allLoaded bool
 )
@@ -24,38 +24,22 @@ var (
 func main() {}
 
 func init() {
-	userstore.Exports.Init = doInit
 	userstore.Exports.LoadUsers = loadUsers
 }
 
-func doInit() {
-	conn = col.ConnectionOpen("users")
-	if col.Count(conn) > 0 {
+func ensureConn() {
+	if connOpen {
 		return
 	}
-
-	data, err := os.ReadFile("/data/user-seed.json")
-	if err != nil {
-		panic("read seed file: " + err.Error())
-	}
-
-	var seeds []seedUser
-	if err := json.Unmarshal(data, &seeds); err != nil {
-		panic("parse seed data: " + err.Error())
-	}
-
-	docs := make([]col.Document, len(seeds))
-	for i, s := range seeds {
-		b, _ := json.Marshal(s)
-		docs[i] = col.Document(cm.ToList(b))
-	}
-	col.InsertMany(conn, cm.ToList(docs))
+	conn = col.ConnectionOpen("users")
+	connOpen = true
 }
 
 func ensureLoaded() {
 	if allLoaded {
 		return
 	}
+	ensureConn()
 	rawDocs := col.FindAll(conn).Slice()
 	for _, raw := range rawDocs {
 		var s seedUser

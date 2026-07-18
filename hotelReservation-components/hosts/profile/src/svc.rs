@@ -1,14 +1,15 @@
 use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use wasmtime::component::{Component, Linker};
 use wasmtime::Store;
-use wasmtime::component::Linker;
+use wasmtime_wasi::ResourceTable;
 use crate::grpc::{ProfileComponent, Hotel, Address, Image};
 
 mod store_proto {
     tonic::include_proto!("profile_store");
 }
-use store_proto::{profile_store_client::ProfileStoreClient, InitRequest, LoadProfilesRequest};
+use store_proto::{profile_store_client::ProfileStoreClient, LoadProfilesRequest};
 
 wasmtime::component::bindgen!({
     path: "../../components/profile/wit",
@@ -32,17 +33,10 @@ host_lib::impl_cache_host!(HostData);
 
 #[async_trait::async_trait]
 impl hotel::store::profile_store::Host for HostData {
-    async fn init(&mut self) {
-        self.store_client.lock().await
-            .init(tonic::Request::new(InitRequest {})).await
-            .expect("gRPC profile-store Init failed");
-    }
-
     async fn load_profiles(&mut self) -> Vec<hotel::store::profile_store::Hotel> {
         let resp = self.store_client.lock().await
             .load_profiles(tonic::Request::new(LoadProfilesRequest {})).await
-            .expect("gRPC profile-store LoadProfiles failed")
-            .into_inner();
+            .expect("gRPC profile-store LoadProfiles failed").into_inner();
         resp.profs.into_iter().map(|h| {
             let a = h.address.unwrap_or_default();
             hotel::store::profile_store::Hotel {
@@ -69,17 +63,26 @@ impl hotel::store::profile_store::Host for HostData {
     }
 }
 
-#[async_trait::async_trait]
-impl ProfileComponent for ProfileHostWorld {
-    type Data = HostData;
+struct ProfileSvcHost {
+    engine:       Arc<wasmtime::Engine>,
+    pre:          Arc<ProfileHostWorldPre<HostData>>,
+    store_client: Arc<Mutex<ProfileStoreClient<tonic::transport::Channel>>>,
+    cache:        Arc<host_lib::Cache>,
+}
 
-    async fn get_profiles(
-        &self,
-        store: &mut Store<HostData>,
-        hotel_ids: Vec<String>,
-    ) -> Result<Vec<Hotel>> {
-        let wit_hotels = self.hotel_api_profile()
-            .call_get_profiles(store, &hotel_ids).await?;
+#[async_trait::async_trait]
+impl ProfileComponent for ProfileSvcHost {
+    async fn get_profiles(&self, hotel_ids: Vec<String>) -> Result<Vec<Hotel>> {
+        let data = HostData {
+            wasi:         host_lib::make_wasi_ctx(),
+            table:        ResourceTable::new(),
+            store_client: self.store_client.clone(),
+            cache:        self.cache.clone(),
+        };
+        let mut store = Store::new(&self.engine, data);
+        let instance = self.pre.instantiate_async(&mut store).await?;
+        let wit_hotels = instance.hotel_api_profile()
+            .call_get_profiles(&mut store, &hotel_ids).await?;
         Ok(wit_hotels.into_iter().map(|p| Hotel {
             id:           p.id,
             name:         p.name,
@@ -104,36 +107,23 @@ impl ProfileComponent for ProfileHostWorld {
 }
 
 pub async fn run() -> anyhow::Result<()> {
-    use wasmtime::component::Component;
-
-    let store_addr = std::env::var("STORE_ADDR")
-        .unwrap_or_else(|_| "http://localhost:8096".into());
+    let store_addr = std::env::var("STORE_ADDR").unwrap_or("http://localhost:8096".into());
     let listen_addr: std::net::SocketAddr = std::env::var("LISTEN_ADDR")
-        .unwrap_or_else(|_| "0.0.0.0:8095".into())
-        .parse()?;
-    let wasm_file = std::env::var("WASM_FILE")
-        .unwrap_or_else(|_| "profile.wasm".into());
+        .unwrap_or("0.0.0.0:8095".into()).parse()?;
+    let wasm_file = std::env::var("WASM_FILE").unwrap_or("profile.wasm".into());
 
     let store_client = ProfileStoreClient::connect(store_addr).await?;
     let store_client = Arc::new(Mutex::new(store_client));
+    let cache        = Arc::new(host_lib::Cache::new(Default::default()));
 
-    let engine = host_lib::make_engine()?;
+    let engine = Arc::new(host_lib::make_engine()?);
     let mut linker: Linker<HostData> = Linker::new(&engine);
     wasmtime_wasi::add_to_linker_async(&mut linker)?;
     ProfileHostWorld::add_to_linker(&mut linker, |d| d)?;
 
-    let data = HostData {
-        wasi:         host_lib::make_wasi_ctx(),
-        table:        wasmtime_wasi::ResourceTable::new(),
-        store_client,
-        cache:        Arc::new(host_lib::Cache::new(std::collections::HashMap::new())),
-    };
-    let mut store = wasmtime::Store::new(&engine, data);
-
     let component = Component::from_file(&engine, &wasm_file)?;
-    let instance = ProfileHostWorld::instantiate_async(&mut store, &component, &linker).await?;
+    let pre = Arc::new(ProfileHostWorldPre::new(linker.instantiate_pre(&component)?)?);
 
     println!("profile-host [svc] listening on {listen_addr}");
-
-    crate::grpc::serve(Arc::new(Mutex::new(store)), Arc::new(instance), listen_addr).await
+    crate::grpc::serve(Arc::new(ProfileSvcHost { engine, pre, store_client, cache }), listen_addr).await
 }

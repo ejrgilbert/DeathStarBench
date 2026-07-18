@@ -8,7 +8,7 @@ mod proto {
 use proto::{
     profile_store_server::{ProfileStore, ProfileStoreServer},
     Hotel as ProtoHotel, Address as ProtoAddress, Image as ProtoImage,
-    InitRequest, InitResponse, LoadProfilesRequest, LoadProfilesResponse,
+    LoadProfilesRequest, LoadProfilesResponse,
 };
 
 wasmtime::component::bindgen!({
@@ -21,27 +21,19 @@ wasmtime::component::bindgen!({
 });
 
 host_lib::impl_collection_host!(StoreData);
-host_lib::define_store_service!(ProfileStoreHostWorld);
+host_lib::define_store_service!(ProfileStoreHostWorld, ProfileStoreHostWorldPre<host_lib::StoreData>);
 
 #[tonic::async_trait]
 impl ProfileStore for StoreGrpcService {
-    async fn init(&self, _req: Request<InitRequest>) -> Result<Response<InitResponse>, Status> {
-        let mut store = self.store.lock().await;
-        self.instance
-            .hotel_store_profile_store()
-            .call_init(&mut *store).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        Ok(Response::new(InitResponse {}))
-    }
-
     async fn load_profiles(
         &self,
         _req: Request<LoadProfilesRequest>,
     ) -> Result<Response<LoadProfilesResponse>, Status> {
-        let mut store = self.store.lock().await;
-        let wit_hotels = self.instance
+        let (mut store, instance) = self.new_instance().await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        let wit_hotels = instance
             .hotel_store_profile_store()
-            .call_load_profiles(&mut *store).await
+            .call_load_profiles(&mut store).await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoadProfilesResponse {
             profs: wit_hotels.into_iter().map(|h| ProtoHotel {
@@ -69,7 +61,7 @@ impl ProfileStore for StoreGrpcService {
 }
 
 host_lib::run_store!(
-    ProfileStoreHostWorld, ProfileStoreServer, hotel_store_profile_store,
+    ProfileStoreHostWorld, ProfileStoreHostWorldPre<host_lib::StoreData>, ProfileStoreServer,
     "profile-db",
     "0.0.0.0:8096", "profile-store.wasm", "profile-host"
 );

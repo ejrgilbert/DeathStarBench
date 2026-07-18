@@ -56,7 +56,7 @@ async fn handle_request(
     req:   hyper::Request<hyper::body::Incoming>,
 ) -> Result<hyper::Response<wasmtime_wasi_http::body::HyperOutgoingBody>> {
     let data = AbiHostData {
-        wasi:  WasiCtxBuilder::new().inherit_stderr().build(),
+        wasi:  WasiCtxBuilder::new().inherit_stdout().inherit_stderr().build(),
         table: ResourceTable::new(),
         http:  WasiHttpCtx::new(),
         db:    state.db.clone(),
@@ -122,7 +122,11 @@ pub async fn run() -> Result<()> {
                     io,
                     service_fn(move |req| {
                         let state = state.clone();
-                        async move { handle_request(state, req).await }
+                        async move {
+                            handle_request(state, req).await.inspect_err(|e| {
+                                eprintln!("request error: {e:#}");
+                            })
+                        }
                     }),
                 )
                 .await

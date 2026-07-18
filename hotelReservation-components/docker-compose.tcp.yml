@@ -8,6 +8,8 @@ services:
     image: mongo:5.0
     volumes:
       - recommendation-data:/data/db
+      - ./data/recommendation-seed.json:/seed/recommendation-seed.json:ro
+      - ./data/init/recommendation-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
 
   recommendation-store:
     build:
@@ -19,12 +21,9 @@ services:
       MODE: store
       MONGO_URI: "mongodb://mongodb-recommendation:27017"
       LISTEN_ADDR: "0.0.0.0:8086"
-      DATA_DIR: /data
       WASM_FILE: /app/recommendation-store.wasm
     ports:
       - "8086:8086"
-    volumes:
-      - ./data/recommendation-seed.json:/data/recommendation-seed.json:ro
     depends_on:
       - mongodb-recommendation
     restart: on-failure
@@ -50,6 +49,8 @@ services:
     image: mongo:5.0
     volumes:
       - attractions-data:/data/db
+      - ./data/attractions-seed.json:/seed/attractions-seed.json:ro
+      - ./data/init/attractions-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
 
   attractions-store:
     build:
@@ -61,12 +62,9 @@ services:
       MODE: store
       MONGO_URI: "mongodb://mongodb-attractions:27017"
       LISTEN_ADDR: "0.0.0.0:8088"
-      DATA_DIR: /data
       WASM_FILE: /app/attractions-store.wasm
     ports:
       - "8088:8088"
-    volumes:
-      - ./data/attractions-seed.json:/data/attractions-seed.json:ro
     depends_on:
       - mongodb-attractions
     restart: on-failure
@@ -92,6 +90,8 @@ services:
     image: mongo:5.0
     volumes:
       - geo-data:/data/db
+      - ./data/geo-seed.json:/seed/geo-seed.json:ro
+      - ./data/init/geo-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
 
   geo-store:
     build:
@@ -103,12 +103,9 @@ services:
       MODE: store
       MONGO_URI: "mongodb://mongodb-geo:27017"
       LISTEN_ADDR: "0.0.0.0:8090"
-      DATA_DIR: /data
       WASM_FILE: /app/geo-store.wasm
     ports:
       - "8090:8090"
-    volumes:
-      - ./data/geo-seed.json:/data/geo-seed.json:ro
     depends_on:
       - mongodb-geo
     restart: on-failure
@@ -134,6 +131,8 @@ services:
     image: mongo:5.0
     volumes:
       - user-data:/data/db
+      - ./data/user-seed.json:/seed/user-seed.json:ro
+      - ./data/init/user-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
 
   user-store:
     build:
@@ -145,12 +144,9 @@ services:
       MODE: store
       MONGO_URI: "mongodb://mongodb-user:27017"
       LISTEN_ADDR: "0.0.0.0:8092"
-      DATA_DIR: /data
       WASM_FILE: /app/user-store.wasm
     ports:
       - "8092:8092"
-    volumes:
-      - ./data/user-seed.json:/data/user-seed.json:ro
     depends_on:
       - mongodb-user
     restart: on-failure
@@ -176,6 +172,8 @@ services:
     image: mongo:5.0
     volumes:
       - rate-data:/data/db
+      - ./data/rate-seed.json:/seed/rate-seed.json:ro
+      - ./data/init/rate-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
 
   rate-store:
     build:
@@ -187,25 +185,11 @@ services:
       MODE: store
       MONGO_URI: "mongodb://mongodb-rate:27017"
       LISTEN_ADDR: "0.0.0.0:8094"
-      DATA_DIR: /data
       WASM_FILE: /app/rate-store.wasm
     ports:
       - "8094:8094"
-    volumes:
-      - ./data/rate-seed.json:/data/rate-seed.json:ro
     depends_on:
       - mongodb-rate
-    restart: on-failure
-
-  rate-cache:
-    build:
-      context: .
-      target: runtime
-      args:
-        SERVICE: cache
-    environment:
-      LISTEN_ADDR: "0.0.0.0:8102"
-      WASM_FILE: /app/cache.wasm
     restart: on-failure
 
   rate:
@@ -217,20 +201,20 @@ services:
     environment:
       MODE: svc
       STORE_ADDR: "http://rate-store:8094"
-      CACHE_ADDR: "http://rate-cache:8102"
       LISTEN_ADDR: "0.0.0.0:8093"
       WASM_FILE: /app/rate.wasm
     ports:
       - "8093:8093"
     depends_on:
       - rate-store
-      - rate-cache
     restart: on-failure
 
   mongodb-profile:
     image: mongo:5.0
     volumes:
       - profile-data:/data/db
+      - ./data/profile-seed.json:/seed/profile-seed.json:ro
+      - ./data/init/profile-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
 
   profile-store:
     build:
@@ -242,25 +226,11 @@ services:
       MODE: store
       MONGO_URI: "mongodb://mongodb-profile:27017"
       LISTEN_ADDR: "0.0.0.0:8096"
-      DATA_DIR: /data
       WASM_FILE: /app/profile-store.wasm
     ports:
       - "8096:8096"
-    volumes:
-      - ./data/profile-seed.json:/data/profile-seed.json:ro
     depends_on:
       - mongodb-profile
-    restart: on-failure
-
-  profile-cache:
-    build:
-      context: .
-      target: runtime
-      args:
-        SERVICE: cache
-    environment:
-      LISTEN_ADDR: "0.0.0.0:8102"
-      WASM_FILE: /app/cache.wasm
     restart: on-failure
 
   profile:
@@ -272,14 +242,12 @@ services:
     environment:
       MODE: svc
       STORE_ADDR: "http://profile-store:8096"
-      CACHE_ADDR: "http://profile-cache:8102"
       LISTEN_ADDR: "0.0.0.0:8095"
       WASM_FILE: /app/profile.wasm
     ports:
       - "8095:8095"
     depends_on:
       - profile-store
-      - profile-cache
     restart: on-failure
 
   search:
@@ -304,6 +272,8 @@ services:
     image: mongo:5.0
     volumes:
       - review-data:/data/db
+      - ./data/review-seed.json:/seed/review-seed.json:ro
+      - ./data/init/review-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
 
   review-store:
     build:
@@ -315,25 +285,11 @@ services:
       MODE: store
       MONGO_URI: "mongodb://mongodb-review:27017"
       LISTEN_ADDR: "0.0.0.0:8099"
-      DATA_DIR: /data
       WASM_FILE: /app/review-store.wasm
     ports:
       - "8099:8099"
-    volumes:
-      - ./data/review-seed.json:/data/review-seed.json:ro
     depends_on:
       - mongodb-review
-    restart: on-failure
-
-  review-cache:
-    build:
-      context: .
-      target: runtime
-      args:
-        SERVICE: cache
-    environment:
-      LISTEN_ADDR: "0.0.0.0:8102"
-      WASM_FILE: /app/cache.wasm
     restart: on-failure
 
   review:
@@ -345,20 +301,21 @@ services:
     environment:
       MODE: svc
       STORE_ADDR: "http://review-store:8099"
-      CACHE_ADDR: "http://review-cache:8102"
       LISTEN_ADDR: "0.0.0.0:8098"
       WASM_FILE: /app/review.wasm
     ports:
       - "8098:8098"
     depends_on:
       - review-store
-      - review-cache
     restart: on-failure
 
   mongodb-reservation:
     image: mongo:5.0
     volumes:
       - reservation-data:/data/db
+      - ./data/reservation-numbers-seed.json:/seed/reservation-numbers-seed.json:ro
+      - ./data/reservation-reservations-seed.json:/seed/reservation-reservations-seed.json:ro
+      - ./data/init/reservation-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
 
   reservation-store:
     build:
@@ -370,26 +327,11 @@ services:
       MODE: store
       MONGO_URI: "mongodb://mongodb-reservation:27017"
       LISTEN_ADDR: "0.0.0.0:8101"
-      DATA_DIR: /data
       WASM_FILE: /app/reservation-store.wasm
     ports:
       - "8101:8101"
-    volumes:
-      - ./data/reservation-numbers-seed.json:/data/reservation-numbers-seed.json:ro
-      - ./data/reservation-reservations-seed.json:/data/reservation-reservations-seed.json:ro
     depends_on:
       - mongodb-reservation
-    restart: on-failure
-
-  reservation-cache:
-    build:
-      context: .
-      target: runtime
-      args:
-        SERVICE: cache
-    environment:
-      LISTEN_ADDR: "0.0.0.0:8102"
-      WASM_FILE: /app/cache.wasm
     restart: on-failure
 
   reservation:
@@ -401,14 +343,12 @@ services:
     environment:
       MODE: svc
       STORE_ADDR: "http://reservation-store:8101"
-      CACHE_ADDR: "http://reservation-cache:8102"
       LISTEN_ADDR: "0.0.0.0:8100"
       WASM_FILE: /app/reservation.wasm
     ports:
       - "8100:8100"
     depends_on:
       - reservation-store
-      - reservation-cache
     restart: on-failure
 
   frontend:

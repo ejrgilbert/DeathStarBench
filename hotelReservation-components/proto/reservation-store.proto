@@ -2,14 +2,11 @@ syntax = "proto3";
 package reservation_store;
 
 service ReservationStore {
-  rpc Init(InitRequest)                       returns (InitResponse);
   rpc LoadNumbers(LoadNumbersRequest)         returns (LoadNumbersResponse);
   rpc LoadReservations(LoadReservationsRequest) returns (LoadReservationsResponse);
   rpc InsertReservation(InsertReservationRequest) returns (InsertReservationResponse);
 }
 
-message InitRequest  {}
-message InitResponse {}
 message LoadNumbersRequest      {}
 message LoadReservationsRequest {}
 message InsertReservationRequest {

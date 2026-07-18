@@ -2,11 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"os"
 
 	"go.bytecodealliance.org/cm"
 
-	col "hotel-components/components/attractions_store/host/storage/collection"
+	col      "hotel-components/components/attractions_store/host/storage/collection"
 	attstore "hotel-components/components/attractions_store/hotel/store/attractions-store"
 )
 
@@ -22,6 +21,7 @@ type seedRecord struct {
 
 var (
 	conn           col.Connection
+	connOpen       bool
 	hotelPositions []attstore.HotelPosition
 	restaurants    []attstore.Restaurant
 	museums        []attstore.Museum
@@ -32,41 +32,25 @@ var (
 func main() {}
 
 func init() {
-	attstore.Exports.Init = doInit
 	attstore.Exports.LoadHotelPositions = loadHotelPositions
-	attstore.Exports.LoadRestaurants = loadRestaurants
-	attstore.Exports.LoadMuseums = loadMuseums
-	attstore.Exports.LoadCinemas = loadCinemas
+	attstore.Exports.LoadRestaurants    = loadRestaurants
+	attstore.Exports.LoadMuseums        = loadMuseums
+	attstore.Exports.LoadCinemas        = loadCinemas
 }
 
-func doInit() {
-	conn = col.ConnectionOpen("attractions")
-	if col.Count(conn) > 0 {
+func ensureConn() {
+	if connOpen {
 		return
 	}
-
-	data, err := os.ReadFile("/data/attractions-seed.json")
-	if err != nil {
-		panic("read seed file: " + err.Error())
-	}
-
-	var seeds []seedRecord
-	if err := json.Unmarshal(data, &seeds); err != nil {
-		panic("parse seed data: " + err.Error())
-	}
-
-	docs := make([]col.Document, len(seeds))
-	for i, s := range seeds {
-		b, _ := json.Marshal(s)
-		docs[i] = col.Document(cm.ToList(b))
-	}
-	col.InsertMany(conn, cm.ToList(docs))
+	conn = col.ConnectionOpen("attractions")
+	connOpen = true
 }
 
 func ensureLoaded() {
 	if allLoaded {
 		return
 	}
+	ensureConn()
 	rawDocs := col.FindAll(conn).Slice()
 	for _, raw := range rawDocs {
 		var s seedRecord

@@ -1,7 +1,9 @@
 use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use wasmtime::component::{Component, Linker};
 use wasmtime::Store;
+use wasmtime_wasi::ResourceTable;
 use crate::grpc::SearchComponent;
 
 mod geo_proto {
@@ -34,7 +36,6 @@ impl wasmtime_wasi::WasiView for HostData {
 
 #[async_trait::async_trait]
 impl hotel::api::geo::Host for HostData {
-
     async fn nearby(&mut self, lat: f64, lon: f64) -> Vec<String> {
         self.geo_client.lock().await
             .nearby(tonic::Request::new(geo_proto::Request { lat, lon }))
@@ -47,7 +48,6 @@ impl hotel::api::geo::Host for HostData {
 
 #[async_trait::async_trait]
 impl hotel::api::rate::Host for HostData {
-
     async fn get_rates(
         &mut self,
         hotel_ids: Vec<String>,
@@ -83,56 +83,49 @@ impl hotel::api::rate::Host for HostData {
     }
 }
 
-#[async_trait::async_trait]
-impl SearchComponent for SearchHostWorld {
-    type Data = HostData;
+struct SearchSvcHost {
+    engine:      Arc<wasmtime::Engine>,
+    pre:         Arc<SearchHostWorldPre<HostData>>,
+    geo_client:  Arc<Mutex<GeoClient<tonic::transport::Channel>>>,
+    rate_client: Arc<Mutex<RateClient<tonic::transport::Channel>>>,
+}
 
-    async fn nearby(
-        &self,
-        store: &mut Store<HostData>,
-        lat: f64,
-        lon: f64,
-        in_date: String,
-        out_date: String,
-    ) -> Result<Vec<String>> {
-        Ok(self.hotel_api_search()
-            .call_nearby(store, lat, lon, &in_date, &out_date).await?)
+#[async_trait::async_trait]
+impl SearchComponent for SearchSvcHost {
+    async fn nearby(&self, lat: f64, lon: f64, in_date: String, out_date: String) -> Result<Vec<String>> {
+        let data = HostData {
+            wasi:        host_lib::make_wasi_ctx(),
+            table:       ResourceTable::new(),
+            geo_client:  self.geo_client.clone(),
+            rate_client: self.rate_client.clone(),
+        };
+        let mut store = Store::new(&self.engine, data);
+        let instance = self.pre.instantiate_async(&mut store).await?;
+        Ok(instance.hotel_api_search()
+            .call_nearby(&mut store, lat, lon, &in_date, &out_date).await?)
     }
 }
 
 pub async fn run() -> anyhow::Result<()> {
-    use wasmtime::component::{Component, Linker};
-
-    let geo_addr  = std::env::var("GEO_ADDR")
-        .unwrap_or_else(|_| "http://localhost:8089".into());
-    let rate_addr = std::env::var("RATE_ADDR")
-        .unwrap_or_else(|_| "http://localhost:8093".into());
+    let geo_addr  = std::env::var("GEO_ADDR").unwrap_or("http://localhost:8089".into());
+    let rate_addr = std::env::var("RATE_ADDR").unwrap_or("http://localhost:8093".into());
     let listen_addr: std::net::SocketAddr = std::env::var("LISTEN_ADDR")
-        .unwrap_or_else(|_| "0.0.0.0:8097".into())
-        .parse()?;
-    let wasm_file = std::env::var("WASM_FILE")
-        .unwrap_or_else(|_| "search.wasm".into());
+        .unwrap_or("0.0.0.0:8097".into()).parse()?;
+    let wasm_file = std::env::var("WASM_FILE").unwrap_or("search.wasm".into());
 
     let geo_client  = GeoClient::connect(geo_addr).await?;
     let rate_client = RateClient::connect(rate_addr).await?;
+    let geo_client  = Arc::new(Mutex::new(geo_client));
+    let rate_client = Arc::new(Mutex::new(rate_client));
 
-    let engine = host_lib::make_engine()?;
+    let engine = Arc::new(host_lib::make_engine()?);
     let mut linker: Linker<HostData> = Linker::new(&engine);
     wasmtime_wasi::add_to_linker_async(&mut linker)?;
     SearchHostWorld::add_to_linker(&mut linker, |d| d)?;
 
-    let data = HostData {
-        wasi:        host_lib::make_wasi_ctx(),
-        table:       wasmtime_wasi::ResourceTable::new(),
-        geo_client:  Arc::new(Mutex::new(geo_client)),
-        rate_client: Arc::new(Mutex::new(rate_client)),
-    };
-    let mut store = wasmtime::Store::new(&engine, data);
-
     let component = Component::from_file(&engine, &wasm_file)?;
-    let instance  = SearchHostWorld::instantiate_async(&mut store, &component, &linker).await?;
+    let pre = Arc::new(SearchHostWorldPre::new(linker.instantiate_pre(&component)?)?);
 
     println!("search-host listening on {listen_addr}");
-
-    crate::grpc::serve(Arc::new(Mutex::new(store)), Arc::new(instance), listen_addr).await
+    crate::grpc::serve(Arc::new(SearchSvcHost { engine, pre, geo_client, rate_client }), listen_addr).await
 }

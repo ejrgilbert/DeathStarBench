@@ -1,9 +1,7 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 use anyhow::Result;
-use tokio::sync::Mutex;
 use tonic::{transport::Server, Request, Response, Status};
-use wasmtime::Store;
 
 mod proto {
     tonic::include_proto!("recommendation");
@@ -16,14 +14,10 @@ pub enum Requirement {
     Price,
 }
 
-/// Implemented by each mode's bindgen!-generated world type to call into the wasm component.
 #[async_trait::async_trait]
 pub trait RecommendComponent: Send + Sync + 'static {
-    type Data: Send + 'static;
-
     async fn recommend(
         &self,
-        store: &mut Store<Self::Data>,
         requirement: Requirement,
         lat: f64,
         lon: f64,
@@ -31,7 +25,6 @@ pub trait RecommendComponent: Send + Sync + 'static {
 }
 
 pub struct RecommendService<C: RecommendComponent> {
-    pub store: Arc<Mutex<Store<C::Data>>>,
     pub component: Arc<C>,
 }
 
@@ -48,23 +41,17 @@ impl<C: RecommendComponent> Recommendation for RecommendService<C> {
             "price"            => Requirement::Price,
             other => return Err(Status::invalid_argument(format!("unknown require: {other}"))),
         };
-        let mut store = self.store.lock().await;
-        let hotel_ids = self
-            .component
-            .recommend(&mut *store, requirement, r.lat, r.lon)
+        let hotel_ids = self.component
+            .recommend(requirement, r.lat, r.lon)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(proto::Result { hotel_ids }))
     }
 }
 
-pub async fn serve<C: RecommendComponent>(
-    store: Arc<Mutex<Store<C::Data>>>,
-    component: Arc<C>,
-    addr: SocketAddr,
-) -> Result<()> {
+pub async fn serve<C: RecommendComponent>(component: Arc<C>, addr: SocketAddr) -> Result<()> {
     Server::builder()
-        .add_service(RecommendationServer::new(RecommendService { store, component }))
+        .add_service(RecommendationServer::new(RecommendService { component }))
         .serve(addr)
         .await?;
     Ok(())

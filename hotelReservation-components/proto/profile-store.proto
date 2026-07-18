@@ -3,12 +3,8 @@ syntax = "proto3";
 package profile_store;
 
 service ProfileStore {
-  rpc Init(InitRequest) returns (InitResponse);
   rpc LoadProfiles(LoadProfilesRequest) returns (LoadProfilesResponse);
 }
-
-message InitRequest {}
-message InitResponse {}
 
 message LoadProfilesRequest {}
 message LoadProfilesResponse {

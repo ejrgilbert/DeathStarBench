@@ -12,7 +12,10 @@ fi
 
 
 echo "[INFO] testing frontend"
-# TODO
+if ! curl "http://localhost:8080/hotels?lat=37.7867&lon=-122.4112&inDate=2015-04-09&outDate=2015-04-10"; then
+    echo "[ERROR] geo frontend"
+    exit 1
+fi
 
 echo "[INFO] testing geo"
 if ! grpcurl -plaintext \
@@ -104,7 +107,7 @@ if ! grpcurl -plaintext \
       -proto search.proto \
       -d '{"lat":37.7749,"lon":-122.4194,"inDate":"3/12/2023","outDate":"3/14/2023"}' \
       localhost:8097 search.Search/Nearby; then
-    echo "[ERROR] user failed"
+    echo "[ERROR] search failed"
     exit 1
 fi
 
