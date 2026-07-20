@@ -1,0 +1,37 @@
+package repro:gc-bug@0.1.0;
+
+interface source {
+    record item {
+        id:   string,
+        /// Nested list forces the adapter to call cabi_realloc once for the
+        /// outer item array, once per item for the tags sub-array, and once
+        /// per tag for the string bytes — all while holding the outer array
+        /// pointer only in a WASM local (not on the Go shadow stack).
+        tags: list<string>,
+    }
+
+    /// Returns n items each with tags-per tags.
+    /// Predictable content: id="item-NNNN" padded to 500 bytes,
+    /// tags=["tag-NNNN-0" padded to 500 bytes, ...].
+    get-items: func(n: u32, tags-per: u32) -> list<item>;
+}
+
+interface checker {
+    /// Stores WIT strings without copying — shows corruption.
+    check: func(n: u32, tags-per: u32) -> list<bool>;
+    /// Stores WIT strings with string([]byte(s)) — shows the fix.
+    check-fixed: func(n: u32, tags-per: u32) -> list<bool>;
+}
+
+/// World used for TinyGo compilation (needs WASI for the runtime).
+world repro-world {
+    include wasi:cli/imports@0.2.0;
+    import source;
+    export checker;
+}
+
+/// Slimmer world used by the Rust host's bindgen! (WASI added separately).
+world repro-host-world {
+    import source;
+    export checker;
+}

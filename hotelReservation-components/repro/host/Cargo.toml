@@ -1,0 +1,11 @@
+[workspace]
+
+[package]
+name = "repro-host"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wasmtime      = { version = "46", features = ["component-model"] }
+wasmtime-wasi = "46"
+anyhow        = "1"

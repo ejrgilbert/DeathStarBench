@@ -1,14 +1,66 @@
 # ABI config: everything composed into frontend-all.wasm, single host process.
+# Each service gets its own MongoDB instance (same topology as TCP) so storage
+# is not a confounding variable when comparing ABI vs TCP transport overhead.
 #
 # Prerequisite: run `make frontend-all` to build frontend-all.wasm before bringing this up.
 
 services:
-  mongodb:
+  mongodb-recommendation:
     image: mongo:5.0
     volumes:
-      - hotel-data:/data/db
-      - ./data:/seed:ro
-      - ./data/init/hotel-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+      - recommendation-data:/data/db
+      - ./data/recommendation-seed.json:/seed/recommendation-seed.json:ro
+      - ./data/init/recommendation-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+
+  mongodb-attractions:
+    image: mongo:5.0
+    volumes:
+      - attractions-data:/data/db
+      - ./data/attractions-seed.json:/seed/attractions-seed.json:ro
+      - ./data/init/attractions-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+
+  mongodb-geo:
+    image: mongo:5.0
+    volumes:
+      - geo-data:/data/db
+      - ./data/geo-seed.json:/seed/geo-seed.json:ro
+      - ./data/init/geo-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+
+  mongodb-user:
+    image: mongo:5.0
+    volumes:
+      - user-data:/data/db
+      - ./data/user-seed.json:/seed/user-seed.json:ro
+      - ./data/init/user-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+
+  mongodb-rate:
+    image: mongo:5.0
+    volumes:
+      - rate-data:/data/db
+      - ./data/rate-seed.json:/seed/rate-seed.json:ro
+      - ./data/init/rate-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+
+  mongodb-profile:
+    image: mongo:5.0
+    volumes:
+      - profile-data:/data/db
+      - ./data/profile-seed.json:/seed/profile-seed.json:ro
+      - ./data/init/profile-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+
+  mongodb-review:
+    image: mongo:5.0
+    volumes:
+      - review-data:/data/db
+      - ./data/review-seed.json:/seed/review-seed.json:ro
+      - ./data/init/review-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+
+  mongodb-reservation:
+    image: mongo:5.0
+    volumes:
+      - reservation-data:/data/db
+      - ./data/reservation-numbers-seed.json:/seed/reservation-numbers-seed.json:ro
+      - ./data/reservation-reservations-seed.json:/seed/reservation-reservations-seed.json:ro
+      - ./data/init/reservation-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
 
   frontend:
     build:
@@ -17,17 +69,37 @@ services:
       args:
         SERVICE: frontend
     environment:
-      MODE:                      abi
-      WASM_FILE:                 /app/frontend-all.wasm
-      MONGO_URI:                 "mongodb://mongodb:27017"
-      MONGO_DB:                  hotel
-      LISTEN_ADDR:               "0.0.0.0:8080"
-      WASMTIME_BACKTRACE_DETAILS: "1"
+      MODE:                        abi
+      WASM_FILE:                   /app/frontend-all.wasm
+      LISTEN_ADDR:                 "0.0.0.0:8080"
+      MONGO_URI_RECOMMENDATION:    "mongodb://mongodb-recommendation:27017"
+      MONGO_URI_ATTRACTIONS:       "mongodb://mongodb-attractions:27017"
+      MONGO_URI_GEO:               "mongodb://mongodb-geo:27017"
+      MONGO_URI_USER:              "mongodb://mongodb-user:27017"
+      MONGO_URI_RATE:              "mongodb://mongodb-rate:27017"
+      MONGO_URI_PROFILE:           "mongodb://mongodb-profile:27017"
+      MONGO_URI_REVIEW:            "mongodb://mongodb-review:27017"
+      MONGO_URI_RESERVATION:       "mongodb://mongodb-reservation:27017"
+      WASMTIME_BACKTRACE_DETAILS:  "1"
     ports:
       - "8080:8080"
     depends_on:
-      - mongodb
+      - mongodb-recommendation
+      - mongodb-attractions
+      - mongodb-geo
+      - mongodb-user
+      - mongodb-rate
+      - mongodb-profile
+      - mongodb-review
+      - mongodb-reservation
     restart: on-failure
 
 volumes:
-  hotel-data:
+  recommendation-data:
+  attractions-data:
+  geo-data:
+  user-data:
+  rate-data:
+  profile-data:
+  review-data:
+  reservation-data:

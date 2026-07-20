@@ -1,0 +1,14 @@
+# Compiled wrk2 artifacts
+obj/
+wrk
+
+# LuaJIT generated build artifacts (may be stale from a different-arch native build)
+deps/luajit/src/luajit
+deps/luajit/src/luajit-*
+deps/luajit/src/*.o
+deps/luajit/src/*.a
+deps/luajit/src/lj_vm.s
+deps/luajit/src/buildvm_*.dasc
+deps/luajit/src/host/buildvm
+deps/luajit/src/host/*.o
+deps/luajit/src/jit/vmdef.lua

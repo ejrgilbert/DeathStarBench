@@ -1,0 +1,5 @@
+repro/
+wasi/
+repro.wasm
+host/target/
+wit/deps/
