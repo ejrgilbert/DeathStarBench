@@ -1,14 +1,93 @@
 use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use wasmtime::{Config, Engine};
+use wasmtime::{Config, Engine, InstanceAllocationStrategy, PoolingAllocationConfig};
 use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder};
 pub type Cache = std::sync::RwLock<std::collections::HashMap<String, Vec<u8>>>;
 
+/// Build the shared wasmtime engine used by every host mode (abi/tcp/store/svc).
+///
+/// All hosts follow the wasi:http model: a *fresh* component instance is built
+/// for each incoming request (see `handle_request` / `new_instance`). With the
+/// default on-demand allocator that means an `mmap` + memory-init of every
+/// linear memory on the hot path of every request.
+///
+/// For the ABI host this is catastrophic: composition is eager, so
+/// instantiating `frontend-all.wasm` instantiates *all* ~19 nested components
+/// (~322 core instances, ~18 linear memories, ~54 tables) on every request, in
+/// one process. That fixed per-request cost — not transport — is what made the
+/// composed ("no IPC") path measure slower than the TCP/IPC path.
+///
+/// The pooling allocator pre-reserves instance/memory/table/stack slots at
+/// startup and reuses them across requests. Freed slots are kept "warm" so the
+/// backing pages stay mapped, making re-instantiation ~O(touched pages) instead
+/// of O(app size). This moves instantiation off the critical path.
+///
+/// Limits are sized for the largest artifact in this benchmark
+/// (`frontend-all.wasm`) at `CONCURRENCY` in-flight requests. The single-
+/// component hosts (tcp/store/svc) reuse the same generous config unchanged.
+const MIB: usize = 1 << 20;
+const KIB: u64 = 1 << 10;
+
+// ---- Pooling allocator defaults --------------------------------------------
+// All per-instance figures are for the largest artifact here, the composed
+// `frontend-all.wasm`, as reported by `wasm-tools print`. They exceed wasmtime's
+// default per-component caps (20 each), so the pool must be widened explicitly.
+// Each is an env-override *default*, not a fixed limit; single-component hosts
+// need far less and reuse the same config unchanged.
+
+/// Simultaneous in-flight requests to provision slots for. wrk drives 50
+/// connections; this leaves headroom for keep-alive overlap.
+const DEFAULT_CONCURRENCY: u32 = 128;
+/// Core instances per composed instance (measured ~322).
+const DEFAULT_CORES_PER_COMPONENT: u32 = 384;
+/// Linear memories per composed instance (measured ~18).
+const DEFAULT_MEMS_PER_COMPONENT: u32 = 32;
+/// Tables per composed instance (measured ~54).
+const DEFAULT_TABLES_PER_COMPONENT: u32 = 64;
+/// Cap per linear memory. Services keep small heaps; this bounds the pool's
+/// virtual reservation (= total_memories * this).
+const DEFAULT_MAX_MEMORY_MIB: u32 = 128;
+/// Component VMContext size cap. wasmtime's 1 MiB default is far too small for
+/// the composed component.
+const MAX_COMPONENT_INSTANCE_SIZE: usize = 32 * MIB;
+/// Per-memory-slot guard region. Shrunk from wasmtime's 2 GiB default so the
+/// pool's (unbacked) virtual reservation of `max_memory_size + guard` per slot
+/// stays sane across all slots.
+const MEMORY_GUARD_SIZE: u64 = 64 * KIB;
+
 pub fn make_engine() -> Result<Engine> {
+    // Read a `u32` pooling knob from the environment, else use the default.
+    fn knob(key: &str, default: u32) -> u32 {
+        std::env::var(key).ok().and_then(|v| v.parse().ok()).unwrap_or(default)
+    }
+
+    let concurrency = knob("POOL_CONCURRENCY", DEFAULT_CONCURRENCY);
+    let cores_per   = knob("POOL_CORES_PER_COMPONENT", DEFAULT_CORES_PER_COMPONENT);
+    let mems_per    = knob("POOL_MEMS_PER_COMPONENT", DEFAULT_MEMS_PER_COMPONENT);
+    let tables_per  = knob("POOL_TABLES_PER_COMPONENT", DEFAULT_TABLES_PER_COMPONENT);
+    let max_mem_mib = knob("POOL_MAX_MEMORY_MIB", DEFAULT_MAX_MEMORY_MIB);
+
+    // Totals are `per_component * concurrency`: enough slots for that many
+    // in-flight instances of the composed component at once.
+    let mut pool = PoolingAllocationConfig::default();
+    pool.max_core_instances_per_component(cores_per);
+    pool.max_memories_per_component(mems_per);
+    pool.max_tables_per_component(tables_per);
+    pool.total_component_instances(concurrency);
+    pool.total_core_instances(concurrency * cores_per);
+    pool.total_memories(concurrency * mems_per);
+    pool.total_tables(concurrency * tables_per);
+    pool.total_stacks(concurrency); // async: one fiber stack per in-flight instance
+    pool.max_component_instance_size(MAX_COMPONENT_INSTANCE_SIZE);
+    pool.max_memory_size(max_mem_mib as usize * MIB);
+    pool.max_unused_warm_slots(concurrency); // keep freed slots warm for reuse
+
     let mut config = Config::new();
     config.async_support(true);
     config.wasm_component_model(true);
+    config.allocation_strategy(InstanceAllocationStrategy::Pooling(pool));
+    config.static_memory_guard_size(MEMORY_GUARD_SIZE);
     Ok(Engine::new(&config)?)
 }
 
