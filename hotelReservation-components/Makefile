@@ -2,8 +2,16 @@ BUILD_DIR    := build
 TINYGO_FLAGS := -target=wasip2 -scheduler=none
 SERVICES     := recommendation attractions geo user rate profile review reservation # append here to add a service
 
-.PHONY: all all-composed frontend-all wit-deps generate bench bench-tcp bench-abi \
+.PHONY: all all-composed frontend-all bootstrap wit-deps generate bench bench-tcp bench-abi \
         tcp-up tcp-down abi-up abi-down teardown clean
+
+.DEFAULT_GOAL := bootstrap
+
+bootstrap:
+	$(MAKE) wit-deps
+	$(MAKE) generate
+	$(MAKE) all
+	$(MAKE) frontend-all
 
 $(BUILD_DIR)/frontend.wasm: components/frontend | $(BUILD_DIR)
 	tinygo build $(TINYGO_FLAGS) \
