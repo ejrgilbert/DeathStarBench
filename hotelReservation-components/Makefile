@@ -3,7 +3,7 @@ TINYGO_FLAGS := -target=wasip2 -scheduler=none
 SERVICES     := recommendation attractions geo user rate profile review reservation # append here to add a service
 
 .PHONY: all all-composed frontend-all bootstrap wit-deps generate bench bench-tcp bench-abi \
-        tcp-up tcp-down abi-up abi-down teardown clean
+        hosts-tcp hosts-abi tcp-up tcp-down abi-up abi-down teardown clean
 
 .DEFAULT_GOAL := bootstrap
 
@@ -95,6 +95,25 @@ $(BUILD_DIR)/frontend-all.wasm: $(BUILD_DIR)/frontend.wasm \
 	  $(BUILD_DIR)/frontend.wasm -o $@
 
 frontend-all: $(BUILD_DIR)/frontend-all.wasm
+
+# ── host docker images ────────────────────────────────────────────────────────
+# Rebuild the host images only when a source baked into them changes. The stamp
+# files let make's timestamp logic gate the (slow) `docker compose build`, so
+# run.sh can invoke `make hosts-tcp` / `hosts-abi` before every bring-up and pay
+# nothing when nothing changed.
+HOST_IMAGE_SRCS := $(shell find hosts host-lib proto components -type f 2>/dev/null) \
+                   Cargo.toml Cargo.lock Dockerfile $(wildcard $(BUILD_DIR)/*.wasm)
+
+hosts-tcp: $(BUILD_DIR)/.hosts-tcp.stamp
+hosts-abi: $(BUILD_DIR)/.hosts-abi.stamp
+
+$(BUILD_DIR)/.hosts-tcp.stamp: $(HOST_IMAGE_SRCS) | $(BUILD_DIR)
+	docker compose -f docker-compose.tcp.yml build
+	@touch $@
+
+$(BUILD_DIR)/.hosts-abi.stamp: $(HOST_IMAGE_SRCS) | $(BUILD_DIR)
+	docker compose -f docker-compose.abi.yml build
+	@touch $@
 
 # ── docker compose ────────────────────────────────────────────────────────────
 tcp-up: all
