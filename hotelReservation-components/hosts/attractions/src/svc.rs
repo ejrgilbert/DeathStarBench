@@ -12,13 +12,13 @@ use store_proto::{
 wasmtime::component::bindgen!({
     path: "../../components/attractions/wit",
     world: "attractions-host-world",
-    async: true,
+    imports: { default: async },
+    exports: { default: async },
 });
 
 host_lib::svc_host_data!(AttractionsStoreClient<tonic::transport::Channel>);
 host_lib::impl_cache_host!(HostData);
 
-#[async_trait::async_trait]
 impl hotel::store::attractions_store::Host for HostData {
     async fn load_hotel_positions(&mut self) -> Vec<hotel::store::attractions_store::HotelPosition> {
         let resp = self.store_client.lock().await
@@ -54,6 +54,12 @@ impl hotel::store::attractions_store::Host for HostData {
         resp.cinemas.into_iter().map(|c| hotel::store::attractions_store::Cinema {
             id: c.id, lat: c.lat, lon: c.lon, name: c.name, category: c.category,
         }).collect()
+    }
+
+    // Targeted parity method: the store service is a plain gRPC load-all, so fall
+    // back to filtering the loaded hotel positions by id.
+    async fn get_hotel_position(&mut self, hotel_id: String) -> Option<hotel::store::attractions_store::HotelPosition> {
+        self.load_hotel_positions().await.into_iter().find(|h| h.id == hotel_id)
     }
 }
 

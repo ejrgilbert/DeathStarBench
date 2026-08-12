@@ -1,6 +1,8 @@
 package main
 
 import (
+	gcutil "hotel-components/internal/gcutil"
+
 	"go.bytecodealliance.org/cm"
 
 	hkv     "hotel-components/components/reservation/host/cache/keyvalue"
@@ -27,8 +29,9 @@ func checkAvailability(hotelIds cm.List[string], inDate, outDate string, roomNum
 		ids,
 		string([]byte(inDate)), string([]byte(outDate)),
 		roomNumber,
-		loadNumbers, loadReservations, cacheGet, cacheSet,
+		getNumber, getReservations, cacheGet, cacheSet,
 	)
+	gcutil.Tick()
 	return cm.ToList(result)
 }
 
@@ -39,25 +42,27 @@ func makeReservation(hotelID, customerName, inDate, outDate string, roomNumber i
 		string([]byte(inDate)),
 		string([]byte(outDate)),
 		roomNumber,
-		loadNumbers, loadReservations, doInsertReservation, cacheGet, cacheSet,
+		getNumber, getReservations, doInsertReservation, cacheGet, cacheSet,
 	)
+	gcutil.Tick()
 	return cm.ToList(result)
 }
 
-func loadNumbers() []NumberRec {
-	witNums := store.LoadNumbers().Slice()
-	result := make([]NumberRec, len(witNums))
-	for i, n := range witNums {
-		result[i] = NumberRec{
-			HotelId:      string([]byte(n.HotelID)),
-			NumberOfRoom: n.NumberOfRoom,
-		}
+// getNumber does a targeted room-capacity lookup by hotel id via the store's
+// `get-number` (`FindOne({"hotelId": id})`), matching the Go original.
+func getNumber(id string) (NumberRec, bool) {
+	opt := store.GetNumber(id)
+	if opt.None() {
+		return NumberRec{}, false
 	}
-	return result
+	n := *opt.Some()
+	return NumberRec{HotelId: string([]byte(n.HotelID)), NumberOfRoom: n.NumberOfRoom}, true
 }
 
-func loadReservations() []ReservationRec {
-	witRecs := store.LoadReservations().Slice()
+// getReservations does a targeted `Find({"hotelId","inDate","outDate"})` via the
+// store's `get-reservations`, matching the Go original.
+func getReservations(id, inDate, outDate string) []ReservationRec {
+	witRecs := store.GetReservations(id, inDate, outDate).Slice()
 	result := make([]ReservationRec, len(witRecs))
 	for i, r := range witRecs {
 		result[i] = ReservationRec{

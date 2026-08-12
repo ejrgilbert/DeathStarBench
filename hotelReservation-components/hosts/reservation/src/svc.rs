@@ -12,13 +12,13 @@ use store_proto::{
 wasmtime::component::bindgen!({
     path: "../../components/reservation/wit",
     world: "reservation-host-world",
-    async: true,
+    imports: { default: async },
+    exports: { default: async },
 });
 
 host_lib::svc_host_data!(ReservationStoreClient<tonic::transport::Channel>);
 host_lib::impl_cache_host!(HostData);
 
-#[async_trait::async_trait]
 impl hotel::store::reservation_store::Host for HostData {
     async fn load_numbers(&mut self) -> Vec<hotel::store::reservation_store::NumberRec> {
         let resp = self.store_client.lock().await
@@ -53,6 +53,24 @@ impl hotel::store::reservation_store::Host for HostData {
                 number:        r.number,
             })).await
             .expect("gRPC reservation-store InsertReservation failed");
+    }
+
+    // TCP path: the store is reached over gRPC (only Load* exists), so targeted
+    // lookups filter the loaded sets client-side. The ABI path uses the composed
+    // store's `get-number`/`get-reservations` (true FindOne/Find) instead.
+    async fn get_number(&mut self, hotel_id: String) -> Option<hotel::store::reservation_store::NumberRec> {
+        self.load_numbers().await.into_iter().find(|n| n.hotel_id == hotel_id)
+    }
+
+    async fn get_reservations(
+        &mut self,
+        hotel_id: String,
+        in_date: String,
+        out_date: String,
+    ) -> Vec<hotel::store::reservation_store::ReservationRec> {
+        self.load_reservations().await.into_iter()
+            .filter(|r| r.hotel_id == hotel_id && r.in_date == in_date && r.out_date == out_date)
+            .collect()
     }
 }
 

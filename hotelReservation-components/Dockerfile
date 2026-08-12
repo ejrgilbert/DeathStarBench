@@ -1,4 +1,4 @@
-FROM rust:1.92.0-slim AS builder
+FROM rust:1.94-slim AS builder
 WORKDIR /build
 
 RUN apt-get update && apt-get install -y protobuf-compiler && rm -rf /var/lib/apt/lists/*

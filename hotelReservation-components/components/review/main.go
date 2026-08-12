@@ -17,7 +17,7 @@ func init() {
 }
 
 func getReviews(hotelId string) cm.List[revapi.ReviewComm] {
-	reviews := svc.GetReviews(hotelId, loadAll, cacheGet, cacheSet)
+	reviews := svc.GetReviews(hotelId, fetchReviews, cacheGet, cacheSet)
 	witResult := make([]revapi.ReviewComm, len(reviews))
 	for i, r := range reviews {
 		witResult[i] = revapi.ReviewComm{
@@ -32,8 +32,8 @@ func getReviews(hotelId string) cm.List[revapi.ReviewComm] {
 	return cm.ToList(witResult)
 }
 
-func loadAll() []Review {
-	witRevs := store.LoadReviews().Slice()
+func fetchReviews(hotelId string) []Review {
+	witRevs := store.GetReviews(hotelId).Slice()
 	result := make([]Review, len(witRevs))
 	for i, wr := range witRevs {
 		result[i] = Review{

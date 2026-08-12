@@ -22,7 +22,7 @@ func NewService() *Service { return &Service{} }
 
 func (s *Service) GetReviews(
 	hotelId string,
-	loadAll  func() []Review,
+	fetch    func(string) []Review,
 	cacheGet func(string) ([]byte, bool),
 	cacheSet func(string, []byte),
 ) []Review {
@@ -33,12 +33,9 @@ func (s *Service) GetReviews(
 		}
 	}
 
-	var result []Review
-	for _, r := range loadAll() {
-		if r.HotelId == hotelId {
-			result = append(result, r)
-		}
-	}
+	// Cache miss: targeted store query for just this hotel's reviews, matching
+	// the Go review service's `Find({"hotelId": id})`.
+	result := fetch(hotelId)
 
 	if b, err := json.Marshal(result); err == nil {
 		cacheSet(hotelId, b)

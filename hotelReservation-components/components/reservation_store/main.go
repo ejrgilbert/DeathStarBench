@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"go.bytecodealliance.org/cm"
 
@@ -38,6 +39,41 @@ func init() {
 	revstore.Exports.LoadNumbers       = loadNumbers
 	revstore.Exports.LoadReservations  = loadReservations
 	revstore.Exports.InsertReservation = doInsertReservation
+	revstore.Exports.GetNumber         = getNumber
+	revstore.Exports.GetReservations   = getReservations
+}
+
+// getNumber does a targeted `FindOne({"hotelId": id})` on the number collection.
+func getNumber(hotelID string) cm.Option[revstore.NumberRec] {
+	ensureConn()
+	filter := fmt.Sprintf(`{"hotelId":%q}`, hotelID)
+	opt := col.FindOne(numConn, col.Document(cm.ToList([]uint8(filter))))
+	if opt.None() {
+		return cm.None[revstore.NumberRec]()
+	}
+	var s seedNumber
+	json.Unmarshal(cm.List[uint8](*opt.Some()).Slice(), &s)
+	return cm.Some(revstore.NumberRec{HotelID: string([]byte(s.HotelId)), NumberOfRoom: s.NumberOfRoom})
+}
+
+// getReservations does a targeted `Find({"hotelId","inDate","outDate"})`.
+func getReservations(hotelID, inDate, outDate string) cm.List[revstore.ReservationRec] {
+	ensureConn()
+	filter := fmt.Sprintf(`{"hotelId":%q,"inDate":%q,"outDate":%q}`, hotelID, inDate, outDate)
+	rawDocs := col.Find(resConn, col.Document(cm.ToList([]uint8(filter)))).Slice()
+	recs := make([]revstore.ReservationRec, 0, len(rawDocs))
+	for _, raw := range rawDocs {
+		var s seedReservation
+		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
+		recs = append(recs, revstore.ReservationRec{
+			HotelID:      string([]byte(s.HotelId)),
+			CustomerName: string([]byte(s.CustomerName)),
+			InDate:       string([]byte(s.InDate)),
+			OutDate:      string([]byte(s.OutDate)),
+			Number:       s.Number,
+		})
+	}
+	return cm.ToList(recs)
 }
 
 func ensureConn() {

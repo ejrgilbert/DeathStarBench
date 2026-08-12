@@ -7,8 +7,10 @@ use hyper_util::rt::TokioIo;
 use tonic::transport::Channel;
 use wasmtime::component::{Component, Linker};
 use wasmtime::Store;
-use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder};
-use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
+use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder, WasiCtxView};
+use wasmtime_wasi_http::WasiHttpCtx;
+use wasmtime_wasi_http::p2::{WasiHttpView, WasiHttpCtxView};
+use wasmtime_wasi_http::p2::bindings::{Proxy, ProxyPre};
 
 mod search_proto {
     tonic::include_proto!("search");
@@ -40,17 +42,27 @@ use review_proto::review_client::ReviewClient;
 use search_proto::search_client::SearchClient;
 use user_proto::user_client::UserClient;
 
+// Host-side world: only the custom (gRPC-backed) `hotel:api` imports. The
+// wasi:http proxy export is driven through the crate's `ProxyPre` (see `run` /
+// `handle_request`), and the wasi + wasi:http host functions are provided by the
+// crate's linker helpers. Generating bindings only for our own imports avoids
+// the `@unstable`-gated wasi:http/types linker glue that the full proxy world
+// would emit.
 wasmtime::component::bindgen!({
-    world: "frontend-host-world",
+    inline: "
+        package hotel:frontend-host;
+        world frontend-imports {
+            import hotel:api/search;
+            import hotel:api/profile;
+            import hotel:api/recommendation;
+            import hotel:api/user;
+            import hotel:api/review;
+            import hotel:api/attractions;
+            import hotel:api/reservation;
+        }
+    ",
     path: "../../components/frontend/wit",
-    with: {
-        "wasi:http/types@0.2.0":               wasmtime_wasi_http::bindings::http::types,
-        "wasi:io/poll@0.2.0":                  wasmtime_wasi::bindings::io::poll,
-        "wasi:io/error@0.2.0":                 wasmtime_wasi::bindings::io::error,
-        "wasi:io/streams@0.2.0":               wasmtime_wasi::bindings::io::streams,
-        "wasi:clocks/monotonic-clock@0.2.0":   wasmtime_wasi::bindings::clocks::monotonic_clock,
-    },
-    async: true,
+    imports: { default: async },
 });
 
 struct Clients {
@@ -71,16 +83,17 @@ struct HostData {
 }
 
 impl wasmtime_wasi::WasiView for HostData {
-    fn ctx(&mut self)   -> &mut WasiCtx      { &mut self.wasi  }
-    fn table(&mut self) -> &mut ResourceTable { &mut self.table }
+    fn ctx(&mut self) -> WasiCtxView<'_> {
+        WasiCtxView { ctx: &mut self.wasi, table: &mut self.table }
+    }
 }
 
 impl WasiHttpView for HostData {
-    fn ctx(&mut self)   -> &mut WasiHttpCtx  { &mut self.http  }
-    fn table(&mut self) -> &mut ResourceTable { &mut self.table }
+    fn http(&mut self) -> WasiHttpCtxView<'_> {
+        WasiHttpCtxView { ctx: &mut self.http, table: &mut self.table, hooks: Default::default() }
+    }
 }
 
-#[async_trait::async_trait]
 impl hotel::api::search::Host for HostData {
     async fn nearby(
         &mut self,
@@ -104,7 +117,6 @@ impl hotel::api::search::Host for HostData {
     }
 }
 
-#[async_trait::async_trait]
 impl hotel::api::profile::Host for HostData {
     async fn get_profiles(
         &mut self,
@@ -148,7 +160,6 @@ fn proto_hotel_to_wit(h: profile_proto::Hotel) -> hotel::api::profile::Hotel {
     }
 }
 
-#[async_trait::async_trait]
 impl hotel::api::recommendation::Host for HostData {
     async fn recommend(
         &mut self,
@@ -176,7 +187,6 @@ impl hotel::api::recommendation::Host for HostData {
     }
 }
 
-#[async_trait::async_trait]
 impl hotel::api::user::Host for HostData {
     async fn check_user(&mut self, username: String, password: String) -> bool {
         self.clients
@@ -189,7 +199,6 @@ impl hotel::api::user::Host for HostData {
     }
 }
 
-#[async_trait::async_trait]
 impl hotel::api::review::Host for HostData {
     async fn get_reviews(
         &mut self,
@@ -221,7 +230,6 @@ impl hotel::api::review::Host for HostData {
     }
 }
 
-#[async_trait::async_trait]
 impl hotel::api::attractions::Host for HostData {
     async fn nearby_rest(&mut self, hotel_id: String) -> Vec<String> {
         self.clients
@@ -254,7 +262,6 @@ impl hotel::api::attractions::Host for HostData {
     }
 }
 
-#[async_trait::async_trait]
 impl hotel::api::reservation::Host for HostData {
     async fn check_availability(
         &mut self,
@@ -303,39 +310,56 @@ impl hotel::api::reservation::Host for HostData {
 }
 
 struct ServerState {
-    engine:  wasmtime::Engine,
-    pre:     FrontendHostWorldPre<HostData>,
-    clients: Arc<Clients>,
+    pool: host_lib::InstancePool<HostData, Proxy>,
 }
 
 async fn handle_request(
     state: Arc<ServerState>,
     req:   hyper::Request<hyper::body::Incoming>,
-) -> Result<hyper::Response<wasmtime_wasi_http::body::HyperOutgoingBody>> {
-    let data = HostData {
-        wasi:    WasiCtxBuilder::new().inherit_stderr().build(),
-        table:   ResourceTable::new(),
-        http:    WasiHttpCtx::new(),
-        clients: state.clients.clone(),
-    };
-    let mut store = Store::new(&state.engine, data);
+) -> Result<hyper::Response<wasmtime_wasi_http::p2::body::HyperOutgoingBody>> {
+    use http_body_util::BodyExt;
 
-    let instance = state.pre.instantiate_async(&mut store).await?;
+    // Reuse a warm instance from the pool instead of instantiating per request.
+    let mut checked = state.pool.checkout().await;
+    let (store, proxy) = checked.parts();
 
     let (sender, receiver) = tokio::sync::oneshot::channel();
-    let scheme   = wasmtime_wasi_http::bindings::http::types::Scheme::Http;
-    let incoming = store.data_mut().new_incoming_request(scheme, req)?;
-    let outparam = store.data_mut().new_response_outparam(sender)?;
+    let scheme   = wasmtime_wasi_http::p2::bindings::http::types::Scheme::Http;
+    let incoming = store.data_mut().http().new_incoming_request(scheme, req)?;
+    let outparam = store.data_mut().http().new_response_outparam(sender)?;
 
-    instance
+    if let Err(e) = proxy
         .wasi_http_incoming_handler()
-        .call_handle(&mut store, incoming, outparam)
-        .await?;
-
-    match receiver.await? {
-        Ok(resp) => Ok(resp),
-        Err(e)   => Err(anyhow::anyhow!("wasi:http error code: {e:?}")),
+        .call_handle(&mut *store, incoming, outparam)
+        .await
+    {
+        eprintln!("[reuse-debug] call_handle trapped: {e:?}");
+        return Err(e.into());
     }
+
+    let resp = match receiver.await? {
+        Ok(resp) => resp,
+        Err(e)   => return Err(anyhow::anyhow!("wasi:http error code: {e:?}")),
+    };
+
+    // Fully drain the response body while the instance is still checked out, so
+    // the returned response no longer references the store — otherwise the
+    // instance would go back to the pool mid-stream and a concurrent request
+    // re-entering it would trap ("cannot enter component instance").
+    let (parts, body) = resp.into_parts();
+    let bytes = match body.collect().await {
+        Ok(c) => c.to_bytes(),
+        Err(e) => {
+            eprintln!("[reuse-debug] body drain failed: {e:?}");
+            return Err(anyhow::anyhow!("draining response body: {e:?}"));
+        }
+    };
+    drop(checked); // return the now-idle instance to the pool
+
+    let body = http_body_util::Full::new(bytes)
+        .map_err(|never| match never {})
+        .boxed_unsync();
+    Ok(hyper::Response::from_parts(parts, body))
 }
 
 pub async fn run() -> Result<()> {
@@ -366,23 +390,45 @@ pub async fn run() -> Result<()> {
     let engine = host_lib::make_engine()?;
 
     let mut linker: Linker<HostData> = Linker::new(&engine);
-    wasmtime_wasi::add_to_linker_async(&mut linker)?;
-    wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
-    hotel::api::search::add_to_linker(&mut linker, |d| d)?;
-    hotel::api::profile::add_to_linker(&mut linker, |d| d)?;
-    hotel::api::recommendation::add_to_linker(&mut linker, |d| d)?;
-    hotel::api::user::add_to_linker(&mut linker, |d| d)?;
-    hotel::api::review::add_to_linker(&mut linker, |d| d)?;
-    hotel::api::attractions::add_to_linker(&mut linker, |d| d)?;
-    hotel::api::reservation::add_to_linker(&mut linker, |d| d)?;
+    wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
+    wasmtime_wasi_http::p2::add_only_http_to_linker_async(&mut linker)?;
+    hotel::api::search::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
+    hotel::api::profile::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
+    hotel::api::recommendation::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
+    hotel::api::user::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
+    hotel::api::review::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
+    hotel::api::attractions::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
+    hotel::api::reservation::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
 
     let component = Component::from_file(&engine, &wasm_file)?;
-    let pre = FrontendHostWorldPre::new(linker.instantiate_pre(&component)?)?;
+    let pre = Arc::new(ProxyPre::new(linker.instantiate_pre(&component)?)?);
+    let engine = Arc::new(engine);
 
-    let state = Arc::new(ServerState { engine, pre, clients });
+    // Pre-instantiate a pool of warm instances reused across requests (bounds
+    // in-flight concurrency); avoids the per-request `instantiate_async` cost.
+    let pool_size: usize = env_or("POOL_SIZE", "64").parse().unwrap_or(64);
+    let pool = host_lib::InstancePool::build(pool_size, || {
+        let engine = engine.clone();
+        let pre = pre.clone();
+        let clients = clients.clone();
+        async move {
+            let data = HostData {
+                wasi:    WasiCtxBuilder::new().inherit_stderr().build(),
+                table:   ResourceTable::new(),
+                http:    WasiHttpCtx::new(),
+                clients,
+            };
+            let mut store = Store::new(&engine, data);
+            let proxy = pre.instantiate_async(&mut store).await?;
+            Ok((store, proxy))
+        }
+    })
+    .await?;
+
+    let state = Arc::new(ServerState { pool });
 
     let listener = tokio::net::TcpListener::bind(listen_addr).await?;
-    println!("frontend-host [tcp] listening on {listen_addr}");
+    println!("frontend-host [tcp] listening on {listen_addr} (instance pool size {pool_size})");
 
     loop {
         let (tcp, _) = listener.accept().await?;

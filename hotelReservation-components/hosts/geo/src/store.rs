@@ -14,9 +14,10 @@ use proto::{
 wasmtime::component::bindgen!({
     path: "../../components/geo_store/wit",
     world: "geo-store-host-world",
-    async: true,
+    imports: { default: async },
+    exports: { default: async },
     with: {
-        "host:storage/collection/connection": host_lib::MongoCollection,
+        "host:storage/collection.connection": host_lib::MongoCollection,
     },
 });
 

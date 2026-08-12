@@ -9,13 +9,13 @@ use store_proto::{rate_store_client::RateStoreClient, LoadRatesRequest};
 wasmtime::component::bindgen!({
     path: "../../components/rate/wit",
     world: "rate-host-world",
-    async: true,
+    imports: { default: async },
+    exports: { default: async },
 });
 
 host_lib::svc_host_data!(RateStoreClient<tonic::transport::Channel>);
 host_lib::impl_cache_host!(HostData);
 
-#[async_trait::async_trait]
 impl hotel::store::rate_store::Host for HostData {
     async fn load_rates(&mut self) -> Vec<hotel::store::rate_store::RatePlan> {
         let resp = self.store_client.lock().await

@@ -12,7 +12,8 @@ use store_proto::{
 wasmtime::component::bindgen!({
     path: "../../components/recommendation/wit",
     world: "recommendation-host-world",
-    async: true,
+    imports: { default: async },
+    exports: { default: async },
 });
 
 use exports::hotel::api::recommendation::Requirement as WitRequirement;
@@ -20,7 +21,6 @@ use exports::hotel::api::recommendation::Requirement as WitRequirement;
 host_lib::svc_host_data!(RecommendationStoreClient<tonic::transport::Channel>);
 host_lib::impl_cache_host!(HostData);
 
-#[async_trait::async_trait]
 impl hotel::store::recommendation_store::Host for HostData {
     async fn load_hotels(&mut self) -> Vec<hotel::store::recommendation_store::Hotel> {
         let resp = self.store_client.lock().await

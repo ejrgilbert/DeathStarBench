@@ -1,9 +1,62 @@
 use anyhow::Result;
 use std::sync::Arc;
-use tokio::sync::Mutex;
-use wasmtime::{Config, Engine, InstanceAllocationStrategy, PoolingAllocationConfig};
-use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder};
+use tokio::sync::{mpsc, Mutex};
+use wasmtime::{Config, Engine, InstanceAllocationStrategy, PoolingAllocationConfig, Store};
+use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiCtxView};
 pub type Cache = std::sync::RwLock<std::collections::HashMap<String, Vec<u8>>>;
+
+/// A fixed-size pool of pre-instantiated `(Store<T>, I)` pairs to reuse warm instances on requests
+pub struct InstancePool<T: Send + 'static, I: Send + 'static> {
+    tx: mpsc::Sender<(Store<T>, I)>,
+    rx: Mutex<mpsc::Receiver<(Store<T>, I)>>,
+}
+
+impl<T: Send + 'static, I: Send + 'static> InstancePool<T, I> {
+    /// Instantiate `size` warm instances up front via `make`.
+    pub async fn build<F, Fut>(size: usize, make: F) -> Result<Self>
+    where
+        F: Fn() -> Fut,
+        Fut: std::future::Future<Output = Result<(Store<T>, I)>>,
+    {
+        let size = size.max(1);
+        let (tx, rx) = mpsc::channel(size);
+        for _ in 0..size {
+            tx.try_send(make().await?)
+                .map_err(|_| anyhow::anyhow!("instance pool prefill overflow"))?;
+        }
+        Ok(Self { tx, rx: Mutex::new(rx) })
+    }
+
+    /// Borrow a warm instance, awaiting until one is free. It is returned to the
+    /// pool automatically when the returned guard drops.
+    pub async fn checkout(&self) -> Checked<'_, T, I> {
+        let item = self.rx.lock().await.recv().await.expect("instance pool closed");
+        Checked { tx: &self.tx, item: Some(item) }
+    }
+}
+
+/// RAII handle to a checked-out `(Store<T>, I)`; returns it to the pool on drop.
+pub struct Checked<'a, T: Send + 'static, I: Send + 'static> {
+    tx: &'a mpsc::Sender<(Store<T>, I)>,
+    item: Option<(Store<T>, I)>,
+}
+
+impl<T: Send + 'static, I: Send + 'static> Checked<'_, T, I> {
+    /// `(&mut Store, &Instance)` for making the guest call.
+    pub fn parts(&mut self) -> (&mut Store<T>, &I) {
+        let (s, i) = self.item.as_mut().expect("checked-out instance");
+        (s, i)
+    }
+}
+
+impl<T: Send + 'static, I: Send + 'static> Drop for Checked<'_, T, I> {
+    fn drop(&mut self) {
+        if let Some(item) = self.item.take() {
+            // Capacity was reserved when we checked out, so this never blocks.
+            let _ = self.tx.try_send(item);
+        }
+    }
+}
 
 /// Build the shared wasmtime engine used by every host mode (abi/tcp/store/svc).
 ///
@@ -84,10 +137,9 @@ pub fn make_engine() -> Result<Engine> {
     pool.max_unused_warm_slots(concurrency); // keep freed slots warm for reuse
 
     let mut config = Config::new();
-    config.async_support(true);
     config.wasm_component_model(true);
     config.allocation_strategy(InstanceAllocationStrategy::Pooling(pool));
-    config.static_memory_guard_size(MEMORY_GUARD_SIZE);
+    config.memory_guard_size(MEMORY_GUARD_SIZE);
     Ok(Engine::new(&config)?)
 }
 
@@ -108,7 +160,7 @@ pub fn make_store_wasi_ctx(data_dir: &str) -> Result<WasiCtx> {
         .build())
 }
 
-/// The Rust type stored in the resource table for each `host:storage/collection/connection`
+/// The Rust type stored in the resource table for each `host:storage/collection.connection`
 /// resource handle.  One handle per store, opened by name at init time.
 pub struct MongoCollection {
     pub inner: Arc<mongodb::Collection<mongodb::bson::Document>>,
@@ -123,11 +175,8 @@ pub struct StoreData {
 }
 
 impl wasmtime_wasi::WasiView for StoreData {
-    fn ctx(&mut self) -> &mut WasiCtx {
-        &mut self.wasi
-    }
-    fn table(&mut self) -> &mut ResourceTable {
-        &mut self.table
+    fn ctx(&mut self) -> WasiCtxView<'_> {
+        WasiCtxView { ctx: &mut self.wasi, table: &mut self.table }
     }
 }
 
@@ -159,6 +208,33 @@ pub async fn mongo_count(collection: &Arc<mongodb::Collection<mongodb::bson::Doc
     Ok(collection.count_documents(mongodb::bson::doc! {}).await?)
 }
 
+/// Targeted single-document query
+pub async fn mongo_find_one(
+    collection: &Arc<mongodb::Collection<mongodb::bson::Document>>,
+    filter: &[u8],
+) -> Result<Option<Vec<u8>>> {
+    let filter = json_to_bson(filter)?;
+    match collection.find_one(filter).await? {
+        Some(doc) => Ok(Some(bson_to_json(&doc)?)),
+        None => Ok(None),
+    }
+}
+
+/// Targeted multi-document query
+pub async fn mongo_find(
+    collection: &Arc<mongodb::Collection<mongodb::bson::Document>>,
+    filter: &[u8],
+) -> Result<Vec<Vec<u8>>> {
+    use futures::TryStreamExt;
+    let filter = json_to_bson(filter)?;
+    let mut cursor = collection.find(filter).await?;
+    let mut out = Vec::new();
+    while let Some(doc) = cursor.try_next().await? {
+        out.push(bson_to_json(&doc)?);
+    }
+    Ok(out)
+}
+
 pub async fn mongo_insert_many(
     collection: &Arc<mongodb::Collection<mongodb::bson::Document>>,
     docs: Vec<Vec<u8>>,
@@ -187,8 +263,9 @@ pub struct SvcHostData<C> {
 }
 
 impl<C: Send> wasmtime_wasi::WasiView for SvcHostData<C> {
-    fn ctx(&mut self)   -> &mut WasiCtx       { &mut self.wasi  }
-    fn table(&mut self) -> &mut ResourceTable  { &mut self.table }
+    fn ctx(&mut self) -> WasiCtxView<'_> {
+        WasiCtxView { ctx: &mut self.wasi, table: &mut self.table }
+    }
 }
 
 /// Implements `host::storage::collection::HostConnection` (resource lifecycle) and
@@ -196,7 +273,7 @@ impl<C: Send> wasmtime_wasi::WasiView for SvcHostData<C> {
 ///   - `table(&mut self) -> &mut ResourceTable`  (via WasiView)
 ///   - `pub db: Arc<mongodb::Database>`
 ///
-/// The host's `bindgen!` must map `"host:storage/collection/connection"`
+/// The host's `bindgen!` must map `"host:storage/collection.connection"`
 /// to `host_lib::MongoCollection` via the `with` field.
 ///
 /// Note: wasmtime generates the Host trait methods with bare return types (not Result),
@@ -204,7 +281,6 @@ impl<C: Send> wasmtime_wasi::WasiView for SvcHostData<C> {
 #[macro_export]
 macro_rules! impl_collection_host {
     ($T:ty) => {
-        #[::async_trait::async_trait]
         impl host::storage::collection::HostConnection for $T {
             async fn open(
                 &mut self,
@@ -212,7 +288,7 @@ macro_rules! impl_collection_host {
             ) -> ::wasmtime::component::Resource<$crate::MongoCollection> {
                 let col = self.db.collection::<::mongodb::bson::Document>(&name);
                 let mc = $crate::MongoCollection { inner: ::std::sync::Arc::new(col) };
-                <$T as ::wasmtime_wasi::WasiView>::table(self)
+                <$T as ::wasmtime_wasi::WasiView>::ctx(self).table
                     .push(mc)
                     .expect("resource table push")
             }
@@ -220,19 +296,18 @@ macro_rules! impl_collection_host {
             async fn drop(
                 &mut self,
                 rep: ::wasmtime::component::Resource<$crate::MongoCollection>,
-            ) -> ::anyhow::Result<()> {
-                <$T as ::wasmtime_wasi::WasiView>::table(self).delete(rep)?;
+            ) -> ::wasmtime::Result<()> {
+                <$T as ::wasmtime_wasi::WasiView>::ctx(self).table.delete(rep)?;
                 Ok(())
             }
         }
 
-        #[::async_trait::async_trait]
         impl host::storage::collection::Host for $T {
             async fn count(
                 &mut self,
                 c: ::wasmtime::component::Resource<$crate::MongoCollection>,
             ) -> u64 {
-                let col = <$T as ::wasmtime_wasi::WasiView>::table(self)
+                let col = <$T as ::wasmtime_wasi::WasiView>::ctx(self).table
                     .get(&c).unwrap().inner.clone();
                 $crate::mongo_count(&col).await.unwrap_or(0)
             }
@@ -241,25 +316,29 @@ macro_rules! impl_collection_host {
                 &mut self,
                 c: ::wasmtime::component::Resource<$crate::MongoCollection>,
             ) -> ::std::vec::Vec<::std::vec::Vec<u8>> {
-                let col = <$T as ::wasmtime_wasi::WasiView>::table(self)
+                let col = <$T as ::wasmtime_wasi::WasiView>::ctx(self).table
                     .get(&c).unwrap().inner.clone();
                 $crate::mongo_find_all(&col).await.unwrap_or_default()
             }
 
             async fn find_one(
                 &mut self,
-                _c: ::wasmtime::component::Resource<$crate::MongoCollection>,
-                _filter: ::std::vec::Vec<u8>,
+                c: ::wasmtime::component::Resource<$crate::MongoCollection>,
+                filter: ::std::vec::Vec<u8>,
             ) -> ::core::option::Option<::std::vec::Vec<u8>> {
-                unimplemented!()
+                let col = <$T as ::wasmtime_wasi::WasiView>::ctx(self).table
+                    .get(&c).unwrap().inner.clone();
+                $crate::mongo_find_one(&col, &filter).await.ok().flatten()
             }
 
             async fn find(
                 &mut self,
-                _c: ::wasmtime::component::Resource<$crate::MongoCollection>,
-                _filter: ::std::vec::Vec<u8>,
+                c: ::wasmtime::component::Resource<$crate::MongoCollection>,
+                filter: ::std::vec::Vec<u8>,
             ) -> ::std::vec::Vec<::std::vec::Vec<u8>> {
-                unimplemented!()
+                let col = <$T as ::wasmtime_wasi::WasiView>::ctx(self).table
+                    .get(&c).unwrap().inner.clone();
+                $crate::mongo_find(&col, &filter).await.unwrap_or_default()
             }
 
             async fn insert_one(
@@ -267,7 +346,7 @@ macro_rules! impl_collection_host {
                 c: ::wasmtime::component::Resource<$crate::MongoCollection>,
                 doc: ::std::vec::Vec<u8>,
             ) {
-                let col = <$T as ::wasmtime_wasi::WasiView>::table(self)
+                let col = <$T as ::wasmtime_wasi::WasiView>::ctx(self).table
                     .get(&c).unwrap().inner.clone();
                 $crate::mongo_insert_one(&col, doc).await.unwrap()
             }
@@ -277,7 +356,7 @@ macro_rules! impl_collection_host {
                 c: ::wasmtime::component::Resource<$crate::MongoCollection>,
                 docs: ::std::vec::Vec<::std::vec::Vec<u8>>,
             ) {
-                let col = <$T as ::wasmtime_wasi::WasiView>::table(self)
+                let col = <$T as ::wasmtime_wasi::WasiView>::ctx(self).table
                     .get(&c).unwrap().inner.clone();
                 $crate::mongo_insert_many(&col, docs).await.unwrap()
             }
@@ -288,7 +367,6 @@ macro_rules! impl_collection_host {
 #[macro_export]
 macro_rules! impl_cache_host {
     ($T:ty) => {
-        #[::async_trait::async_trait]
         impl host::cache::keyvalue::Host for $T {
             async fn get(&mut self, key: String) -> ::core::option::Option<::std::vec::Vec<u8>> {
                 self.cache.read().unwrap().get(&key).cloned()
@@ -388,8 +466,8 @@ macro_rules! run_svc_pre {
 
             let engine = Arc::new($crate::make_engine()?);
             let mut linker: Linker<$crate::SvcHostData<$Client>> = Linker::new(&engine);
-            ::wasmtime_wasi::add_to_linker_async(&mut linker)?;
-            <$World>::add_to_linker(&mut linker, |d| d)?;
+            ::wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
+            <$World>::add_to_linker::<_, ::wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
 
             let component = Component::from_file(&engine, &wasm_file)?;
             let pre = Arc::new(<$Pre>::new(linker.instantiate_pre(&component)?)?);
@@ -449,8 +527,8 @@ macro_rules! run_store {
 
             let engine     = $crate::make_engine()?;
             let mut linker: Linker<$crate::StoreData> = Linker::new(&engine);
-            ::wasmtime_wasi::add_to_linker_async(&mut linker)?;
-            <$World>::add_to_linker(&mut linker, |d| d)?;
+            ::wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
+            <$World>::add_to_linker::<_, ::wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
 
             let component = Component::from_file(&engine, &wasm_file)?;
             let pre       = <$Pre>::new(linker.instantiate_pre(&component)?)?;

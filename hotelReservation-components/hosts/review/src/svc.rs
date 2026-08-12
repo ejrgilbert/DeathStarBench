@@ -9,13 +9,13 @@ use store_proto::{review_store_client::ReviewStoreClient, LoadReviewsRequest};
 wasmtime::component::bindgen!({
     path: "../../components/review/wit",
     world: "review-host-world",
-    async: true,
+    imports: { default: async },
+    exports: { default: async },
 });
 
 host_lib::svc_host_data!(ReviewStoreClient<tonic::transport::Channel>);
 host_lib::impl_cache_host!(HostData);
 
-#[async_trait::async_trait]
 impl hotel::store::review_store::Host for HostData {
     async fn load_reviews(&mut self) -> Vec<hotel::store::review_store::Review> {
         let resp = self.store_client.lock().await
@@ -35,6 +35,12 @@ impl hotel::store::review_store::Host for HostData {
                 },
             }
         }).collect()
+    }
+
+    // Targeted parity method: the store service is a plain gRPC load-all, so fall
+    // back to filtering the loaded set by hotel id.
+    async fn get_reviews(&mut self, hotel_id: String) -> Vec<hotel::store::review_store::Review> {
+        self.load_reviews().await.into_iter().filter(|r| r.hotel_id == hotel_id).collect()
     }
 }
 

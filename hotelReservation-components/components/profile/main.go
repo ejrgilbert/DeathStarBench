@@ -1,6 +1,8 @@
 package main
 
 import (
+	gcutil "hotel-components/internal/gcutil"
+
 	"go.bytecodealliance.org/cm"
 
 	hkv     "hotel-components/components/profile/host/cache/keyvalue"
@@ -17,7 +19,7 @@ func init() {
 }
 
 func getProfiles(hotelIds cm.List[string]) (result cm.List[profapi.Hotel]) {
-	profiles := svc.GetProfiles(hotelIds.Slice(), loadAll, cacheGet, cacheSet)
+	profiles := svc.GetProfiles(hotelIds.Slice(), getOne, cacheGet, cacheSet)
 
 	witResult := make([]profapi.Hotel, len(profiles))
 	for i, p := range profiles {
@@ -44,37 +46,43 @@ func getProfiles(hotelIds cm.List[string]) (result cm.List[profapi.Hotel]) {
 		}
 	}
 	result = cm.ToList(witResult)
+	gcutil.Tick()
 	return
 }
 
-func loadAll() []Hotel {
-	witHotels := store.LoadProfiles().Slice()
-	hotels := make([]Hotel, len(witHotels))
-	for i, wh := range witHotels {
-		imgSlice := wh.Images.Slice()
-		images := make([]Image, len(imgSlice))
-		for k, img := range imgSlice {
-			images[k] = Image{Url: string([]byte(img.URL)), Default: img.Default}
-		}
-		hotels[i] = Hotel{
-			Id:          string([]byte(wh.ID)),
-			Name:        string([]byte(wh.Name)),
-			PhoneNumber: string([]byte(wh.PhoneNumber)),
-			Description: string([]byte(wh.Description)),
-			Addr: Address{
-				StreetNumber: string([]byte(wh.Addr.StreetNumber)),
-				StreetName:   string([]byte(wh.Addr.StreetName)),
-				City:         string([]byte(wh.Addr.City)),
-				State:        string([]byte(wh.Addr.State)),
-				Country:      string([]byte(wh.Addr.Country)),
-				PostalCode:   string([]byte(wh.Addr.PostalCode)),
-				Lat:          wh.Addr.Lat,
-				Lon:          wh.Addr.Lon,
-			},
-			Images: images,
-		}
+// getOne does a targeted single-hotel lookup by id via the store's
+// `get-profile` (which issues `FindOne({"id": id})`), matching the Go original.
+func getOne(id string) (Hotel, bool) {
+	opt := store.GetProfile(id)
+	if opt.None() {
+		return Hotel{}, false
 	}
-	return hotels
+	return witToHotel(*opt.Some()), true
+}
+
+func witToHotel(wh store.Hotel) Hotel {
+	imgSlice := wh.Images.Slice()
+	images := make([]Image, len(imgSlice))
+	for k, img := range imgSlice {
+		images[k] = Image{Url: string([]byte(img.URL)), Default: img.Default}
+	}
+	return Hotel{
+		Id:          string([]byte(wh.ID)),
+		Name:        string([]byte(wh.Name)),
+		PhoneNumber: string([]byte(wh.PhoneNumber)),
+		Description: string([]byte(wh.Description)),
+		Addr: Address{
+			StreetNumber: string([]byte(wh.Addr.StreetNumber)),
+			StreetName:   string([]byte(wh.Addr.StreetName)),
+			City:         string([]byte(wh.Addr.City)),
+			State:        string([]byte(wh.Addr.State)),
+			Country:      string([]byte(wh.Addr.Country)),
+			PostalCode:   string([]byte(wh.Addr.PostalCode)),
+			Lat:          wh.Addr.Lat,
+			Lon:          wh.Addr.Lon,
+		},
+		Images: images,
+	}
 }
 
 func cacheGet(key string) ([]byte, bool) {

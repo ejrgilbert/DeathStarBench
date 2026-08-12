@@ -1,8 +1,6 @@
 package main
 
 import (
-	"errors"
-
 	"github.com/hailocab/go-geoindex"
 )
 
@@ -10,16 +8,6 @@ const (
 	maxSearchRadius  = 10
 	maxSearchResults = 5
 )
-
-type Hotel struct {
-	id   string
-	plat float64
-	plon float64
-}
-
-func (h *Hotel) Id() string   { return h.id }
-func (h *Hotel) Lat() float64 { return h.plat }
-func (h *Hotel) Lon() float64 { return h.plon }
 
 type Restaurant struct {
 	id   string
@@ -79,36 +67,27 @@ func (s *Service) Load(rests []Restaurant, mus []Museum, cin []Cinema) {
 	}
 }
 
-func (s *Service) nearby(index *geoindex.ClusteringIndex, hotels []Hotel, hotelID string) ([]string, error) {
-	var lat, lon float64
-	found := false
-	for _, h := range hotels {
-		if h.id == hotelID {
-			lat, lon = h.plat, h.plon
-			found = true
-			break
-		}
-	}
-	if !found {
-		return nil, errors.New("hotel not found: " + hotelID)
-	}
+// nearby ranks attractions around a hotel whose position was already resolved by
+// a targeted store lookup (mirroring the Go service, which Finds the hotel's
+// lat/lon per request and then queries the pre-built geo index).
+func (s *Service) nearby(index *geoindex.ClusteringIndex, lat, lon float64) []string {
 	center := &geoindex.GeoPoint{Plat: lat, Plon: lon}
 	pts := index.KNearest(center, maxSearchResults, geoindex.Km(maxSearchRadius), func(geoindex.Point) bool { return true })
 	ids := make([]string, len(pts))
 	for i, p := range pts {
 		ids[i] = p.Id()
 	}
-	return ids, nil
+	return ids
 }
 
-func (s *Service) NearbyRest(hotels []Hotel, hotelID string) ([]string, error) {
-	return s.nearby(s.restIndex, hotels, hotelID)
+func (s *Service) NearbyRest(lat, lon float64) []string {
+	return s.nearby(s.restIndex, lat, lon)
 }
 
-func (s *Service) NearbyMus(hotels []Hotel, hotelID string) ([]string, error) {
-	return s.nearby(s.musIndex, hotels, hotelID)
+func (s *Service) NearbyMus(lat, lon float64) []string {
+	return s.nearby(s.musIndex, lat, lon)
 }
 
-func (s *Service) NearbyCinema(hotels []Hotel, hotelID string) ([]string, error) {
-	return s.nearby(s.cinIndex, hotels, hotelID)
+func (s *Service) NearbyCinema(lat, lon float64) []string {
+	return s.nearby(s.cinIndex, lat, lon)
 }

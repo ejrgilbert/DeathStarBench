@@ -9,13 +9,13 @@ use store_proto::{geo_store_client::GeoStoreClient, LoadRequest};
 wasmtime::component::bindgen!({
     path: "../../components/geo/wit",
     world: "geo-host-world",
-    async: true,
+    imports: { default: async },
+    exports: { default: async },
 });
 
 host_lib::svc_host_data!(GeoStoreClient<tonic::transport::Channel>);
 host_lib::impl_cache_host!(HostData);
 
-#[async_trait::async_trait]
 impl hotel::store::geo_store::Host for HostData {
     async fn load_geo(&mut self) -> Vec<hotel::store::geo_store::Point> {
         let resp = self.store_client.lock().await

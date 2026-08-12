@@ -98,49 +98,51 @@ func loadAttractionData() ([]Restaurant, []Museum, []Cinema) {
 	return rests, mus, cin
 }
 
-func loadHotels() []Hotel {
-	const key = "att:hotels"
-	if opt := hkv.Get(key); !opt.None() {
-		var c []cachedGeoItem
-		if err := json.Unmarshal(opt.Some().Slice(), &c); err == nil {
-			hotels := make([]Hotel, len(c))
-			for i, v := range c {
-				hotels[i] = Hotel{id: v.ID, plat: v.Plat, plon: v.Plon}
-			}
-			return hotels
-		}
-	}
-	witHotels := store.LoadHotelPositions().Slice()
-	hotels := make([]Hotel, len(witHotels))
-	cached := make([]cachedGeoItem, len(witHotels))
-	for i, h := range witHotels {
-		hotels[i] = Hotel{id: string([]byte(h.ID)), plat: h.Lat, plon: h.Lon}
-		cached[i] = cachedGeoItem{ID: hotels[i].id, Plat: h.Lat, Plon: h.Lon}
-	}
-	if b, err := json.Marshal(cached); err == nil {
-		hkv.Set(key, cm.ToList(b))
-	}
-	return hotels
-}
+// svc holds the geo indices, built once (parity with the Go service's init-time
+// newGeoIndex*). loadAttractionData is cached, but rebuilding the ClusteringIndex
+// per request was both a perf and parity bug.
+var svc *Service
 
-func buildSvc() *Service {
-	rests, mus, cin := loadAttractionData()
-	svc := NewService()
-	svc.Load(rests, mus, cin)
+func ensureSvc() *Service {
+	if svc == nil {
+		rests, mus, cin := loadAttractionData()
+		svc = NewService()
+		svc.Load(rests, mus, cin)
+	}
 	return svc
 }
 
+// resolveHotel does a targeted store lookup for the hotel's lat/lon, matching the
+// Go attractions service's per-request `Find({"hotelId": id})`.
+func resolveHotel(hotelID string) (lat, lon float64, ok bool) {
+	opt := store.GetHotelPosition(hotelID)
+	if opt.None() {
+		return 0, 0, false
+	}
+	p := opt.Some()
+	return p.Lat, p.Lon, true
+}
+
 func nearbyRest(hotelID string) cm.List[string] {
-	ids, _ := buildSvc().NearbyRest(loadHotels(), hotelID)
-	return cm.ToList(ids)
+	lat, lon, ok := resolveHotel(hotelID)
+	if !ok {
+		return cm.ToList([]string{})
+	}
+	return cm.ToList(ensureSvc().NearbyRest(lat, lon))
 }
 
 func nearbyMus(hotelID string) cm.List[string] {
-	ids, _ := buildSvc().NearbyMus(loadHotels(), hotelID)
-	return cm.ToList(ids)
+	lat, lon, ok := resolveHotel(hotelID)
+	if !ok {
+		return cm.ToList([]string{})
+	}
+	return cm.ToList(ensureSvc().NearbyMus(lat, lon))
 }
 
 func nearbyCinema(hotelID string) cm.List[string] {
-	ids, _ := buildSvc().NearbyCinema(loadHotels(), hotelID)
-	return cm.ToList(ids)
+	lat, lon, ok := resolveHotel(hotelID)
+	if !ok {
+		return cm.ToList([]string{})
+	}
+	return cm.ToList(ensureSvc().NearbyCinema(lat, lon))
 }

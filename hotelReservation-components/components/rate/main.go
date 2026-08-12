@@ -1,6 +1,8 @@
 package main
 
 import (
+	gcutil "hotel-components/internal/gcutil"
+
 	"go.bytecodealliance.org/cm"
 
 	hkv      "hotel-components/components/rate/host/cache/keyvalue"
@@ -41,6 +43,7 @@ func getRates(hotelIds cm.List[string], inDate, outDate string) (result cm.List[
 		}
 	}
 	result = cm.ToList(witResult)
+	gcutil.Tick()
 	return
 }
 

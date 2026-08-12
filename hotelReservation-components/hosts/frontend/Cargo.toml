@@ -6,9 +6,10 @@ edition = "2021"
 [dependencies]
 host-lib           = { path = "../../host-lib" }
 mongodb            = "3"
-wasmtime           = { version = "25", features = ["component-model", "async"] }
-wasmtime-wasi      = "25"
-wasmtime-wasi-http = "25"
+wasmtime = { version = "47", default-features = false, features = ["runtime", "std", "cranelift", "component-model", "async", "anyhow", "pooling-allocator"] }
+
+wasmtime-wasi = "47"
+wasmtime-wasi-http = "47"
 tonic              = { version = "0.12", features = ["transport"] }
 prost              = "0.13"
 async-trait        = "0.1"
@@ -18,6 +19,7 @@ hyper-util         = { version = "0.1", features = ["tokio", "server", "http1"] 
 anyhow             = "1"
 bytes              = "1"
 http               = "1"
+http-body-util     = "0.1"
 
 [build-dependencies]
 tonic-build = "0.12"

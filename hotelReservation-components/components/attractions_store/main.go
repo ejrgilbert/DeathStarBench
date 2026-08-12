@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"go.bytecodealliance.org/cm"
 
@@ -36,6 +37,7 @@ func init() {
 	attstore.Exports.LoadRestaurants    = loadRestaurants
 	attstore.Exports.LoadMuseums        = loadMuseums
 	attstore.Exports.LoadCinemas        = loadCinemas
+	attstore.Exports.GetHotelPosition   = getHotelPosition
 }
 
 func ensureConn() {
@@ -67,6 +69,22 @@ func ensureLoaded() {
 		}
 	}
 	allLoaded = true
+}
+
+// getHotelPosition does a targeted single-document lookup by hotel id, matching
+// the Go attractions service's per-request `Find({"hotelId": id})` on the hotels
+// collection. Seed records carry a `type` discriminator, so hotel rows are keyed
+// by {type:"hotel", id}.
+func getHotelPosition(hotelID string) cm.Option[attstore.HotelPosition] {
+	ensureConn()
+	filter := fmt.Sprintf(`{"type":"hotel","id":%q}`, hotelID)
+	opt := col.FindOne(conn, col.Document(cm.ToList([]uint8(filter))))
+	if opt.None() {
+		return cm.None[attstore.HotelPosition]()
+	}
+	var s seedRecord
+	json.Unmarshal(cm.List[uint8](*opt.Some()).Slice(), &s)
+	return cm.Some(attstore.HotelPosition{ID: s.ID, Lat: s.Lat, Lon: s.Lon})
 }
 
 func loadHotelPositions() cm.List[attstore.HotelPosition] { ensureLoaded(); return cm.ToList(hotelPositions) }

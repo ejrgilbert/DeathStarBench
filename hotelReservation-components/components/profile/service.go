@@ -31,14 +31,16 @@ type Service struct{}
 
 func NewService() *Service { return &Service{} }
 
+// GetProfiles mirrors the Go profile service: for each hotel id check the cache
+// (memcached), and on a miss do a targeted `FindOne({"id": id})` via getOne and
+// write the result back to the cache. It never loads the full collection.
 func (s *Service) GetProfiles(
 	hotelIds []string,
-	loadAll  func() []Hotel,
+	getOne   func(string) (Hotel, bool),
 	cacheGet func(string) ([]byte, bool),
 	cacheSet func(string, []byte),
 ) []Hotel {
 	var result []Hotel
-	var missed []string
 
 	for _, id := range hotelIds {
 		if val, ok := cacheGet(id); ok {
@@ -48,27 +50,15 @@ func (s *Service) GetProfiles(
 				continue
 			}
 		}
-		missed = append(missed, id)
-	}
-
-	if len(missed) > 0 {
-		byHotel := make(map[string]Hotel)
-		for _, h := range loadAll() {
-			byHotel[h.Id] = h
+		// cache miss → targeted single-hotel lookup
+		h, ok := getOne(id)
+		if !ok {
+			continue
 		}
-
-		for _, h := range byHotel {
-			if val, err := json.Marshal(h); err != nil {
-				println("profile: failed to marshal hotel", h.Id, ":", err.Error())
-			} else {
-				cacheSet(h.Id, val)
-			}
+		if val, err := json.Marshal(h); err == nil {
+			cacheSet(id, val)
 		}
-		for _, id := range missed {
-			if h, ok := byHotel[id]; ok {
-				result = append(result, h)
-			}
-		}
+		result = append(result, h)
 	}
 
 	return result

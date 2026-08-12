@@ -51,6 +51,9 @@ interface profile-store {
         default: bool,
     }
     load-profiles: func() -> list<hotel>;
+    // Targeted single-hotel lookup by id
+    // parity with Go Go profile service's per-id `collection.FindOne({"id": hotelId})`.
+    get-profile: func(id: string) -> option<hotel>;
 }
 
 interface user-store {
@@ -104,6 +107,8 @@ interface attractions-store {
     load-restaurants:     func() -> list<restaurant>;
     load-museums:         func() -> list<museum>;
     load-cinemas:         func() -> list<cinema>;
+    // Parity with Go attractions service's per-request `Find({"hotelId": id})` on the hotels collection
+    get-hotel-position: func(hotel-id: string) -> option<hotel-position>;
 }
 
 interface review-store {
@@ -120,6 +125,8 @@ interface review-store {
         image:       image,
     }
     load-reviews: func() -> list<review>;
+    // Parity with Go review service's per-request memcached-miss path: `Find({"hotelId": id})`.
+    get-reviews: func(hotel-id: string) -> list<review>;
 }
 
 interface numbers-col {
@@ -150,4 +157,9 @@ interface reservation-store {
     load-numbers:       func() -> list<number-rec>;
     load-reservations:  func() -> list<reservation-rec>;
     insert-reservation: func(r: reservation-rec);
+    // Parity with Go reservation service's per-request
+    // `FindOne({"hotelId": id})` (number) and
+    // `Find({"hotelId","inDate","outDate"})` (reservations).
+    get-number:       func(hotel-id: string) -> option<number-rec>;
+    get-reservations: func(hotel-id: string, in-date: string, out-date: string) -> list<reservation-rec>;
 }

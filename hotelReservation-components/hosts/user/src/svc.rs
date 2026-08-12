@@ -9,13 +9,13 @@ use store_proto::{user_store_client::UserStoreClient, LoadUsersRequest};
 wasmtime::component::bindgen!({
     path: "../../components/user/wit",
     world: "user-host-world",
-    async: true,
+    imports: { default: async },
+    exports: { default: async },
 });
 
 host_lib::svc_host_data!(UserStoreClient<tonic::transport::Channel>);
 host_lib::impl_cache_host!(HostData);
 
-#[async_trait::async_trait]
 impl hotel::store::user_store::Host for HostData {
     async fn load_users(&mut self) -> Vec<hotel::store::user_store::User> {
         let resp = self.store_client.lock().await

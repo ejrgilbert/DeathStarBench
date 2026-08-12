@@ -19,7 +19,8 @@ use rate_proto::rate_client::RateClient;
 wasmtime::component::bindgen!({
     path: "../../components/search/wit",
     world: "search-host-world",
-    async: true,
+    imports: { default: async },
+    exports: { default: async },
 });
 
 pub struct HostData {
@@ -30,11 +31,11 @@ pub struct HostData {
 }
 
 impl wasmtime_wasi::WasiView for HostData {
-    fn ctx(&mut self)   -> &mut wasmtime_wasi::WasiCtx      { &mut self.wasi  }
-    fn table(&mut self) -> &mut wasmtime_wasi::ResourceTable { &mut self.table }
+    fn ctx(&mut self) -> wasmtime_wasi::WasiCtxView<'_> {
+        wasmtime_wasi::WasiCtxView { ctx: &mut self.wasi, table: &mut self.table }
+    }
 }
 
-#[async_trait::async_trait]
 impl hotel::api::geo::Host for HostData {
     async fn nearby(&mut self, lat: f64, lon: f64) -> Vec<String> {
         self.geo_client.lock().await
@@ -46,7 +47,6 @@ impl hotel::api::geo::Host for HostData {
     }
 }
 
-#[async_trait::async_trait]
 impl hotel::api::rate::Host for HostData {
     async fn get_rates(
         &mut self,
@@ -120,8 +120,8 @@ pub async fn run() -> anyhow::Result<()> {
 
     let engine = Arc::new(host_lib::make_engine()?);
     let mut linker: Linker<HostData> = Linker::new(&engine);
-    wasmtime_wasi::add_to_linker_async(&mut linker)?;
-    SearchHostWorld::add_to_linker(&mut linker, |d| d)?;
+    wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
+    SearchHostWorld::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let pre = Arc::new(SearchHostWorldPre::new(linker.instantiate_pre(&component)?)?);

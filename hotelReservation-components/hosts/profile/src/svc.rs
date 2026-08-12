@@ -9,13 +9,13 @@ use store_proto::{profile_store_client::ProfileStoreClient, LoadProfilesRequest}
 wasmtime::component::bindgen!({
     path: "../../components/profile/wit",
     world: "profile-host-world",
-    async: true,
+    imports: { default: async },
+    exports: { default: async },
 });
 
 host_lib::svc_host_data!(ProfileStoreClient<tonic::transport::Channel>);
 host_lib::impl_cache_host!(HostData);
 
-#[async_trait::async_trait]
 impl hotel::store::profile_store::Host for HostData {
     async fn load_profiles(&mut self) -> Vec<hotel::store::profile_store::Hotel> {
         let resp = self.store_client.lock().await
@@ -44,6 +44,13 @@ impl hotel::store::profile_store::Host for HostData {
                 }).collect(),
             }
         }).collect()
+    }
+
+    // TCP path: the store is reached over gRPC (only LoadProfiles exists), so a
+    // targeted lookup filters the loaded set client-side. The ABI path uses the
+    // composed store's `get-profile` (true `FindOne`) and never calls this.
+    async fn get_profile(&mut self, id: String) -> Option<hotel::store::profile_store::Hotel> {
+        self.load_profiles().await.into_iter().find(|h| h.id == id)
     }
 }
 

@@ -15,9 +15,10 @@ use proto::{
 wasmtime::component::bindgen!({
     path: "../../components/reservation_store/wit",
     world: "reservation-store-host-world",
-    async: true,
+    imports: { default: async },
+    exports: { default: async },
     with: {
-        "host:storage/collection/connection": host_lib::MongoCollection,
+        "host:storage/collection.connection": host_lib::MongoCollection,
     },
 });
 

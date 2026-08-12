@@ -1,6 +1,8 @@
 package main
 
 import (
+	gcutil "hotel-components/internal/gcutil"
+
 	"go.bytecodealliance.org/cm"
 
 	geoapi    "hotel-components/components/search/hotel/api/geo"
@@ -27,5 +29,6 @@ func nearby(lat, lon float64, inDate, outDate string) cm.List[string] {
 	for _, rp := range witPlans {
 		result = append(result, string([]byte(rp.HotelID)))
 	}
+	gcutil.Tick()
 	return cm.ToList(result)
 }

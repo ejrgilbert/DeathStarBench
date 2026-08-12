@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	gcutil "hotel-components/internal/gcutil"
 	"strconv"
 	"strings"
 
@@ -30,6 +31,10 @@ func handle(req incominghandler.IncomingRequest, responseOut incominghandler.Res
 	req.ResourceDrop()
 	body, ct := dispatch(path, query)
 	sendResponse(responseOut, 200, ct, body)
+	// Reclaim the per-request cabi_realloc'd cross-boundary buffers at this
+	// quiescent point (shallow stack), amortized over GC_EVERY requests. See
+	// internal/gcutil for why this is needed under instance reuse.
+	gcutil.Tick()
 }
 
 func parsePQ(pq cm.Option[string]) (path, query string) {

@@ -36,40 +36,29 @@ type Service struct{}
 
 func NewService() *Service { return &Service{} }
 
+// CheckAvailability mirrors the Go reservation service: per hotel, resolve the
+// room capacity from cache or a targeted number lookup, then per date-night
+// resolve the reserved count from cache or a targeted
+// `Find({hotelId,inDate,outDate})`. It never loads whole collections.
 func (s *Service) CheckAvailability(
 	hotelIds []string,
 	inDate, outDate string,
 	roomNumber int32,
-	loadNumbers      func() []NumberRec,
-	loadReservations func() []ReservationRec,
+	getNumber       func(string) (NumberRec, bool),
+	getReservations func(string, string, string) []ReservationRec,
 	cacheGet func(string) ([]byte, bool),
 	cacheSet func(string, []byte),
 ) []string {
 	caps := make(map[string]int)
-	var missIds []string
 	for _, id := range hotelIds {
 		if b, ok := cacheGet(id + "_cap"); ok {
 			n, _ := strconv.Atoi(string(b))
 			caps[id] = n
-		} else {
-			missIds = append(missIds, id)
+		} else if nr, ok := getNumber(id); ok {
+			caps[id] = int(nr.NumberOfRoom)
+			cacheSet(id+"_cap", []byte(strconv.Itoa(caps[id])))
 		}
 	}
-	if len(missIds) > 0 {
-		numMap := make(map[string]int)
-		for _, nr := range loadNumbers() {
-			numMap[nr.HotelId] = int(nr.NumberOfRoom)
-		}
-		for _, id := range missIds {
-			if cap, ok := numMap[id]; ok {
-				caps[id] = cap
-				cacheSet(id+"_cap", []byte(strconv.Itoa(cap)))
-			}
-		}
-	}
-
-	var resSlice []ReservationRec
-	resLoaded := false
 
 	var result []string
 	for _, id := range hotelIds {
@@ -81,14 +70,8 @@ func (s *Service) CheckAvailability(
 			if b, ok := cacheGet(cacheKey); ok {
 				count, _ = strconv.Atoi(string(b))
 			} else {
-				if !resLoaded {
-					resSlice = loadReservations()
-					resLoaded = true
-				}
-				for _, r := range resSlice {
-					if r.HotelId == id && r.InDate == pair[0] && r.OutDate == pair[1] {
-						count += int(r.Number)
-					}
+				for _, r := range getReservations(id, pair[0], pair[1]) {
+					count += int(r.Number)
 				}
 				cacheSet(cacheKey, []byte(strconv.Itoa(count)))
 			}
@@ -107,15 +90,15 @@ func (s *Service) CheckAvailability(
 func (s *Service) MakeReservation(
 	hotelId, customerName, inDate, outDate string,
 	roomNumber int32,
-	loadNumbers       func() []NumberRec,
-	loadReservations  func() []ReservationRec,
+	getNumber         func(string) (NumberRec, bool),
+	getReservations   func(string, string, string) []ReservationRec,
 	insertReservation func(ReservationRec),
 	cacheGet func(string) ([]byte, bool),
 	cacheSet func(string, []byte),
 ) []string {
 	avail := s.CheckAvailability(
 		[]string{hotelId}, inDate, outDate, roomNumber,
-		loadNumbers, loadReservations, cacheGet, cacheSet,
+		getNumber, getReservations, cacheGet, cacheSet,
 	)
 	if len(avail) == 0 {
 		return nil

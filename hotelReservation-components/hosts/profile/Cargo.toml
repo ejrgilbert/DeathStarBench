@@ -5,8 +5,9 @@ edition = "2021"
 
 [dependencies]
 host-lib      = { path = "../../host-lib" }
-wasmtime      = { version = "25", features = ["component-model", "async"] }
-wasmtime-wasi = "25"
+wasmtime = { version = "47", default-features = false, features = ["runtime", "std", "cranelift", "component-model", "async", "anyhow", "pooling-allocator"] }
+
+wasmtime-wasi = "47"
 mongodb       = "3"
 bson          = "2"
 tonic         = { version = "0.12", features = ["transport"] }

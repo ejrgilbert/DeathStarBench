@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"go.bytecodealliance.org/cm"
 
@@ -34,6 +35,21 @@ func main() {}
 
 func init() {
 	revstore.Exports.LoadReviews = loadReviews
+	revstore.Exports.GetReviews = getReviews
+}
+
+func toReview(s seedReview) revstore.Review {
+	return revstore.Review{
+		ReviewID:    s.ReviewId,
+		HotelID:     s.HotelId,
+		Name:        s.Name,
+		Rating:      s.Rating,
+		Description: s.Description,
+		Image: revstore.Image{
+			URL:     s.Images.Url,
+			Default: s.Images.Default,
+		},
+	}
 }
 
 func ensureConn() {
@@ -53,17 +69,7 @@ func ensureLoaded() {
 	for _, raw := range rawDocs {
 		var s seedReview
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
-		reviews = append(reviews, revstore.Review{
-			ReviewID:    s.ReviewId,
-			HotelID:     s.HotelId,
-			Name:        s.Name,
-			Rating:      s.Rating,
-			Description: s.Description,
-			Image: revstore.Image{
-				URL:     s.Images.Url,
-				Default: s.Images.Default,
-			},
-		})
+		reviews = append(reviews, toReview(s))
 	}
 	allLoaded = true
 }
@@ -71,4 +77,19 @@ func ensureLoaded() {
 func loadReviews() cm.List[revstore.Review] {
 	ensureLoaded()
 	return cm.ToList(reviews)
+}
+
+// getReviews does a targeted lookup by hotel id, matching the Go review
+// service's memcached-miss path `Find({"hotelId": id})`.
+func getReviews(hotelID string) cm.List[revstore.Review] {
+	ensureConn()
+	filter := fmt.Sprintf(`{"hotelId":%q}`, hotelID)
+	rawDocs := col.Find(conn, col.Document(cm.ToList([]uint8(filter)))).Slice()
+	result := make([]revstore.Review, 0, len(rawDocs))
+	for _, raw := range rawDocs {
+		var s seedReview
+		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
+		result = append(result, toReview(s))
+	}
+	return cm.ToList(result)
 }
