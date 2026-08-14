@@ -62,6 +62,15 @@ func main() {
 		IpAddr:     servIP,
 		ConsulAddr: *consulAddr,
 		Port:       servPort,
+
+		// Static peer addresses (consul discovery removed).
+		SearchAddr:         result["SearchAddress"],
+		ProfileAddr:        result["ProfileAddress"],
+		RecommendationAddr: result["RecommendAddress"],
+		UserAddr:           result["UserAddress"],
+		ReservationAddr:    result["ReserveAddress"],
+		ReviewAddr:         result["ReviewAddress"],
+		AttractionsAddr:    result["AttractionsAddress"],
 	}
 
 	log.Info().Msg("Starting server...")

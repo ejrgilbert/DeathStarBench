@@ -46,6 +46,16 @@ type Server struct {
 	Port       int
 	Tracer     opentracing.Tracer
 	Registry   *registry.Client
+
+	// Static peer addresses (host:port). Replaces consul discovery for a clean
+	// static-address comparison with the Wasm deployment.
+	SearchAddr         string
+	ProfileAddr        string
+	RecommendationAddr string
+	UserAddr           string
+	ReservationAddr    string
+	ReviewAddr         string
+	AttractionsAddr    string
 }
 
 // Run the server
@@ -61,31 +71,31 @@ func (s *Server) Run() error {
 	}
 
 	log.Info().Msg("Initializing gRPC clients...")
-	if err := s.initSearchClient("srv-search"); err != nil {
+	if err := s.initSearchClient(s.SearchAddr); err != nil {
 		return err
 	}
 
-	if err := s.initProfileClient("srv-profile"); err != nil {
+	if err := s.initProfileClient(s.ProfileAddr); err != nil {
 		return err
 	}
 
-	if err := s.initRecommendationClient("srv-recommendation"); err != nil {
+	if err := s.initRecommendationClient(s.RecommendationAddr); err != nil {
 		return err
 	}
 
-	if err := s.initUserClient("srv-user"); err != nil {
+	if err := s.initUserClient(s.UserAddr); err != nil {
 		return err
 	}
 
-	if err := s.initReservation("srv-reservation"); err != nil {
+	if err := s.initReservation(s.ReservationAddr); err != nil {
 		return err
 	}
 
-	if err := s.initReviewClient("srv-review"); err != nil {
+	if err := s.initReviewClient(s.ReviewAddr); err != nil {
 		return err
 	}
 
-	if err := s.initAttractionsClient("srv-attractions"); err != nil {
+	if err := s.initAttractionsClient(s.AttractionsAddr); err != nil {
 		return err
 	}
 
@@ -130,11 +140,7 @@ func (s *Server) initSearchClient(name string) error {
 }
 
 func (s *Server) initReviewClient(name string) error {
-	conn, err := dialer.Dial(
-		name,
-		dialer.WithTracer(s.Tracer),
-		dialer.WithBalancer(s.Registry.Client),
-	)
+	conn, err := s.getGprcConn(name)
 	if err != nil {
 		return fmt.Errorf("dialer error: %v", err)
 	}
@@ -143,11 +149,7 @@ func (s *Server) initReviewClient(name string) error {
 }
 
 func (s *Server) initAttractionsClient(name string) error {
-	conn, err := dialer.Dial(
-		name,
-		dialer.WithTracer(s.Tracer),
-		dialer.WithBalancer(s.Registry.Client),
-	)
+	conn, err := s.getGprcConn(name)
 	if err != nil {
 		return fmt.Errorf("dialer error: %v", err)
 	}
@@ -191,22 +193,10 @@ func (s *Server) initReservation(name string) error {
 	return nil
 }
 
-func (s *Server) getGprcConn(name string) (*grpc.ClientConn, error) {
-	log.Info().Msg("get Grpc conn is :")
-	log.Info().Msg(s.KnativeDns)
-	log.Info().Msg(fmt.Sprintf("%s.%s", name, s.KnativeDns))
-
-	if s.KnativeDns != "" {
-		return dialer.Dial(
-			fmt.Sprintf("consul://%s/%s.%s", s.ConsulAddr, name, s.KnativeDns),
-			dialer.WithTracer(s.Tracer))
-	} else {
-		return dialer.Dial(
-			fmt.Sprintf("consul://%s/%s", s.ConsulAddr, name),
-			dialer.WithTracer(s.Tracer),
-			dialer.WithBalancer(s.Registry.Client),
-		)
-	}
+// getGprcConn dials a static peer address (host:port). Consul discovery has been
+// removed for a clean static-address comparison with the Wasm deployment.
+func (s *Server) getGprcConn(addr string) (*grpc.ClientConn, error) {
+	return dialer.Dial(addr, dialer.WithTracer(s.Tracer))
 }
 
 func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {

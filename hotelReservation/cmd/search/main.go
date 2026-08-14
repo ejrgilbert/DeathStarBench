@@ -65,6 +65,10 @@ func main() {
 		ConsulAddr: *consulAddr,
 		KnativeDns: knativeDNS,
 		Registry:   registry,
+
+		// Static peer addresses (consul discovery removed).
+		GeoAddr:  result["GeoAddress"],
+		RateAddr: result["RateAddress"],
 	}
 
 	log.Info().Msg("Starting server...")

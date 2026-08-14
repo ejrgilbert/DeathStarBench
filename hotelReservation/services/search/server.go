@@ -37,6 +37,10 @@ type Server struct {
 	ConsulAddr string
 	KnativeDns string
 	Registry   *registry.Client
+
+	// Static peer addresses (host:port). Replaces consul discovery.
+	GeoAddr  string
+	RateAddr string
 }
 
 // Run starts the server
@@ -67,10 +71,10 @@ func (s *Server) Run() error {
 	pb.RegisterSearchServer(srv, s)
 
 	// init grpc clients
-	if err := s.initGeoClient("srv-geo"); err != nil {
+	if err := s.initGeoClient(s.GeoAddr); err != nil {
 		return err
 	}
-	if err := s.initRateClient("srv-rate"); err != nil {
+	if err := s.initRateClient(s.RateAddr); err != nil {
 		return err
 	}
 
@@ -79,19 +83,11 @@ func (s *Server) Run() error {
 		log.Fatal().Msgf("failed to listen: %v", err)
 	}
 
-	err = s.Registry.Register(name, s.uuid, s.IpAddr, s.Port)
-	if err != nil {
-		return fmt.Errorf("failed register: %v", err)
-	}
-	log.Info().Msg("Successfully registered in consul")
-
 	return srv.Serve(lis)
 }
 
 // Shutdown cleans up any processes
-func (s *Server) Shutdown() {
-	s.Registry.Deregister(s.uuid)
-}
+func (s *Server) Shutdown() {}
 
 func (s *Server) initGeoClient(name string) error {
 	conn, err := s.getGprcConn(name)
@@ -111,18 +107,9 @@ func (s *Server) initRateClient(name string) error {
 	return nil
 }
 
-func (s *Server) getGprcConn(name string) (*grpc.ClientConn, error) {
-	if s.KnativeDns != "" {
-		return dialer.Dial(
-			fmt.Sprintf("consul://%s/%s.%s", s.ConsulAddr, name, s.KnativeDns),
-			dialer.WithTracer(s.Tracer))
-	} else {
-		return dialer.Dial(
-			fmt.Sprintf("consul://%s/%s", s.ConsulAddr, name),
-			dialer.WithTracer(s.Tracer),
-			dialer.WithBalancer(s.Registry.Client),
-		)
-	}
+// getGprcConn dials a static peer address (host:port). Consul discovery removed.
+func (s *Server) getGprcConn(addr string) (*grpc.ClientConn, error) {
+	return dialer.Dial(addr, dialer.WithTracer(s.Tracer))
 }
 
 // Nearby returns ids of nearby hotels ordered by ranking algo

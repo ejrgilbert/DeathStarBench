@@ -23,6 +23,15 @@
   "SearchPort": "8082",
   "UserPort": "8086",
   "UserMongoAddress": "mongodb-user:27017",
-  "KnativeDomainName": ""
+  "KnativeDomainName": "",
+  "SearchAddress": "search:8082",
+  "ProfileAddress": "profile:8081",
+  "RecommendAddress": "recommendation:8085",
+  "UserAddress": "user:8086",
+  "ReserveAddress": "reservation:8087",
+  "ReviewAddress": "review:8088",
+  "AttractionsAddress": "attractions:8089",
+  "GeoAddress": "geo:8083",
+  "RateAddress": "rate:8084"
 }
 

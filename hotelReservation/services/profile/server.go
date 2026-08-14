@@ -75,18 +75,11 @@ func (s *Server) Run() error {
 		log.Fatal().Msgf("failed to configure listener: %v", err)
 	}
 
-	err = s.Registry.Register(name, s.uuid, s.IpAddr, s.Port)
-	if err != nil {
-		return fmt.Errorf("failed register: %v", err)
-	}
-	log.Info().Msg("Successfully registered in consul")
-
 	return srv.Serve(lis)
 }
 
 // Shutdown cleans up any processes
 func (s *Server) Shutdown() {
-	s.Registry.Deregister(s.uuid)
 }
 
 // GetProfiles returns hotel profiles for requested IDs
