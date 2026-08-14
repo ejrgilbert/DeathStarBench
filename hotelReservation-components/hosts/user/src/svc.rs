@@ -18,7 +18,7 @@ host_lib::impl_cache_host!(HostData);
 
 impl hotel::store::user_store::Host for HostData {
     async fn load_users(&mut self) -> Vec<hotel::store::user_store::User> {
-        let resp = self.store_client.lock().await
+        let resp = self.store_client.clone()
             .load_users(tonic::Request::new(LoadUsersRequest {})).await
             .expect("gRPC user-store LoadUsers failed").into_inner();
         resp.users.into_iter().map(|u| hotel::store::user_store::User {
@@ -28,14 +28,16 @@ impl hotel::store::user_store::Host for HostData {
     }
 }
 
-type UserSvcHost = host_lib::SvcHost<UserHostWorldPre<HostData>, UserStoreClient<tonic::transport::Channel>>;
+type UserSvcHost = host_lib::PooledSvcHost<UserStoreClient<tonic::transport::Channel>, UserHostWorld>;
 
 #[async_trait::async_trait]
 impl UserComponent for UserSvcHost {
     async fn check_user(&self, username: String, password: String) -> Result<bool> {
-        let (mut store, pre) = self.make_store();
-        let instance = pre.instantiate_async(&mut store).await?;
-        Ok(instance.hotel_api_user().call_check_user(&mut store, &username, &password).await?)
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
+        let out = instance.hotel_api_user().call_check_user(&mut *store, &username, &password).await?;
+        checked.commit();
+        Ok(out)
     }
 }
 

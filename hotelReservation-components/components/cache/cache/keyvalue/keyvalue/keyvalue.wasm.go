@@ -25,3 +25,12 @@ func wasmexport_Set(key0 *uint8, key1 uint32, value0 *uint8, value1 uint32) {
 	Exports.Set(key, value)
 	return
 }
+
+//go:wasmexport cache:keyvalue/keyvalue#get-multi
+//export cache:keyvalue/keyvalue#get-multi
+func wasmexport_GetMulti(keys0 *string, keys1 uint32) (result *cm.List[cm.Option[cm.List[uint8]]]) {
+	keys := cm.LiftList[cm.List[string]]((*string)(keys0), (uint32)(keys1))
+	result_ := Exports.GetMulti(keys)
+	result = &result_
+	return
+}

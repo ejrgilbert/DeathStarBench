@@ -17,11 +17,40 @@
 // of bounds" corruption). Running GC every request keeps the heap small enough
 // that the on-full collector never triggers mid-call, so only this safe
 // boundary GC ever runs.
+//
+// GC_EVERY (measurement knob): Tick() runs runtime.GC() once every GC_EVERY
+// calls. Default 1 (GC every request — the safe behavior described above). Set
+// the GC_EVERY env var to change it: 0 or negative disables forced GC entirely;
+// N>1 batches. Any value other than 1 is for measuring GC cost only — it can
+// reintroduce the heap-growth / mid-call-collection corruption the per-request
+// GC prevents. The host must pass the env through (inherit_env in the wasi ctx).
 package gcutil
 
-import "runtime"
+import (
+	"os"
+	"runtime"
+	"strconv"
+)
 
-// Tick forces a garbage collection at a request boundary.
+var gcEvery = loadGCEvery()
+var tickCount uint64
+
+func loadGCEvery() int64 {
+	if v, ok := os.LookupEnv("GC_EVERY"); ok {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+			return n
+		}
+	}
+	return 1
+}
+
+// Tick forces a garbage collection at a request boundary, subject to GC_EVERY.
 func Tick() {
-	runtime.GC()
+	if gcEvery <= 0 {
+		return
+	}
+	tickCount++
+	if tickCount%uint64(gcEvery) == 0 {
+		runtime.GC()
+	}
 }

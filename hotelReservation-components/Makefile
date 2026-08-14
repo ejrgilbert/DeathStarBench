@@ -2,6 +2,10 @@ BUILD_DIR    := build
 TINYGO_FLAGS := -target=wasip2 -scheduler=none
 SERVICES     := recommendation attractions geo user rate profile review reservation # append here to add a service
 
+# Shared Go packages (e.g. internal/gcutil) are compiled into every component,
+# so every wasm target depends on them — editing one must trigger rebuilds.
+SHARED_GO := $(shell find internal -name '*.go' 2>/dev/null)
+
 .PHONY: all all-composed frontend-all bootstrap wit-deps generate bench bench-tcp bench-abi \
         hosts-tcp hosts-abi tcp-up tcp-down abi-up abi-down teardown clean
 
@@ -13,13 +17,13 @@ bootstrap:
 	$(MAKE) all
 	$(MAKE) frontend-all
 
-$(BUILD_DIR)/frontend.wasm: components/frontend | $(BUILD_DIR)
+$(BUILD_DIR)/frontend.wasm: components/frontend $(shell find components/frontend -name '*.go' 2>/dev/null) $(SHARED_GO) | $(BUILD_DIR)
 	tinygo build $(TINYGO_FLAGS) \
 	  -wit-package ./components/frontend/wit \
 	  -wit-world frontend-world \
 	  -o $@ ./components/frontend/
 
-$(BUILD_DIR)/search.wasm: components/search | $(BUILD_DIR)
+$(BUILD_DIR)/search.wasm: components/search $(shell find components/search -name '*.go' 2>/dev/null) $(SHARED_GO) | $(BUILD_DIR)
 	tinygo build $(TINYGO_FLAGS) \
 	  -wit-package ./components/search/wit \
 	  -wit-world search-world \
@@ -35,6 +39,7 @@ wit-deps:
 	  cd components/$(s)       && wkg wit fetch && cd ../.. ;)
 	cd components/search   && wkg wit fetch && cd ../..
 	cd components/frontend && wkg wit fetch && cd ../..
+	cd components/cache    && wkg wit fetch && cd ../..
 
 # ── generate ──────────────────────────────────────────────────────────────────
 generate:
@@ -43,18 +48,21 @@ generate:
 	  wit-bindgen-go generate --world $(s)-world       --out ./components/$(s)       ./components/$(s)/wit ;)
 	wit-bindgen-go generate --world search-world        --out ./components/search   ./components/search/wit
 	wit-bindgen-go generate --world frontend-host-world --out ./components/frontend ./components/frontend/wit
+	wit-bindgen-go generate --world cache-world         --out ./components/cache    ./components/cache/wit
 
 # ── wasm build targets ────────────────────────────────────────────────────────
-all: $(BUILD_DIR) $(foreach s,$(SERVICES),$(BUILD_DIR)/$(s)-store.wasm $(BUILD_DIR)/$(s).wasm) $(BUILD_DIR)/search.wasm $(BUILD_DIR)/frontend.wasm
+all: $(BUILD_DIR) $(foreach s,$(SERVICES),$(BUILD_DIR)/$(s)-store.wasm $(BUILD_DIR)/$(s).wasm) $(BUILD_DIR)/search.wasm $(BUILD_DIR)/frontend.wasm $(BUILD_DIR)/cache.wasm
 all-composed: $(BUILD_DIR) $(foreach s,$(SERVICES),$(BUILD_DIR)/$(s)-composed.wasm)
 
-$(BUILD_DIR)/%-store.wasm: components/%_store | $(BUILD_DIR)
+.SECONDEXPANSION:
+
+$(BUILD_DIR)/%-store.wasm: components/%_store $$(shell find components/$$*_store -name '*.go' 2>/dev/null) $(SHARED_GO) | $(BUILD_DIR)
 	tinygo build $(TINYGO_FLAGS) \
 	  -wit-package ./components/$*_store/wit \
 	  -wit-world $*-store-world \
 	  -o $@ ./components/$*_store/
 
-$(BUILD_DIR)/%.wasm: components/% | $(BUILD_DIR)
+$(BUILD_DIR)/%.wasm: components/% $$(shell find components/$$* -name '*.go' 2>/dev/null) $(SHARED_GO) | $(BUILD_DIR)
 	tinygo build $(TINYGO_FLAGS) \
 	  -wit-package ./components/$*/wit \
 	  -wit-world $*-world \

@@ -5,7 +5,7 @@ import (
 
 	"go.bytecodealliance.org/cm"
 
-	hkv     "hotel-components/components/reservation/host/cache/keyvalue"
+	hkv     "hotel-components/components/reservation/cache/keyvalue/keyvalue"
 	store   "hotel-components/components/reservation/hotel/store/reservation-store"
 	resapi  "hotel-components/components/reservation/hotel/api/reservation"
 )
@@ -29,7 +29,7 @@ func checkAvailability(hotelIds cm.List[string], inDate, outDate string, roomNum
 		ids,
 		string([]byte(inDate)), string([]byte(outDate)),
 		roomNumber,
-		getNumber, getReservations, cacheGet, cacheSet,
+		getNumbers, getReservations, cacheGetMulti, cacheSet,
 	)
 	gcutil.Tick()
 	return cm.ToList(result)
@@ -42,7 +42,7 @@ func makeReservation(hotelID, customerName, inDate, outDate string, roomNumber i
 		string([]byte(inDate)),
 		string([]byte(outDate)),
 		roomNumber,
-		getNumber, getReservations, doInsertReservation, cacheGet, cacheSet,
+		getNumbers, getReservations, doInsertReservation, cacheGetMulti, cacheGet, cacheSet,
 	)
 	gcutil.Tick()
 	return cm.ToList(result)
@@ -57,6 +57,17 @@ func getNumber(id string) (NumberRec, bool) {
 	}
 	n := *opt.Some()
 	return NumberRec{HotelId: string([]byte(n.HotelID)), NumberOfRoom: n.NumberOfRoom}, true
+}
+
+// getNumbers does a batched capacity lookup via the store's `get-numbers`
+// (`Find({hotelId:{$in}})`), matching the Go reservation cap-miss query.
+func getNumbers(ids []string) []NumberRec {
+	witRecs := store.GetNumbers(cm.ToList(ids)).Slice()
+	out := make([]NumberRec, len(witRecs))
+	for i, n := range witRecs {
+		out[i] = NumberRec{HotelId: string([]byte(n.HotelID)), NumberOfRoom: n.NumberOfRoom}
+	}
+	return out
 }
 
 // getReservations does a targeted `Find({"hotelId","inDate","outDate"})` via the
@@ -86,14 +97,34 @@ func doInsertReservation(r ReservationRec) {
 	})
 }
 
+// cacheNS namespaces this service's cache keys (shared host cache in ABI mode).
+const cacheNS = "resv:"
+
 func cacheGet(key string) ([]byte, bool) {
-	opt := hkv.Get(key)
+	opt := hkv.Get(cacheNS + key)
 	if opt.None() {
 		return nil, false
 	}
 	return opt.Some().Slice(), true
 }
 
+// cacheGetMulti probes all keys in one batched call (native memcached GetMulti).
+// The returned slice is parallel to keys; a nil entry is a cache miss.
+func cacheGetMulti(keys []string) [][]byte {
+	nsKeys := make([]string, len(keys))
+	for i, k := range keys {
+		nsKeys[i] = cacheNS + k
+	}
+	res := hkv.GetMulti(cm.ToList(nsKeys)).Slice()
+	out := make([][]byte, len(keys))
+	for i := range keys {
+		if i < len(res) && !res[i].None() {
+			out[i] = res[i].Some().Slice()
+		}
+	}
+	return out
+}
+
 func cacheSet(key string, val []byte) {
-	hkv.Set(key, cm.ToList(val))
+	hkv.Set(cacheNS+key, cm.ToList(val))
 }

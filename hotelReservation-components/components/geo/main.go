@@ -3,6 +3,8 @@ package main
 import (
 	"go.bytecodealliance.org/cm"
 
+	gcutil "hotel-components/internal/gcutil"
+
 	store  "hotel-components/components/geo/hotel/store/geo-store"
 	attapi "hotel-components/components/geo/hotel/api/geo"
 )
@@ -33,5 +35,6 @@ func nearby(lat float64, lon float64) cm.List[string] {
 		svc.Load(loadGeo())
 	}
 	ids, _ := svc.Nearby(lat, lon)
+	gcutil.Tick()
 	return cm.ToList(ids)
 }

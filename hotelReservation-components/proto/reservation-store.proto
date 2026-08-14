@@ -5,7 +5,21 @@ service ReservationStore {
   rpc LoadNumbers(LoadNumbersRequest)         returns (LoadNumbersResponse);
   rpc LoadReservations(LoadReservationsRequest) returns (LoadReservationsResponse);
   rpc InsertReservation(InsertReservationRequest) returns (InsertReservationResponse);
+  rpc GetNumber(GetNumberRequest)             returns (GetNumberResponse);
+  rpc GetReservations(GetReservationsRequest) returns (GetReservationsResponse);
+  rpc GetNumbers(GetNumbersRequest)           returns (GetNumbersResponse);
 }
+
+message GetNumberRequest { string hotelId = 1; }
+message GetNumberResponse { NumberRec num = 1; bool found = 2; }
+message GetNumbersRequest  { repeated string hotelIds = 1; }
+message GetNumbersResponse { repeated NumberRec numbers = 1; }
+message GetReservationsRequest {
+  string hotelId = 1;
+  string inDate  = 2;
+  string outDate = 3;
+}
+message GetReservationsResponse { repeated ReservationRec reservations = 1; }
 
 message LoadNumbersRequest      {}
 message LoadReservationsRequest {}

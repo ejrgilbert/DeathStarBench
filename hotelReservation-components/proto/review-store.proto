@@ -2,9 +2,12 @@ syntax = "proto3";
 package review_store;
 service ReviewStore {
   rpc LoadReviews(LoadReviewsRequest) returns (LoadReviewsResponse);
+  rpc GetReviews(GetReviewsRequest) returns (GetReviewsResponse);
 }
 message LoadReviewsRequest {}
 message LoadReviewsResponse { repeated Review reviews = 1; }
+message GetReviewsRequest { string hotelId = 1; }
+message GetReviewsResponse { repeated Review reviews = 1; }
 message Review {
   string reviewId    = 1;
   string hotelId     = 2;

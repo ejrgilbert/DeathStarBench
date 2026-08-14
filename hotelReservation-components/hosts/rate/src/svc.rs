@@ -14,11 +14,11 @@ wasmtime::component::bindgen!({
 });
 
 host_lib::svc_host_data!(RateStoreClient<tonic::transport::Channel>);
-host_lib::impl_cache_host!(HostData);
+host_lib::impl_cache_svc_grpc!(HostData);
 
 impl hotel::store::rate_store::Host for HostData {
     async fn load_rates(&mut self) -> Vec<hotel::store::rate_store::RatePlan> {
-        let resp = self.store_client.lock().await
+        let resp = self.store_client.clone()
             .load_rates(tonic::Request::new(LoadRatesRequest {})).await
             .expect("gRPC rate-store LoadRates failed").into_inner();
         resp.rates.into_iter().map(|r| {
@@ -40,15 +40,16 @@ impl hotel::store::rate_store::Host for HostData {
     }
 }
 
-type RateSvcHost = host_lib::SvcHost<RateHostWorldPre<HostData>, RateStoreClient<tonic::transport::Channel>>;
+type RateSvcHost = host_lib::PooledSvcHost<RateStoreClient<tonic::transport::Channel>, RateHostWorld>;
 
 #[async_trait::async_trait]
 impl RateComponent for RateSvcHost {
     async fn get_rates(&self, hotel_ids: Vec<String>, in_date: String, out_date: String) -> Result<Vec<RatePlan>> {
-        let (mut store, pre) = self.make_store();
-        let instance = pre.instantiate_async(&mut store).await?;
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
         let wit_plans = instance.hotel_api_rate()
-            .call_get_rates(&mut store, &hotel_ids, &in_date, &out_date).await?;
+            .call_get_rates(&mut *store, &hotel_ids, &in_date, &out_date).await?;
+        checked.commit();
         Ok(wit_plans.into_iter().map(|p| RatePlan {
             hotel_id: p.hotel_id,
             code:     p.code,

@@ -33,12 +33,13 @@ impl AttractionsStore for StoreGrpcService {
         &self,
         _req: Request<LoadRequest>,
     ) -> Result<Response<LoadHotelPositionsResponse>, Status> {
-        let (mut store, instance) = self.new_instance().await
-            .map_err(|e| Status::internal(e.to_string()))?;
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
         let items = instance
             .hotel_store_attractions_store()
-            .call_load_hotel_positions(&mut store).await
+            .call_load_hotel_positions(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
+        checked.commit();
         Ok(Response::new(LoadHotelPositionsResponse {
             hotels: items.into_iter().map(|h| ProtoHotel { id: h.id, lat: h.lat, lon: h.lon }).collect(),
         }))
@@ -48,12 +49,13 @@ impl AttractionsStore for StoreGrpcService {
         &self,
         _req: Request<LoadRequest>,
     ) -> Result<Response<LoadRestaurantsResponse>, Status> {
-        let (mut store, instance) = self.new_instance().await
-            .map_err(|e| Status::internal(e.to_string()))?;
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
         let items = instance
             .hotel_store_attractions_store()
-            .call_load_restaurants(&mut store).await
+            .call_load_restaurants(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
+        checked.commit();
         Ok(Response::new(LoadRestaurantsResponse {
             restaurants: items.into_iter().map(|r| ProtoRestaurant {
                 id: r.id, lat: r.lat, lon: r.lon, name: r.name, rating: r.rating, category: r.category,
@@ -65,12 +67,13 @@ impl AttractionsStore for StoreGrpcService {
         &self,
         _req: Request<LoadRequest>,
     ) -> Result<Response<LoadMuseumsResponse>, Status> {
-        let (mut store, instance) = self.new_instance().await
-            .map_err(|e| Status::internal(e.to_string()))?;
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
         let items = instance
             .hotel_store_attractions_store()
-            .call_load_museums(&mut store).await
+            .call_load_museums(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
+        checked.commit();
         Ok(Response::new(LoadMuseumsResponse {
             museums: items.into_iter().map(|m| ProtoMuseum {
                 id: m.id, lat: m.lat, lon: m.lon, name: m.name, category: m.category,
@@ -82,12 +85,13 @@ impl AttractionsStore for StoreGrpcService {
         &self,
         _req: Request<LoadRequest>,
     ) -> Result<Response<LoadCinemasResponse>, Status> {
-        let (mut store, instance) = self.new_instance().await
-            .map_err(|e| Status::internal(e.to_string()))?;
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
         let items = instance
             .hotel_store_attractions_store()
-            .call_load_cinemas(&mut store).await
+            .call_load_cinemas(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
+        checked.commit();
         Ok(Response::new(LoadCinemasResponse {
             cinemas: items.into_iter().map(|c| ProtoCinema {
                 id: c.id, lat: c.lat, lon: c.lon, name: c.name, category: c.category,

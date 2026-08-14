@@ -3,18 +3,18 @@ package hotel:profile-wasm;
 world profile-world {
     include wasi:cli/imports@0.2.0;
     import hotel:store/profile-store;
-    import host:cache/keyvalue;
+    import cache:keyvalue/keyvalue;
     export hotel:api/profile;
 }
 
 world profile-host-world {
     import hotel:store/profile-store;
-    import host:cache/keyvalue;
+    import cache:keyvalue/keyvalue;
     export hotel:api/profile;
 }
 
 world profile-composed-host-world {
     import host:storage/collection;
-    import host:cache/keyvalue;
+    import cache:keyvalue/keyvalue;
     export hotel:api/profile;
 }

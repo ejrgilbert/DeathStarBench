@@ -5,7 +5,7 @@ import (
 
 	"go.bytecodealliance.org/cm"
 
-	hkv      "hotel-components/components/rate/host/cache/keyvalue"
+	hkv      "hotel-components/components/rate/cache/keyvalue/keyvalue"
 	store    "hotel-components/components/rate/hotel/store/rate-store"
 	rateapi  "hotel-components/components/rate/hotel/api/rate"
 )
@@ -24,7 +24,7 @@ func getRates(hotelIds cm.List[string], inDate, outDate string) (result cm.List[
 	for i, id := range hotelIds.Slice() {
 	    lowerIds[i] = string([]byte(id))
 	}
-	plans := svc.GetRates(lowerIds, loadAll, cacheGet, cacheSet)
+	plans := svc.GetRates(lowerIds, loadAll, cacheGetMulti, cacheSet)
 
 	witResult := make([]rateapi.RatePlan, len(plans))
 	for i, p := range plans {
@@ -42,8 +42,8 @@ func getRates(hotelIds cm.List[string], inDate, outDate string) (result cm.List[
 			},
 		}
 	}
-	result = cm.ToList(witResult)
 	gcutil.Tick()
+	result = cm.ToList(witResult)
 	return
 }
 
@@ -68,14 +68,25 @@ func loadAll() []RatePlan {
 	return plans
 }
 
-func cacheGet(key string) ([]byte, bool) {
-	opt := hkv.Get(key)
-	if opt.None() {
-		return nil, false
+const cacheNS = "rate:"
+
+// cacheGetMulti probes all keys in one batched call (native memcached GetMulti).
+// The returned slice is parallel to keys; a nil entry is a cache miss.
+func cacheGetMulti(keys []string) [][]byte {
+	nsKeys := make([]string, len(keys))
+	for i, k := range keys {
+		nsKeys[i] = cacheNS + k
 	}
-	return opt.Some().Slice(), true
+	res := hkv.GetMulti(cm.ToList(nsKeys)).Slice()
+	out := make([][]byte, len(keys))
+	for i := range keys {
+		if i < len(res) && !res[i].None() {
+			out[i] = res[i].Some().Slice()
+		}
+	}
+	return out
 }
 
 func cacheSet(key string, val []byte) {
-	hkv.Set(key, cm.ToList(val))
+	hkv.Set(cacheNS+key, cm.ToList(val))
 }

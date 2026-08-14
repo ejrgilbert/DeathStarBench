@@ -18,6 +18,7 @@ wasmtime::component::bindgen!({
         world frontend-all-imports {
             import host:storage/collection;
             import host:cache/keyvalue;
+            import cache:keyvalue/keyvalue;
         }
     ",
     path: "../../components/frontend/wit",
@@ -127,7 +128,11 @@ impl host::storage::collection::Host for AbiHostData {
     }
 }
 
+// Non-cache-using composed services still import the unused `host:cache/keyvalue`;
+// satisfy it in-process. Cache-using services import `cache:keyvalue/keyvalue`,
+// also satisfied in-process here (the ABI composition fast-path — no network hop).
 host_lib::impl_cache_host!(AbiHostData);
+host_lib::impl_cache_svc_inproc!(AbiHostData);
 
 struct ServerState {
     pool: host_lib::InstancePool<AbiHostData, Proxy>,
@@ -170,7 +175,11 @@ async fn handle_request(
             return Err(anyhow::anyhow!("draining response body: {e:?}"));
         }
     };
-    drop(checked); // return the now-idle instance to the pool
+    // Clean return with no remaining store borrow: commit so the warm instance
+    // is returned to the pool. On any earlier error path (or if this request
+    // future is cancelled), `checked` drops uncommitted and the pool rebuilds a
+    // fresh instance instead of recycling a poisoned, non-reentrant one.
+    checked.commit();
 
     let body = http_body_util::Full::new(bytes)
         .map_err(|never| match never {})
@@ -236,20 +245,21 @@ pub async fn run() -> Result<()> {
     wasmtime_wasi_http::p2::add_only_http_to_linker_async(&mut linker)?;
     host::storage::collection::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
     host::cache::keyvalue::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
+    cache::keyvalue::keyvalue::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let pre = Arc::new(ProxyPre::new(linker.instantiate_pre(&component)?)?);
     let engine = Arc::new(engine);
 
     let pool_size: usize = env_or("POOL_SIZE", "64").parse().unwrap_or(64);
-    let pool = host_lib::InstancePool::build(pool_size, || {
+    let pool = host_lib::InstancePool::build(pool_size, move || {
         let engine = engine.clone();
         let pre = pre.clone();
         let dbs = dbs.clone();
         let cache = cache.clone();
         async move {
             let data = AbiHostData {
-                wasi:  WasiCtxBuilder::new().inherit_stdout().inherit_stderr().build(),
+                wasi:  WasiCtxBuilder::new().inherit_env().inherit_stdout().inherit_stderr().build(),
                 table: ResourceTable::new(),
                 http:  WasiHttpCtx::new(),
                 dbs,

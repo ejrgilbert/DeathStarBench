@@ -2,3 +2,4 @@
 "hotel:api"    = { path = "../../wit/hotel" }
 "host:storage" = { path = "../../wit/host-storage" }
 "host:cache"   = { path = "../../wit/host-cache" }
+"cache:keyvalue" = { path = "../../wit/cache" }

@@ -15,3 +15,7 @@ func wasmimport_Get(key0 *uint8, key1 uint32, result *cm.Option[cm.List[uint8]])
 //go:wasmimport cache:keyvalue/keyvalue set
 //go:noescape
 func wasmimport_Set(key0 *uint8, key1 uint32, value0 *uint8, value1 uint32)
+
+//go:wasmimport cache:keyvalue/keyvalue get-multi
+//go:noescape
+func wasmimport_GetMulti(keys0 *string, keys1 uint32, result *cm.List[cm.Option[cm.List[uint8]]])

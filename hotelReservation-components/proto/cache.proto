@@ -5,9 +5,14 @@ package cache;
 service Cache {
   rpc Get (GetRequest)  returns (GetResponse);
   rpc Set (SetRequest)  returns (SetResponse);
+  rpc GetMulti (GetMultiRequest) returns (GetMultiResponse);
 }
 
 message GetRequest  { string key   = 1; }
 message GetResponse { bytes  value = 1; bool found = 2; }
 message SetRequest  { string key   = 1; bytes value = 2; }
 message SetResponse {}
+
+message GetMultiRequest  { repeated string keys = 1; }
+message CacheEntry       { bytes value = 1; bool found = 2; }
+message GetMultiResponse { repeated CacheEntry entries = 1; }

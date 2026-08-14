@@ -1,6 +1,8 @@
 package main
 
 import (
+	gcutil  "hotel-components/internal/gcutil"
+
 	store   "hotel-components/components/user/hotel/store/user-store"
 	userapi "hotel-components/components/user/hotel/api/user"
 )
@@ -32,5 +34,7 @@ func checkUser(username string, password string) bool {
 		svc = NewService()
 		svc.Load(loadUsers())
 	}
-	return svc.CheckUser(username, password)
+	ok := svc.CheckUser(username, password)
+	gcutil.Tick()
+	return ok
 }

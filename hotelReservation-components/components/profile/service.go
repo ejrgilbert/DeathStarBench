@@ -37,15 +37,17 @@ func NewService() *Service { return &Service{} }
 func (s *Service) GetProfiles(
 	hotelIds []string,
 	getOne   func(string) (Hotel, bool),
-	cacheGet func(string) ([]byte, bool),
+	cacheGetMulti func([]string) [][]byte,
 	cacheSet func(string, []byte),
 ) []Hotel {
 	var result []Hotel
 
-	for _, id := range hotelIds {
-		if val, ok := cacheGet(id); ok {
+	// One batched cache probe for all hotels (matches native GetMulti).
+	vals := cacheGetMulti(hotelIds)
+	for i, id := range hotelIds {
+		if vals[i] != nil {
 			var h Hotel
-			if err := json.Unmarshal(val, &h); err == nil {
+			if err := json.Unmarshal(vals[i], &h); err == nil {
 				result = append(result, h)
 				continue
 			}

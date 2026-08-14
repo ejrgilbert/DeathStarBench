@@ -5,7 +5,7 @@ import (
 
 	"go.bytecodealliance.org/cm"
 
-	hkv     "hotel-components/components/profile/host/cache/keyvalue"
+	hkv     "hotel-components/components/profile/cache/keyvalue/keyvalue"
 	store   "hotel-components/components/profile/hotel/store/profile-store"
 	profapi "hotel-components/components/profile/hotel/api/profile"
 )
@@ -19,7 +19,7 @@ func init() {
 }
 
 func getProfiles(hotelIds cm.List[string]) (result cm.List[profapi.Hotel]) {
-	profiles := svc.GetProfiles(hotelIds.Slice(), getOne, cacheGet, cacheSet)
+	profiles := svc.GetProfiles(hotelIds.Slice(), getOne, cacheGetMulti, cacheSet)
 
 	witResult := make([]profapi.Hotel, len(profiles))
 	for i, p := range profiles {
@@ -45,8 +45,9 @@ func getProfiles(hotelIds cm.List[string]) (result cm.List[profapi.Hotel]) {
 			Images: cm.ToList(images),
 		}
 	}
-	result = cm.ToList(witResult)
+
 	gcutil.Tick()
+	result = cm.ToList(witResult)
 	return
 }
 
@@ -85,14 +86,26 @@ func witToHotel(wh store.Hotel) Hotel {
 	}
 }
 
-func cacheGet(key string) ([]byte, bool) {
-	opt := hkv.Get(key)
-	if opt.None() {
-		return nil, false
+// cacheNS namespaces this service's cache keys (shared host cache in ABI mode).
+const cacheNS = "profile:"
+
+// cacheGetMulti probes all keys in one batched call (native memcached GetMulti).
+// The returned slice is parallel to keys; a nil entry is a cache miss.
+func cacheGetMulti(keys []string) [][]byte {
+	nsKeys := make([]string, len(keys))
+	for i, k := range keys {
+		nsKeys[i] = cacheNS + k
 	}
-	return opt.Some().Slice(), true
+	res := hkv.GetMulti(cm.ToList(nsKeys)).Slice()
+	out := make([][]byte, len(keys))
+	for i := range keys {
+		if i < len(res) && !res[i].None() {
+			out[i] = res[i].Some().Slice()
+		}
+	}
+	return out
 }
 
 func cacheSet(key string, val []byte) {
-	hkv.Set(key, cm.ToList(val))
+	hkv.Set(cacheNS+key, cm.ToList(val))
 }

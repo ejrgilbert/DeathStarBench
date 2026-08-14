@@ -29,3 +29,14 @@ func Set(key string, value cm.List[uint8]) {
 	wasmimport_Set((*uint8)(key0), (uint32)(key1), (*uint8)(value0), (uint32)(value1))
 	return
 }
+
+// GetMulti represents the imported function "get-multi".
+//
+//	get-multi: func(keys: list<string>) -> list<option<list<u8>>>
+//
+//go:nosplit
+func GetMulti(keys cm.List[string]) (result cm.List[cm.Option[cm.List[uint8]]]) {
+	keys0, keys1 := cm.LowerList(keys)
+	wasmimport_GetMulti((*string)(keys0), (uint32)(keys1), &result)
+	return
+}

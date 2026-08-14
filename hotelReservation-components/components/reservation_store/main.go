@@ -40,7 +40,32 @@ func init() {
 	revstore.Exports.LoadReservations  = loadReservations
 	revstore.Exports.InsertReservation = doInsertReservation
 	revstore.Exports.GetNumber         = getNumber
+	revstore.Exports.GetNumbers        = getNumbers
 	revstore.Exports.GetReservations   = getReservations
+}
+
+// getNumbers does a batched `Find({"hotelId": {"$in": ids}})` on the number
+// collection, matching the Go reservation service's cap-miss query.
+func getNumbers(ids cm.List[string]) cm.List[revstore.NumberRec] {
+	ensureConn()
+	rawIds := ids.Slice()
+	strs := make([]string, len(rawIds))
+	for i, id := range rawIds {
+		strs[i] = string([]byte(id))
+	}
+	idsJSON, _ := json.Marshal(strs)
+	filter := fmt.Sprintf(`{"hotelId":{"$in":%s}}`, string(idsJSON))
+	rawDocs := col.Find(numConn, col.Document(cm.ToList([]uint8(filter)))).Slice()
+	recs := make([]revstore.NumberRec, 0, len(rawDocs))
+	for _, raw := range rawDocs {
+		var s seedNumber
+		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
+		recs = append(recs, revstore.NumberRec{
+			HotelID:      string([]byte(s.HotelId)),
+			NumberOfRoom: s.NumberOfRoom,
+		})
+	}
+	return cm.ToList(recs)
 }
 
 // getNumber does a targeted `FindOne({"hotelId": id})` on the number collection.

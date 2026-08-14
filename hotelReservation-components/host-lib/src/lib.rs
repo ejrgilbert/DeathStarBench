@@ -1,59 +1,127 @@
 use anyhow::Result;
 use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex};
 use wasmtime::{Config, Engine, InstanceAllocationStrategy, PoolingAllocationConfig, Store};
 use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiCtxView};
 pub type Cache = std::sync::RwLock<std::collections::HashMap<String, Vec<u8>>>;
 
-/// A fixed-size pool of pre-instantiated `(Store<T>, I)` pairs to reuse warm instances on requests
+/// gRPC contract for the cache service (compiled from `proto/cache.proto` by
+/// this crate's `build.rs`). A cache-using svc host holds a `CacheClient` and
+/// bridges its component's `cache:keyvalue/keyvalue` import to these RPCs.
+pub mod cache_proto {
+    tonic::include_proto!("cache");
+}
+/// Cheaply-cloneable tonic client for the cache service (see `SvcHostData`).
+pub type CacheClient = cache_proto::cache_client::CacheClient<tonic::transport::Channel>;
+
+/// Async factory that builds one fresh warm `(Store<T>, I)`. Retained by the
+/// pool so poisoned instances can be replaced (see `Checked`'s drop).
+type MakeFn<T, I> =
+    Arc<dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(Store<T>, I)>> + Send>> + Send + Sync>;
+
+/// A fixed-size pool of pre-instantiated `(Store<T>, I)` pairs to reuse warm
+/// instances on requests.
+///
+/// Backed by an `async_channel` MPMC channel whose receiver is cloneable, so
+/// concurrent `checkout()`s recv in parallel with no shared lock. (The previous
+/// `tokio::mpsc` has a single non-clonable consumer, which forced a
+/// `Mutex<Receiver>` held across `recv().await` — a hot-path serialization point
+/// that pinned one core and capped throughput under load.)
 pub struct InstancePool<T: Send + 'static, I: Send + 'static> {
-    tx: mpsc::Sender<(Store<T>, I)>,
-    rx: Mutex<mpsc::Receiver<(Store<T>, I)>>,
+    tx: async_channel::Sender<(Store<T>, I)>,
+    rx: async_channel::Receiver<(Store<T>, I)>,
+    make: MakeFn<T, I>,
 }
 
 impl<T: Send + 'static, I: Send + 'static> InstancePool<T, I> {
-    /// Instantiate `size` warm instances up front via `make`.
+    /// Instantiate `size` warm instances up front via `make`. `make` is retained
+    /// so instances left non-reentrant by a trap/cancellation can be rebuilt.
     pub async fn build<F, Fut>(size: usize, make: F) -> Result<Self>
     where
-        F: Fn() -> Fut,
-        Fut: std::future::Future<Output = Result<(Store<T>, I)>>,
+        F: Fn() -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = Result<(Store<T>, I)>> + Send + 'static,
     {
+        let make: MakeFn<T, I> = Arc::new(move || Box::pin(make()));
         let size = size.max(1);
-        let (tx, rx) = mpsc::channel(size);
+        let (tx, rx) = async_channel::bounded(size);
         for _ in 0..size {
             tx.try_send(make().await?)
                 .map_err(|_| anyhow::anyhow!("instance pool prefill overflow"))?;
         }
-        Ok(Self { tx, rx: Mutex::new(rx) })
+        Ok(Self { tx, rx, make })
     }
 
-    /// Borrow a warm instance, awaiting until one is free. It is returned to the
-    /// pool automatically when the returned guard drops.
-    pub async fn checkout(&self) -> Checked<'_, T, I> {
-        let item = self.rx.lock().await.recv().await.expect("instance pool closed");
-        Checked { tx: &self.tx, item: Some(item) }
+    /// Borrow a warm instance, awaiting until one is free. The instance is only
+    /// returned to the pool if the caller calls [`Checked::commit`] after a
+    /// clean guest call; otherwise (trap, error, or cancellation) it is dropped
+    /// and a fresh instance is rebuilt to keep the pool full. This is required
+    /// because a wasm component instance whose call did not return cleanly is
+    /// left non-reentrant — recycling it makes every later call trap with
+    /// "cannot enter component instance".
+    pub async fn checkout(&self) -> Checked<T, I> {
+        // No lock: the async_channel receiver is cloneable/MPMC, so concurrent
+        // checkouts recv in parallel.
+        let item = self.rx.recv().await.expect("instance pool closed");
+        Checked {
+            tx: self.tx.clone(),
+            make: self.make.clone(),
+            item: Some(item),
+            committed: false,
+        }
     }
 }
 
-/// RAII handle to a checked-out `(Store<T>, I)`; returns it to the pool on drop.
-pub struct Checked<'a, T: Send + 'static, I: Send + 'static> {
-    tx: &'a mpsc::Sender<(Store<T>, I)>,
+/// RAII handle to a checked-out `(Store<T>, I)`. On drop it returns the instance
+/// to the pool only if [`Checked::commit`] was called; otherwise it discards the
+/// (possibly poisoned) instance and asynchronously rebuilds a replacement.
+pub struct Checked<T: Send + 'static, I: Send + 'static> {
+    tx: async_channel::Sender<(Store<T>, I)>,
+    make: MakeFn<T, I>,
     item: Option<(Store<T>, I)>,
+    committed: bool,
 }
 
-impl<T: Send + 'static, I: Send + 'static> Checked<'_, T, I> {
+impl<T: Send + 'static, I: Send + 'static> Checked<T, I> {
     /// `(&mut Store, &Instance)` for making the guest call.
     pub fn parts(&mut self) -> (&mut Store<T>, &I) {
         let (s, i) = self.item.as_mut().expect("checked-out instance");
         (s, i)
     }
+
+    /// Mark the guest call as completed cleanly, so the warm instance is returned
+    /// to the pool for reuse. Call this only after the call returned `Ok` and any
+    /// store-borrowing work (e.g. draining the response body) has finished.
+    pub fn commit(mut self) {
+        self.committed = true;
+        // drop returns the instance to the pool.
+    }
 }
 
-impl<T: Send + 'static, I: Send + 'static> Drop for Checked<'_, T, I> {
+impl<T: Send + 'static, I: Send + 'static> Drop for Checked<T, I> {
     fn drop(&mut self) {
-        if let Some(item) = self.item.take() {
+        let Some(item) = self.item.take() else { return };
+
+        if self.committed {
             // Capacity was reserved when we checked out, so this never blocks.
             let _ = self.tx.try_send(item);
+            return;
+        }
+
+        // The call trapped, errored, or was cancelled mid-flight (e.g. the client
+        // disconnected). The component instance may be left non-reentrant, so it
+        // must not be recycled. Drop it and rebuild a fresh warm instance to
+        // refill the slot we vacated at checkout.
+        drop(item);
+        let tx = self.tx.clone();
+        let make = self.make.clone();
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            handle.spawn(async move {
+                match make().await {
+                    Ok(fresh) => {
+                        let _ = tx.try_send(fresh);
+                    }
+                    Err(e) => eprintln!("[instance-pool] refill after poison failed: {e:?}"),
+                }
+            });
         }
     }
 }
@@ -255,11 +323,24 @@ pub async fn mongo_insert_one(
 }
 
 /// Host data for svc-mode hosts.
+///
+/// `store_client` is a plain (cheaply cloneable) tonic client, NOT an
+/// `Arc<Mutex<_>>`: a tonic `Client<Channel>` clone shares the underlying
+/// connection and multiplexes concurrent requests over HTTP/2. Wrapping it in a
+/// mutex would serialize every downstream call to one in-flight request at a
+/// time — a hard throughput ceiling. Clone it per call instead (`.clone()`).
 pub struct SvcHostData<C> {
     pub wasi:         WasiCtx,
     pub table:        ResourceTable,
-    pub store_client: Arc<Mutex<C>>,
+    pub store_client: C,
+    /// In-process cache map. Used by non-cache-using hosts (which still satisfy
+    /// an unused `host:cache/keyvalue` import) via `impl_cache_host!`.
     pub cache:        Arc<Cache>,
+    /// gRPC client to the cache service, set when `CACHE_ADDR` is configured.
+    /// Cache-using svc hosts (rate/profile/review/reservation) bridge their
+    /// component's `cache:keyvalue/keyvalue` import to it via
+    /// `impl_cache_svc_grpc!`, so a cache access is a real network hop.
+    pub cache_client: Option<CacheClient>,
 }
 
 impl<C: Send> wasmtime_wasi::WasiView for SvcHostData<C> {
@@ -378,31 +459,106 @@ macro_rules! impl_cache_host {
     };
 }
 
-pub struct SvcHost<Pre, Client> {
-    pub engine:       Arc<wasmtime::Engine>,
-    pub pre:          Arc<Pre>,
-    pub store_client: Arc<Mutex<Client>>,
-    pub cache:        Arc<Cache>,
+/// Implements the service-facing `cache:keyvalue/keyvalue` import by bridging to
+/// the cache service over gRPC (TCP mode). `$T` must have a `cache_client:
+/// Option<CacheClient>` field (see `SvcHostData`), set from `CACHE_ADDR`. Used by
+/// the cache-using svc hosts (rate/profile/review/reservation) so a cache access
+/// is a real network hop, matching the native memcached round-trip.
+#[macro_export]
+macro_rules! impl_cache_svc_grpc {
+    ($T:ty) => {
+        impl cache::keyvalue::keyvalue::Host for $T {
+            async fn get(&mut self, key: String) -> ::core::option::Option<::std::vec::Vec<u8>> {
+                let mut client = self.cache_client.clone()
+                    .expect("CACHE_ADDR not set for cache-using svc host");
+                let resp = client
+                    .get($crate::cache_proto::GetRequest { key })
+                    .await
+                    .expect("gRPC cache Get failed")
+                    .into_inner();
+                if resp.found { ::core::option::Option::Some(resp.value) } else { ::core::option::Option::None }
+            }
+            async fn get_multi(
+                &mut self,
+                keys: ::std::vec::Vec<String>,
+            ) -> ::std::vec::Vec<::core::option::Option<::std::vec::Vec<u8>>> {
+                let mut client = self.cache_client.clone()
+                    .expect("CACHE_ADDR not set for cache-using svc host");
+                let resp = client
+                    .get_multi($crate::cache_proto::GetMultiRequest { keys })
+                    .await
+                    .expect("gRPC cache GetMulti failed")
+                    .into_inner();
+                resp.entries.into_iter()
+                    .map(|e| if e.found { ::core::option::Option::Some(e.value) } else { ::core::option::Option::None })
+                    .collect()
+            }
+            async fn set(&mut self, key: String, value: ::std::vec::Vec<u8>) {
+                // Fire-and-forget, matching the native services' `go Set(...)`:
+                // the response path never waits on the cache write.
+                let mut client = self.cache_client.clone()
+                    .expect("CACHE_ADDR not set for cache-using svc host");
+                ::tokio::spawn(async move {
+                    let _ = client.set($crate::cache_proto::SetRequest { key, value }).await;
+                });
+            }
+        }
+    };
 }
 
-impl<Pre: Send + Sync, Client: Send + Sync + 'static> SvcHost<Pre, Client> {
-    pub fn new(
-        engine:       Arc<wasmtime::Engine>,
-        pre:          Arc<Pre>,
-        store_client: Arc<Mutex<Client>>,
-        cache:        Arc<Cache>,
-    ) -> Self {
-        Self { engine, pre, store_client, cache }
+/// Implements the service-facing `cache:keyvalue/keyvalue` import in-process
+/// against `$T`'s `cache: Arc<Cache>` map. Used by the composed ABI host, where
+/// cache access must stay in-process (no network hop) — the whole point of the
+/// composition fast-path.
+#[macro_export]
+macro_rules! impl_cache_svc_inproc {
+    ($T:ty) => {
+        impl cache::keyvalue::keyvalue::Host for $T {
+            async fn get(&mut self, key: String) -> ::core::option::Option<::std::vec::Vec<u8>> {
+                self.cache.read().unwrap().get(&key).cloned()
+            }
+            async fn get_multi(
+                &mut self,
+                keys: ::std::vec::Vec<String>,
+            ) -> ::std::vec::Vec<::core::option::Option<::std::vec::Vec<u8>>> {
+                let map = self.cache.read().unwrap();
+                keys.iter().map(|k| map.get(k).cloned()).collect()
+            }
+            async fn set(&mut self, key: String, value: ::std::vec::Vec<u8>) {
+                self.cache.write().unwrap().insert(key, value);
+            }
+        }
+    };
+}
+
+/// A gRPC-fronted svc host that serves every request from a warm pool of reused
+/// `(Store<SvcHostData<Client>>, World)` instances instead of instantiating a
+/// fresh one per request.
+///
+/// Reuse is essential for these services: each loads its dataset into a
+/// per-instance global on first use and expects it to persist across requests
+/// (matching the Go original, which loads once at startup). A fresh instance per
+/// request makes them reload the whole dataset from the store on every call.
+///
+/// Build the pool with [`InstancePool::build`] (the `run_svc_pre!` macro does
+/// this) and hand it here; the gRPC handler then does `checkout()` → call →
+/// [`Checked::commit`]. This is the same warm-instance-reuse core the frontend
+/// host uses, factored out so every svc host shares it.
+pub struct PooledSvcHost<Client: Send + 'static, World: Send + 'static> {
+    pool: InstancePool<SvcHostData<Client>, World>,
+}
+
+impl<Client: Send + 'static, World: Send + 'static> PooledSvcHost<Client, World> {
+    pub fn new(pool: InstancePool<SvcHostData<Client>, World>) -> Self {
+        Self { pool }
     }
 
-    pub fn make_store(&self) -> (wasmtime::Store<SvcHostData<Client>>, Arc<Pre>) {
-        let data = SvcHostData {
-            wasi:         make_wasi_ctx(),
-            table:        ResourceTable::new(),
-            store_client: self.store_client.clone(),
-            cache:        self.cache.clone(),
-        };
-        (wasmtime::Store::new(&self.engine, data), self.pre.clone())
+    /// Borrow a warm instance for one request. Call [`Checked::commit`] on the
+    /// returned guard after a clean guest call so the instance returns to the
+    /// pool; otherwise (error / panic / cancellation) it is discarded and a
+    /// fresh one is rebuilt.
+    pub async fn checkout(&self) -> Checked<SvcHostData<Client>, World> {
+        self.pool.checkout().await
     }
 }
 
@@ -419,50 +575,56 @@ macro_rules! svc_host_data {
 #[macro_export]
 macro_rules! define_store_service {
     ($World:ty, $Pre:ty) => {
+        // Serves gRPC requests from a warm pool of reused instances (built in
+        // `run_store!`). Store guests cache their Mongo connection and dataset in
+        // per-instance globals, so reuse loads the collection once instead of
+        // re-running a full `FindAll` on every request.
         struct StoreGrpcService {
-            engine: ::std::sync::Arc<::wasmtime::Engine>,
-            pre:    ::std::sync::Arc<$Pre>,
-            db:     ::std::sync::Arc<::mongodb::Database>,
-            cache:  ::std::sync::Arc<$crate::Cache>,
+            pool: $crate::InstancePool<$crate::StoreData, $World>,
         }
 
         impl StoreGrpcService {
-            async fn new_instance(
-                &self,
-            ) -> ::anyhow::Result<(::wasmtime::Store<$crate::StoreData>, $World)> {
-                let data = $crate::StoreData {
-                    wasi:  $crate::make_wasi_ctx(),
-                    table: ::wasmtime_wasi::ResourceTable::new(),
-                    db:    self.db.clone(),
-                    cache: self.cache.clone(),
-                };
-                let mut store = ::wasmtime::Store::new(&self.engine, data);
-                let instance = self.pre.instantiate_async(&mut store).await?;
-                Ok((store, instance))
+            /// Borrow a warm instance for one request. Call `.commit()` on the
+            /// returned guard after a clean call so it returns to the pool;
+            /// otherwise it is discarded and rebuilt.
+            async fn checkout(&self) -> $crate::Checked<$crate::StoreData, $World> {
+                self.pool.checkout().await
             }
         }
     };
 }
 
-/// Generates `pub async fn run()` for SVC-Pre-mode hosts (wasm service + gRPC store, per-request instantiation).
-/// Uses `host_lib::SvcHost<$Pre, $Client>` as the concrete host type.
+/// Generates `pub async fn run()` for SVC-Pre-mode hosts (wasm service + gRPC
+/// store). Serves requests from a warm [`PooledSvcHost`] pool of reused instances
+/// (size from `POOL_SIZE`, default 64) instead of instantiating per request, so
+/// each service loads its dataset once and reuses it across requests.
 #[macro_export]
 macro_rules! run_svc_pre {
     ($World:ty, $Pre:ty, $Client:ty,
      $default_store:literal, $default_addr:literal, $default_wasm:literal, $label:literal) => {
         pub async fn run() -> ::anyhow::Result<()> {
             use ::std::sync::Arc;
-            use ::tokio::sync::Mutex;
             use ::wasmtime::component::{Component, Linker};
 
             let store_addr  = ::std::env::var("STORE_ADDR").unwrap_or_else(|_| $default_store.into());
             let listen_addr: ::std::net::SocketAddr = ::std::env::var("LISTEN_ADDR")
                 .unwrap_or_else(|_| $default_addr.into()).parse()?;
             let wasm_file   = ::std::env::var("WASM_FILE").unwrap_or_else(|_| $default_wasm.into());
+            let pool_size: usize = ::std::env::var("POOL_SIZE").ok()
+                .and_then(|v| v.parse().ok()).unwrap_or(64);
 
+            // Plain cloneable tonic client (multiplexes concurrent requests);
+            // each pooled instance gets its own clone (see SvcHostData).
             let store_client = <$Client>::connect(store_addr).await?;
-            let store_client = Arc::new(Mutex::new(store_client));
             let cache        = Arc::new($crate::Cache::new(::std::collections::HashMap::new()));
+
+            // Cache-using hosts set CACHE_ADDR so their `cache:keyvalue/keyvalue`
+            // import bridges to the cache service over gRPC (a real network hop).
+            // Non-cache hosts leave it unset and keep the unused in-process map.
+            let cache_client = match ::std::env::var("CACHE_ADDR") {
+                Ok(addr) => Some($crate::CacheClient::connect(addr).await?),
+                Err(_)   => None,
+            };
 
             let engine = Arc::new($crate::make_engine()?);
             let mut linker: Linker<$crate::SvcHostData<$Client>> = Linker::new(&engine);
@@ -472,9 +634,32 @@ macro_rules! run_svc_pre {
             let component = Component::from_file(&engine, &wasm_file)?;
             let pre = Arc::new(<$Pre>::new(linker.instantiate_pre(&component)?)?);
 
-            println!("{} listening on {listen_addr}", $label);
+            // Warm pool of reused instances (see PooledSvcHost): instantiate up
+            // front and reuse, so the service's per-instance dataset loads once.
+            let pool = $crate::InstancePool::build(pool_size, move || {
+                let engine       = engine.clone();
+                let pre          = pre.clone();
+                let store_client = store_client.clone();
+                let cache        = cache.clone();
+                let cache_client = cache_client.clone();
+                async move {
+                    let data = $crate::SvcHostData {
+                        wasi:         $crate::make_wasi_ctx(),
+                        table:        ::wasmtime_wasi::ResourceTable::new(),
+                        store_client,
+                        cache,
+                        cache_client,
+                    };
+                    let mut store = ::wasmtime::Store::new(&engine, data);
+                    let instance = pre.instantiate_async(&mut store).await?;
+                    ::anyhow::Ok((store, instance))
+                }
+            })
+            .await?;
+
+            println!("{} listening on {listen_addr} (instance pool size {pool_size})", $label);
             crate::grpc::serve(
-                Arc::new($crate::SvcHost::new(engine, pre, store_client, cache)),
+                Arc::new($crate::PooledSvcHost::new(pool)),
                 listen_addr,
             ).await
         }
@@ -521,26 +706,45 @@ macro_rules! run_store {
             let wasm_file  = ::std::env::var("WASM_FILE")
                 .unwrap_or_else(|_| $default_wasm.into());
 
+            let pool_size: usize = ::std::env::var("POOL_SIZE").ok()
+                .and_then(|v| v.parse().ok()).unwrap_or(64);
+
             let mongo = ::mongodb::Client::with_uri_str(&mongo_uri).await?;
             let db    = Arc::new(mongo.database($db));
             let cache = Arc::new($crate::Cache::new(::std::collections::HashMap::new()));
 
-            let engine     = $crate::make_engine()?;
+            let engine = Arc::new($crate::make_engine()?);
             let mut linker: Linker<$crate::StoreData> = Linker::new(&engine);
             ::wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
             <$World>::add_to_linker::<_, ::wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
 
             let component = Component::from_file(&engine, &wasm_file)?;
-            let pre       = <$Pre>::new(linker.instantiate_pre(&component)?)?;
+            let pre = Arc::new(<$Pre>::new(linker.instantiate_pre(&component)?)?);
 
-            let svc = StoreGrpcService {
-                engine: Arc::new(engine),
-                pre:    Arc::new(pre),
-                db,
-                cache,
-            };
+            // Warm pool of reused instances so each store loads its collection
+            // once (its connection + dataset are cached in per-instance globals).
+            let pool = $crate::InstancePool::build(pool_size, move || {
+                let engine = engine.clone();
+                let pre    = pre.clone();
+                let db     = db.clone();
+                let cache  = cache.clone();
+                async move {
+                    let data = $crate::StoreData {
+                        wasi:  $crate::make_wasi_ctx(),
+                        table: ::wasmtime_wasi::ResourceTable::new(),
+                        db,
+                        cache,
+                    };
+                    let mut store = ::wasmtime::Store::new(&engine, data);
+                    let instance = pre.instantiate_async(&mut store).await?;
+                    ::anyhow::Ok((store, instance))
+                }
+            })
+            .await?;
 
-            println!("{} [store] listening on {listen_addr}", $label);
+            let svc = StoreGrpcService { pool };
+
+            println!("{} [store] listening on {listen_addr} (instance pool size {pool_size})", $label);
 
             Server::builder()
                 .add_service($GrpcServer::new(svc))

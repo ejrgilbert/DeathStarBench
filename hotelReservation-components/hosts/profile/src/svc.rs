@@ -14,11 +14,11 @@ wasmtime::component::bindgen!({
 });
 
 host_lib::svc_host_data!(ProfileStoreClient<tonic::transport::Channel>);
-host_lib::impl_cache_host!(HostData);
+host_lib::impl_cache_svc_grpc!(HostData);
 
 impl hotel::store::profile_store::Host for HostData {
     async fn load_profiles(&mut self) -> Vec<hotel::store::profile_store::Hotel> {
-        let resp = self.store_client.lock().await
+        let resp = self.store_client.clone()
             .load_profiles(tonic::Request::new(LoadProfilesRequest {})).await
             .expect("gRPC profile-store LoadProfiles failed").into_inner();
         resp.profs.into_iter().map(|h| {
@@ -46,23 +46,52 @@ impl hotel::store::profile_store::Host for HostData {
         }).collect()
     }
 
-    // TCP path: the store is reached over gRPC (only LoadProfiles exists), so a
-    // targeted lookup filters the loaded set client-side. The ABI path uses the
-    // composed store's `get-profile` (true `FindOne`) and never calls this.
+    // Targeted single-hotel lookup via the store's GetProfile RPC (Mongo FindOne)
+    // — a real per-request query on a cache miss, matching the native profile
+    // service. (The ABI path uses the composed store's `get-profile` directly.)
     async fn get_profile(&mut self, id: String) -> Option<hotel::store::profile_store::Hotel> {
-        self.load_profiles().await.into_iter().find(|h| h.id == id)
+        let resp = self.store_client.clone()
+            .get_profile(tonic::Request::new(store_proto::GetProfileRequest { id })).await
+            .ok()?
+            .into_inner();
+        if !resp.found {
+            return None;
+        }
+        let h = resp.prof?;
+        let a = h.address.unwrap_or_default();
+        Some(hotel::store::profile_store::Hotel {
+            id:           h.id,
+            name:         h.name,
+            phone_number: h.phone_number,
+            description:  h.description,
+            addr: hotel::store::profile_store::Address {
+                street_number: a.street_number,
+                street_name:   a.street_name,
+                city:          a.city,
+                state:         a.state,
+                country:       a.country,
+                postal_code:   a.postal_code,
+                lat:           a.lat as f64,
+                lon:           a.lon as f64,
+            },
+            images: h.images.into_iter().map(|img| hotel::store::profile_store::Image {
+                url:     img.url,
+                default: img.default,
+            }).collect(),
+        })
     }
 }
 
-type ProfileSvcHost = host_lib::SvcHost<ProfileHostWorldPre<HostData>, ProfileStoreClient<tonic::transport::Channel>>;
+type ProfileSvcHost = host_lib::PooledSvcHost<ProfileStoreClient<tonic::transport::Channel>, ProfileHostWorld>;
 
 #[async_trait::async_trait]
 impl ProfileComponent for ProfileSvcHost {
     async fn get_profiles(&self, hotel_ids: Vec<String>) -> Result<Vec<Hotel>> {
-        let (mut store, pre) = self.make_store();
-        let instance = pre.instantiate_async(&mut store).await?;
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
         let wit_hotels = instance.hotel_api_profile()
-            .call_get_profiles(&mut store, &hotel_ids).await?;
+            .call_get_profiles(&mut *store, &hotel_ids).await?;
+        checked.commit();
         Ok(wit_hotels.into_iter().map(|p| Hotel {
             id:           p.id,
             name:         p.name,

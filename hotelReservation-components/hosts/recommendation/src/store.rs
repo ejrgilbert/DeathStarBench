@@ -29,12 +29,13 @@ impl RecommendationStore for StoreGrpcService {
         &self,
         _req: Request<LoadHotelsRequest>,
     ) -> Result<Response<LoadHotelsResponse>, Status> {
-        let (mut store, instance) = self.new_instance().await
-            .map_err(|e| Status::internal(e.to_string()))?;
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
         let wit_hotels = instance
             .hotel_store_recommendation_store()
-            .call_load_hotels(&mut store).await
+            .call_load_hotels(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
+        checked.commit();
         Ok(Response::new(LoadHotelsResponse {
             hotels: wit_hotels.into_iter().map(|h| ProtoHotel {
                 id: h.id, lat: h.lat, lon: h.lon, rate: h.rate, price: h.price,

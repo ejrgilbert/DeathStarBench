@@ -11,5 +11,6 @@ members = [
     "hosts/review",
     "hosts/reservation",
     "hosts/frontend",
+    "hosts/cache",
 ]
 resolver = "2"

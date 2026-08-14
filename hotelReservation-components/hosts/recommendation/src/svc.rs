@@ -23,7 +23,7 @@ host_lib::impl_cache_host!(HostData);
 
 impl hotel::store::recommendation_store::Host for HostData {
     async fn load_hotels(&mut self) -> Vec<hotel::store::recommendation_store::Hotel> {
-        let resp = self.store_client.lock().await
+        let resp = self.store_client.clone()
             .load_hotels(tonic::Request::new(LoadHotelsRequest {})).await
             .expect("gRPC store LoadHotels failed").into_inner();
         resp.hotels.into_iter().map(|h| hotel::store::recommendation_store::Hotel {
@@ -32,19 +32,21 @@ impl hotel::store::recommendation_store::Host for HostData {
     }
 }
 
-type RecommendSvcHost = host_lib::SvcHost<RecommendationHostWorldPre<HostData>, RecommendationStoreClient<tonic::transport::Channel>>;
+type RecommendSvcHost = host_lib::PooledSvcHost<RecommendationStoreClient<tonic::transport::Channel>, RecommendationHostWorld>;
 
 #[async_trait::async_trait]
 impl RecommendComponent for RecommendSvcHost {
     async fn recommend(&self, req: Requirement, lat: f64, lon: f64) -> Result<Vec<String>> {
-        let (mut store, pre) = self.make_store();
-        let instance = pre.instantiate_async(&mut store).await?;
         let r = match req {
             Requirement::Distance => WitRequirement::Distance,
             Requirement::Rate     => WitRequirement::Rate,
             Requirement::Price    => WitRequirement::Price,
         };
-        Ok(instance.hotel_api_recommendation().call_recommend(&mut store, r, lat, lon).await?)
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
+        let out = instance.hotel_api_recommendation().call_recommend(&mut *store, r, lat, lon).await?;
+        checked.commit();
+        Ok(out)
     }
 }
 

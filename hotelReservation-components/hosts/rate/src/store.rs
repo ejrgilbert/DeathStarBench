@@ -30,12 +30,13 @@ impl RateStore for StoreGrpcService {
         &self,
         _req: Request<LoadRatesRequest>,
     ) -> Result<Response<LoadRatesResponse>, Status> {
-        let (mut store, instance) = self.new_instance().await
-            .map_err(|e| Status::internal(e.to_string()))?;
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
         let wit_rates = instance
             .hotel_store_rate_store()
-            .call_load_rates(&mut store).await
+            .call_load_rates(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
+        checked.commit();
         Ok(Response::new(LoadRatesResponse {
             rates: wit_rates.into_iter().map(|r| ProtoRatePlan {
                 hotel_id: r.hotel_id,

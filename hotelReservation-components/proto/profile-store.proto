@@ -4,11 +4,20 @@ package profile_store;
 
 service ProfileStore {
   rpc LoadProfiles(LoadProfilesRequest) returns (LoadProfilesResponse);
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
 }
 
 message LoadProfilesRequest {}
 message LoadProfilesResponse {
   repeated Hotel profs = 1;
+}
+
+message GetProfileRequest {
+  string id = 1;
+}
+message GetProfileResponse {
+  Hotel prof = 1;
+  bool found = 2;
 }
 
 message Hotel {

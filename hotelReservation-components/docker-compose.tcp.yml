@@ -22,6 +22,7 @@ services:
       MONGO_URI: "mongodb://mongodb-recommendation:27017"
       LISTEN_ADDR: "0.0.0.0:8086"
       WASM_FILE: /app/recommendation-store.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8086:8086"
     depends_on:
@@ -39,6 +40,7 @@ services:
       STORE_ADDR: "http://recommendation-store:8086"
       LISTEN_ADDR: "0.0.0.0:8085"
       WASM_FILE: /app/recommendation.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8085:8085"
     depends_on:
@@ -63,6 +65,7 @@ services:
       MONGO_URI: "mongodb://mongodb-attractions:27017"
       LISTEN_ADDR: "0.0.0.0:8088"
       WASM_FILE: /app/attractions-store.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8088:8088"
     depends_on:
@@ -80,6 +83,7 @@ services:
       STORE_ADDR: "http://attractions-store:8088"
       LISTEN_ADDR: "0.0.0.0:8087"
       WASM_FILE: /app/attractions.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8087:8087"
     depends_on:
@@ -104,6 +108,7 @@ services:
       MONGO_URI: "mongodb://mongodb-geo:27017"
       LISTEN_ADDR: "0.0.0.0:8090"
       WASM_FILE: /app/geo-store.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8090:8090"
     depends_on:
@@ -121,6 +126,7 @@ services:
       STORE_ADDR: "http://geo-store:8090"
       LISTEN_ADDR: "0.0.0.0:8089"
       WASM_FILE: /app/geo.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8089:8089"
     depends_on:
@@ -145,6 +151,7 @@ services:
       MONGO_URI: "mongodb://mongodb-user:27017"
       LISTEN_ADDR: "0.0.0.0:8092"
       WASM_FILE: /app/user-store.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8092:8092"
     depends_on:
@@ -162,6 +169,7 @@ services:
       STORE_ADDR: "http://user-store:8092"
       LISTEN_ADDR: "0.0.0.0:8091"
       WASM_FILE: /app/user.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8091:8091"
     depends_on:
@@ -186,10 +194,26 @@ services:
       MONGO_URI: "mongodb://mongodb-rate:27017"
       LISTEN_ADDR: "0.0.0.0:8094"
       WASM_FILE: /app/rate-store.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8094:8094"
     depends_on:
       - mongodb-rate
+    restart: on-failure
+
+  # Cache service (Wasm cache component behind gRPC to match Go-native architecture)
+  cache-rate:
+    build:
+      context: .
+      target: runtime
+      args:
+        SERVICE: cache
+    environment:
+      LISTEN_ADDR: "0.0.0.0:8110"
+      WASM_FILE: /app/cache.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
+    ports:
+      - "8110:8110"
     restart: on-failure
 
   rate:
@@ -201,12 +225,15 @@ services:
     environment:
       MODE: svc
       STORE_ADDR: "http://rate-store:8094"
+      CACHE_ADDR: "http://cache-rate:8110"
       LISTEN_ADDR: "0.0.0.0:8093"
       WASM_FILE: /app/rate.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8093:8093"
     depends_on:
       - rate-store
+      - cache-rate
     restart: on-failure
 
   mongodb-profile:
@@ -227,10 +254,25 @@ services:
       MONGO_URI: "mongodb://mongodb-profile:27017"
       LISTEN_ADDR: "0.0.0.0:8096"
       WASM_FILE: /app/profile-store.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8096:8096"
     depends_on:
       - mongodb-profile
+    restart: on-failure
+
+  cache-profile:
+    build:
+      context: .
+      target: runtime
+      args:
+        SERVICE: cache
+    environment:
+      LISTEN_ADDR: "0.0.0.0:8111"
+      WASM_FILE: /app/cache.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
+    ports:
+      - "8111:8111"
     restart: on-failure
 
   profile:
@@ -242,12 +284,15 @@ services:
     environment:
       MODE: svc
       STORE_ADDR: "http://profile-store:8096"
+      CACHE_ADDR: "http://cache-profile:8111"
       LISTEN_ADDR: "0.0.0.0:8095"
       WASM_FILE: /app/profile.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8095:8095"
     depends_on:
       - profile-store
+      - cache-profile
     restart: on-failure
 
   search:
@@ -261,6 +306,7 @@ services:
       RATE_ADDR:   "http://rate:8093"
       LISTEN_ADDR: "0.0.0.0:8097"
       WASM_FILE:   /app/search.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8097:8097"
     depends_on:
@@ -286,10 +332,25 @@ services:
       MONGO_URI: "mongodb://mongodb-review:27017"
       LISTEN_ADDR: "0.0.0.0:8099"
       WASM_FILE: /app/review-store.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8099:8099"
     depends_on:
       - mongodb-review
+    restart: on-failure
+
+  cache-review:
+    build:
+      context: .
+      target: runtime
+      args:
+        SERVICE: cache
+    environment:
+      LISTEN_ADDR: "0.0.0.0:8112"
+      WASM_FILE: /app/cache.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
+    ports:
+      - "8112:8112"
     restart: on-failure
 
   review:
@@ -301,12 +362,15 @@ services:
     environment:
       MODE: svc
       STORE_ADDR: "http://review-store:8099"
+      CACHE_ADDR: "http://cache-review:8112"
       LISTEN_ADDR: "0.0.0.0:8098"
       WASM_FILE: /app/review.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8098:8098"
     depends_on:
       - review-store
+      - cache-review
     restart: on-failure
 
   mongodb-reservation:
@@ -328,10 +392,25 @@ services:
       MONGO_URI: "mongodb://mongodb-reservation:27017"
       LISTEN_ADDR: "0.0.0.0:8101"
       WASM_FILE: /app/reservation-store.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8101:8101"
     depends_on:
       - mongodb-reservation
+    restart: on-failure
+
+  cache-reserve:
+    build:
+      context: .
+      target: runtime
+      args:
+        SERVICE: cache
+    environment:
+      LISTEN_ADDR: "0.0.0.0:8113"
+      WASM_FILE: /app/cache.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
+    ports:
+      - "8113:8113"
     restart: on-failure
 
   reservation:
@@ -343,12 +422,15 @@ services:
     environment:
       MODE: svc
       STORE_ADDR: "http://reservation-store:8101"
+      CACHE_ADDR: "http://cache-reserve:8113"
       LISTEN_ADDR: "0.0.0.0:8100"
       WASM_FILE: /app/reservation.wasm
+      GC_EVERY: "${GC_EVERY:-1}"
     ports:
       - "8100:8100"
     depends_on:
       - reservation-store
+      - cache-reserve
     restart: on-failure
 
   frontend:
@@ -358,6 +440,7 @@ services:
       args:
         SERVICE: frontend
     environment:
+      GC_EVERY:            "${GC_EVERY:-1}"
       LISTEN_ADDR:         "0.0.0.0:8080"
       SEARCH_ADDR:         "http://search:8097"
       PROFILE_ADDR:        "http://profile:8095"

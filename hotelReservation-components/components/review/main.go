@@ -3,7 +3,9 @@ package main
 import (
 	"go.bytecodealliance.org/cm"
 
-	hkv    "hotel-components/components/review/host/cache/keyvalue"
+	gcutil "hotel-components/internal/gcutil"
+
+	hkv    "hotel-components/components/review/cache/keyvalue/keyvalue"
 	store  "hotel-components/components/review/hotel/store/review-store"
 	revapi "hotel-components/components/review/hotel/api/review"
 )
@@ -29,6 +31,7 @@ func getReviews(hotelId string) cm.List[revapi.ReviewComm] {
 			Image:       revapi.Image{URL: r.Image.Url, Default: r.Image.Default},
 		}
 	}
+	gcutil.Tick()
 	return cm.ToList(witResult)
 }
 
@@ -48,8 +51,10 @@ func fetchReviews(hotelId string) []Review {
 	return result
 }
 
+const cacheNS = "review:"
+
 func cacheGet(key string) ([]byte, bool) {
-	opt := hkv.Get(key)
+	opt := hkv.Get(cacheNS + key)
 	if opt.None() {
 		return nil, false
 	}
@@ -57,5 +62,5 @@ func cacheGet(key string) ([]byte, bool) {
 }
 
 func cacheSet(key string, val []byte) {
-	hkv.Set(key, cm.ToList(val))
+	hkv.Set(cacheNS+key, cm.ToList(val))
 }

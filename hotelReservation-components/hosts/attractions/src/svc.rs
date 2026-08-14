@@ -21,7 +21,7 @@ host_lib::impl_cache_host!(HostData);
 
 impl hotel::store::attractions_store::Host for HostData {
     async fn load_hotel_positions(&mut self) -> Vec<hotel::store::attractions_store::HotelPosition> {
-        let resp = self.store_client.lock().await
+        let resp = self.store_client.clone()
             .load_hotel_positions(tonic::Request::new(LoadRequest {})).await
             .expect("gRPC LoadHotelPositions failed").into_inner();
         resp.hotels.into_iter().map(|h| hotel::store::attractions_store::HotelPosition {
@@ -30,7 +30,7 @@ impl hotel::store::attractions_store::Host for HostData {
     }
 
     async fn load_restaurants(&mut self) -> Vec<hotel::store::attractions_store::Restaurant> {
-        let resp = self.store_client.lock().await
+        let resp = self.store_client.clone()
             .load_restaurants(tonic::Request::new(LoadRequest {})).await
             .expect("gRPC LoadRestaurants failed").into_inner();
         resp.restaurants.into_iter().map(|r| hotel::store::attractions_store::Restaurant {
@@ -39,7 +39,7 @@ impl hotel::store::attractions_store::Host for HostData {
     }
 
     async fn load_museums(&mut self) -> Vec<hotel::store::attractions_store::Museum> {
-        let resp = self.store_client.lock().await
+        let resp = self.store_client.clone()
             .load_museums(tonic::Request::new(LoadRequest {})).await
             .expect("gRPC LoadMuseums failed").into_inner();
         resp.museums.into_iter().map(|m| hotel::store::attractions_store::Museum {
@@ -48,7 +48,7 @@ impl hotel::store::attractions_store::Host for HostData {
     }
 
     async fn load_cinemas(&mut self) -> Vec<hotel::store::attractions_store::Cinema> {
-        let resp = self.store_client.lock().await
+        let resp = self.store_client.clone()
             .load_cinemas(tonic::Request::new(LoadRequest {})).await
             .expect("gRPC LoadCinemas failed").into_inner();
         resp.cinemas.into_iter().map(|c| hotel::store::attractions_store::Cinema {
@@ -63,24 +63,30 @@ impl hotel::store::attractions_store::Host for HostData {
     }
 }
 
-type AttractionsSvcHost = host_lib::SvcHost<AttractionsHostWorldPre<HostData>, AttractionsStoreClient<tonic::transport::Channel>>;
+type AttractionsSvcHost = host_lib::PooledSvcHost<AttractionsStoreClient<tonic::transport::Channel>, AttractionsHostWorld>;
 
 #[async_trait::async_trait]
 impl AttractionsComponent for AttractionsSvcHost {
     async fn nearby_rest(&self, hotel_id: String) -> Result<Vec<String>> {
-        let (mut store, pre) = self.make_store();
-        let instance = pre.instantiate_async(&mut store).await?;
-        Ok(instance.hotel_api_attractions().call_nearby_rest(&mut store, &hotel_id).await?)
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
+        let out = instance.hotel_api_attractions().call_nearby_rest(&mut *store, &hotel_id).await?;
+        checked.commit();
+        Ok(out)
     }
     async fn nearby_mus(&self, hotel_id: String) -> Result<Vec<String>> {
-        let (mut store, pre) = self.make_store();
-        let instance = pre.instantiate_async(&mut store).await?;
-        Ok(instance.hotel_api_attractions().call_nearby_mus(&mut store, &hotel_id).await?)
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
+        let out = instance.hotel_api_attractions().call_nearby_mus(&mut *store, &hotel_id).await?;
+        checked.commit();
+        Ok(out)
     }
     async fn nearby_cinema(&self, hotel_id: String) -> Result<Vec<String>> {
-        let (mut store, pre) = self.make_store();
-        let instance = pre.instantiate_async(&mut store).await?;
-        Ok(instance.hotel_api_attractions().call_nearby_cinema(&mut store, &hotel_id).await?)
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
+        let out = instance.hotel_api_attractions().call_nearby_cinema(&mut *store, &hotel_id).await?;
+        checked.commit();
+        Ok(out)
     }
 }
 

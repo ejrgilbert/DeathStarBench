@@ -18,7 +18,7 @@ host_lib::impl_cache_host!(HostData);
 
 impl hotel::store::geo_store::Host for HostData {
     async fn load_geo(&mut self) -> Vec<hotel::store::geo_store::Point> {
-        let resp = self.store_client.lock().await
+        let resp = self.store_client.clone()
             .load_geo(tonic::Request::new(LoadRequest {})).await
             .expect("gRPC geo-store LoadGeo failed")
             .into_inner();
@@ -28,14 +28,16 @@ impl hotel::store::geo_store::Host for HostData {
     }
 }
 
-type GeoSvcHost = host_lib::SvcHost<GeoHostWorldPre<HostData>, GeoStoreClient<tonic::transport::Channel>>;
+type GeoSvcHost = host_lib::PooledSvcHost<GeoStoreClient<tonic::transport::Channel>, GeoHostWorld>;
 
 #[async_trait::async_trait]
 impl GeoComponent for GeoSvcHost {
     async fn nearby(&self, lat: f64, lon: f64) -> Result<Vec<String>> {
-        let (mut store, pre) = self.make_store();
-        let instance = pre.instantiate_async(&mut store).await?;
-        Ok(instance.hotel_api_geo().call_nearby(&mut store, lat, lon).await?)
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
+        let out = instance.hotel_api_geo().call_nearby(&mut *store, lat, lon).await?;
+        checked.commit();
+        Ok(out)
     }
 }
 

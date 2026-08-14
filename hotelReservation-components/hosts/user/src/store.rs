@@ -30,12 +30,13 @@ impl UserStore for StoreGrpcService {
         &self,
         _req: Request<LoadUsersRequest>,
     ) -> Result<Response<LoadUsersResponse>, Status> {
-        let (mut store, instance) = self.new_instance().await
-            .map_err(|e| Status::internal(e.to_string()))?;
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
         let wit_users = instance
             .hotel_store_user_store()
-            .call_load_users(&mut store).await
+            .call_load_users(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
+        checked.commit();
         Ok(Response::new(LoadUsersResponse {
             users: wit_users.into_iter().map(|u| ProtoUser {
                 username: u.username,

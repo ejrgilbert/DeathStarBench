@@ -157,9 +157,7 @@ interface reservation-store {
     load-numbers:       func() -> list<number-rec>;
     load-reservations:  func() -> list<reservation-rec>;
     insert-reservation: func(r: reservation-rec);
-    // Parity with Go reservation service's per-request
-    // `FindOne({"hotelId": id})` (number) and
-    // `Find({"hotelId","inDate","outDate"})` (reservations).
     get-number:       func(hotel-id: string) -> option<number-rec>;
     get-reservations: func(hotel-id: string, in-date: string, out-date: string) -> list<reservation-rec>;
+    get-numbers:      func(ids: list<string>) -> list<number-rec>;
 }

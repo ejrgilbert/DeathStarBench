@@ -28,16 +28,18 @@ func NewService() *Service { return &Service{} }
 func (s *Service) GetRates(
 	hotelIds []string,
 	loadAll  func() []RatePlan,
-	cacheGet func(string) ([]byte, bool),
+	cacheGetMulti func([]string) [][]byte,
 	cacheSet func(string, []byte),
 ) []RatePlan {
 	var result []RatePlan
 	var missed []string
 
-	for _, id := range hotelIds {
-		if val, ok := cacheGet(id); ok {
+	// One batched cache probe for all hotels (matches native GetMulti).
+	vals := cacheGetMulti(hotelIds)
+	for i, id := range hotelIds {
+		if vals[i] != nil {
 			var plans []RatePlan
-			if err := json.Unmarshal(val, &plans); err == nil {
+			if err := json.Unmarshal(vals[i], &plans); err == nil {
 				result = append(result, plans...)
 				continue
 			}

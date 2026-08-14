@@ -354,7 +354,11 @@ async fn handle_request(
             return Err(anyhow::anyhow!("draining response body: {e:?}"));
         }
     };
-    drop(checked); // return the now-idle instance to the pool
+    // The call returned cleanly and no borrow of the store remains: commit so the
+    // warm instance is returned to the pool. On any earlier error path (or if the
+    // request future is cancelled), `checked` drops uncommitted and the pool
+    // rebuilds a fresh instance instead of recycling a poisoned one.
+    checked.commit();
 
     let body = http_body_util::Full::new(bytes)
         .map_err(|never| match never {})
@@ -407,13 +411,13 @@ pub async fn run() -> Result<()> {
     // Pre-instantiate a pool of warm instances reused across requests (bounds
     // in-flight concurrency); avoids the per-request `instantiate_async` cost.
     let pool_size: usize = env_or("POOL_SIZE", "64").parse().unwrap_or(64);
-    let pool = host_lib::InstancePool::build(pool_size, || {
+    let pool = host_lib::InstancePool::build(pool_size, move || {
         let engine = engine.clone();
         let pre = pre.clone();
         let clients = clients.clone();
         async move {
             let data = HostData {
-                wasi:    WasiCtxBuilder::new().inherit_stderr().build(),
+                wasi:    WasiCtxBuilder::new().inherit_env().inherit_stderr().build(),
                 table:   ResourceTable::new(),
                 http:    WasiHttpCtx::new(),
                 clients,

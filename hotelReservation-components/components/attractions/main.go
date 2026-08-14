@@ -5,6 +5,8 @@ import (
 
 	"go.bytecodealliance.org/cm"
 
+	gcutil "hotel-components/internal/gcutil"
+
 	hkv    "hotel-components/components/attractions/host/cache/keyvalue"
 	store  "hotel-components/components/attractions/hotel/store/attractions-store"
 	attapi "hotel-components/components/attractions/hotel/api/attractions"
@@ -125,6 +127,7 @@ func resolveHotel(hotelID string) (lat, lon float64, ok bool) {
 
 func nearbyRest(hotelID string) cm.List[string] {
 	lat, lon, ok := resolveHotel(hotelID)
+	gcutil.Tick()
 	if !ok {
 		return cm.ToList([]string{})
 	}
@@ -133,6 +136,7 @@ func nearbyRest(hotelID string) cm.List[string] {
 
 func nearbyMus(hotelID string) cm.List[string] {
 	lat, lon, ok := resolveHotel(hotelID)
+	gcutil.Tick()
 	if !ok {
 		return cm.ToList([]string{})
 	}
@@ -141,6 +145,7 @@ func nearbyMus(hotelID string) cm.List[string] {
 
 func nearbyCinema(hotelID string) cm.List[string] {
 	lat, lon, ok := resolveHotel(hotelID)
+	gcutil.Tick()
 	if !ok {
 		return cm.ToList([]string{})
 	}

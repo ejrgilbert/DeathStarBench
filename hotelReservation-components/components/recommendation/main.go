@@ -3,6 +3,8 @@ package main
 import (
 	"go.bytecodealliance.org/cm"
 
+	gcutil "hotel-components/internal/gcutil"
+
 	store "hotel-components/components/recommendation/hotel/store/recommendation-store"
 	recapi "hotel-components/components/recommendation/hotel/api/recommendation"
 )
@@ -50,5 +52,6 @@ func recommend(req recapi.Requirement, lat float64, lon float64) cm.List[string]
 	}
 
 	ids, _ := svc.Recommend(r, lat, lon)
+	gcutil.Tick()
 	return cm.ToList(ids)
 }

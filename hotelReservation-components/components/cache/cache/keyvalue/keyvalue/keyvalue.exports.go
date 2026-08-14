@@ -17,4 +17,9 @@ var Exports struct {
 	//
 	//	set: func(key: string, value: list<u8>)
 	Set func(key string, value cm.List[uint8])
+
+	// GetMulti represents the caller-defined, exported function "get-multi".
+	//
+	//	get-multi: func(keys: list<string>) -> list<option<list<u8>>>
+	GetMulti func(keys cm.List[string]) (result cm.List[cm.Option[cm.List[uint8]]])
 }

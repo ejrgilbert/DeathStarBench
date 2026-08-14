@@ -30,12 +30,13 @@ impl GeoStore for StoreGrpcService {
         &self,
         _req: Request<LoadRequest>,
     ) -> Result<Response<LoadGeoResponse>, Status> {
-        let (mut store, instance) = self.new_instance().await
-            .map_err(|e| Status::internal(e.to_string()))?;
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
         let items = instance
             .hotel_store_geo_store()
-            .call_load_geo(&mut store).await
+            .call_load_geo(&mut *store).await
             .map_err(|e| Status::internal(e.to_string()))?;
+        checked.commit();
         Ok(Response::new(LoadGeoResponse {
             geo: items.into_iter().map(|p| ProtoPoint { id: p.id, lat: p.lat, lon: p.lon }).collect(),
         }))
