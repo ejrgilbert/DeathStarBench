@@ -7,7 +7,7 @@ SERVICES     := recommendation attractions geo user rate profile review reservat
 SHARED_GO := $(shell find internal -name '*.go' 2>/dev/null)
 
 .PHONY: all all-composed frontend-all bootstrap wit-deps generate bench bench-tcp bench-abi \
-        hosts-tcp hosts-abi tcp-up tcp-down abi-up abi-down teardown clean splice
+        hosts-tcp hosts-abi tcp-up tcp-down abi-up abi-down teardown clean splice sidecar-configs
 
 # ── splicer instrumentation ───────────────────────────────────────────────────
 SPLICE_DIR           := $(BUILD_DIR)/spliced
@@ -120,6 +120,23 @@ $(SPLICE_DIR)/$(BUILTIN):
 
 $(SPLICE_DIR)/$(BUILTIN)/%.wasm: $(BUILD_DIR)/%.wasm $(RULES_DIR)/$(BUILTIN).yaml | $(SPLICE_DIR)/$(BUILTIN)
 	splicer splice $(RULES_DIR)/$(BUILTIN).yaml $< -o $@
+
+# ── sidecar (Envoy) instrumentation ───────────────────────────────────────────
+SIDECAR_DIR := $(BUILD_DIR)/sidecar
+# service:port pairs (must match LISTEN_ADDR in docker-compose.tcp.yml).
+SIDECAR_MAP := recommendation:8085 attractions:8087 geo:8089 user:8091 rate:8093 \
+               profile:8095 search:8097 review:8098 reservation:8100
+
+$(SIDECAR_DIR)/$(BUILTIN):
+	mkdir -p $@
+
+sidecar-configs: | $(SIDECAR_DIR)/$(BUILTIN)
+	@test -f sidecar/$(BUILTIN).yaml || { echo "no sidecar config: sidecar/$(BUILTIN).yaml" >&2; exit 1; }
+	@for pair in $(SIDECAR_MAP); do \
+	  svc=$${pair%%:*}; port=$${pair##*:}; \
+	  sed -e "s/@SVC@/$$svc/g" -e "s/@PORT@/$$port/g" sidecar/$(BUILTIN).yaml > $(SIDECAR_DIR)/$(BUILTIN)/$$svc.yaml; \
+	done
+	@echo "wrote envoy configs to $(SIDECAR_DIR)/$(BUILTIN)/"
 
 # ── host docker images ────────────────────────────────────────────────────────
 # Rebuild the host images only when a source baked into them changes. The stamp

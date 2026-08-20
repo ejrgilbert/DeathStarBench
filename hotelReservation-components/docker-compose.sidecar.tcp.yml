@@ -1,0 +1,71 @@
+# Overlay on docker-compose.tcp.yml: Envoy reverse-proxy sidecars in front of each service (tcp deployment).
+services:
+  envoy-recommendation:
+    image: envoyproxy/envoy:v1.31-latest
+    command: ["-c", "/etc/envoy/envoy.yaml", "--concurrency", "1"]
+    volumes: ["./build/sidecar/${SIDECAR_BUILTIN:?set SIDECAR_BUILTIN}/recommendation.yaml:/etc/envoy/envoy.yaml:ro"]
+    depends_on: [recommendation]
+    restart: on-failure
+  envoy-attractions:
+    image: envoyproxy/envoy:v1.31-latest
+    command: ["-c", "/etc/envoy/envoy.yaml", "--concurrency", "1"]
+    volumes: ["./build/sidecar/${SIDECAR_BUILTIN:?set SIDECAR_BUILTIN}/attractions.yaml:/etc/envoy/envoy.yaml:ro"]
+    depends_on: [attractions]
+    restart: on-failure
+  envoy-geo:
+    image: envoyproxy/envoy:v1.31-latest
+    command: ["-c", "/etc/envoy/envoy.yaml", "--concurrency", "1"]
+    volumes: ["./build/sidecar/${SIDECAR_BUILTIN:?set SIDECAR_BUILTIN}/geo.yaml:/etc/envoy/envoy.yaml:ro"]
+    depends_on: [geo]
+    restart: on-failure
+  envoy-user:
+    image: envoyproxy/envoy:v1.31-latest
+    command: ["-c", "/etc/envoy/envoy.yaml", "--concurrency", "1"]
+    volumes: ["./build/sidecar/${SIDECAR_BUILTIN:?set SIDECAR_BUILTIN}/user.yaml:/etc/envoy/envoy.yaml:ro"]
+    depends_on: [user]
+    restart: on-failure
+  envoy-rate:
+    image: envoyproxy/envoy:v1.31-latest
+    command: ["-c", "/etc/envoy/envoy.yaml", "--concurrency", "1"]
+    volumes: ["./build/sidecar/${SIDECAR_BUILTIN:?set SIDECAR_BUILTIN}/rate.yaml:/etc/envoy/envoy.yaml:ro"]
+    depends_on: [rate]
+    restart: on-failure
+  envoy-profile:
+    image: envoyproxy/envoy:v1.31-latest
+    command: ["-c", "/etc/envoy/envoy.yaml", "--concurrency", "1"]
+    volumes: ["./build/sidecar/${SIDECAR_BUILTIN:?set SIDECAR_BUILTIN}/profile.yaml:/etc/envoy/envoy.yaml:ro"]
+    depends_on: [profile]
+    restart: on-failure
+  envoy-search:
+    image: envoyproxy/envoy:v1.31-latest
+    command: ["-c", "/etc/envoy/envoy.yaml", "--concurrency", "1"]
+    volumes: ["./build/sidecar/${SIDECAR_BUILTIN:?set SIDECAR_BUILTIN}/search.yaml:/etc/envoy/envoy.yaml:ro"]
+    depends_on: [search]
+    restart: on-failure
+  envoy-review:
+    image: envoyproxy/envoy:v1.31-latest
+    command: ["-c", "/etc/envoy/envoy.yaml", "--concurrency", "1"]
+    volumes: ["./build/sidecar/${SIDECAR_BUILTIN:?set SIDECAR_BUILTIN}/review.yaml:/etc/envoy/envoy.yaml:ro"]
+    depends_on: [review]
+    restart: on-failure
+  envoy-reservation:
+    image: envoyproxy/envoy:v1.31-latest
+    command: ["-c", "/etc/envoy/envoy.yaml", "--concurrency", "1"]
+    volumes: ["./build/sidecar/${SIDECAR_BUILTIN:?set SIDECAR_BUILTIN}/reservation.yaml:/etc/envoy/envoy.yaml:ro"]
+    depends_on: [reservation]
+    restart: on-failure
+
+  # Route callers through the sidecars (merged into each service's base env).
+  frontend:
+    environment:
+      SEARCH_ADDR:         "http://envoy-search:8097"
+      PROFILE_ADDR:        "http://envoy-profile:8095"
+      RECOMMENDATION_ADDR: "http://envoy-recommendation:8085"
+      USER_ADDR:           "http://envoy-user:8091"
+      REVIEW_ADDR:         "http://envoy-review:8098"
+      ATTRACTIONS_ADDR:    "http://envoy-attractions:8087"
+      RESERVATION_ADDR:    "http://envoy-reservation:8100"
+  search:
+    environment:
+      GEO_ADDR:  "http://envoy-geo:8089"
+      RATE_ADDR: "http://envoy-rate:8093"
