@@ -13,6 +13,62 @@ pub mod cache_proto {
 /// Cheaply-cloneable tonic client for the cache service (see `SvcHostData`).
 pub type CacheClient = cache_proto::cache_client::CacheClient<tonic::transport::Channel>;
 
+/// Register no-op host stubs for the `wasi:otel/*`
+pub fn add_otel_stubs<T>(linker: &mut wasmtime::component::Linker<T>) -> Result<()> {
+    use wasmtime::component::Val;
+
+    const OTEL_TRACING: &str = "wasi:otel/tracing@0.2.0-rc.2";
+    const OTEL_METRICS: &str = "wasi:otel/metrics@0.2.0-rc.2";
+    const OTEL_LOGS: &str = "wasi:otel/logs@0.2.0-rc.2";
+    const BUILTIN_CFG: &str = "splicer:builtin-config/get@0.1.0";
+
+    // splicer:builtin-config/get — get(key: string) -> option<string>.
+    // None → the builtin falls back to its hardcoded (manifest) default.
+    {
+        let mut iface = linker.instance(BUILTIN_CFG)?;
+        iface.func_new("get", |_store, _ty, _params, results| {
+            results[0] = Val::Option(None);
+            Ok(())
+        })?;
+    }
+
+    // wasi:otel/tracing — on-start / on-end (no-op) + outer-span-context.
+    {
+        let mut iface = linker.instance(OTEL_TRACING)?;
+        iface.func_new("on-start", |_store, _ty, _params, _results| Ok(()))?;
+        iface.func_new("on-end", |_store, _ty, _params, _results| Ok(()))?;
+        // Return an all-empty context so the builtin mints a fresh trace-id
+        // rather than inheriting a host parent span.
+        iface.func_new("outer-span-context", |_store, _ty, _params, results| {
+            results[0] = Val::Record(vec![
+                ("trace-id".into(), Val::String(String::new())),
+                ("span-id".into(), Val::String(String::new())),
+                ("trace-flags".into(), Val::Flags(vec![])),
+                ("is-remote".into(), Val::Bool(false)),
+                ("trace-state".into(), Val::List(vec![])),
+            ]);
+            Ok(())
+        })?;
+    }
+
+    // wasi:otel/logs — on-emit (no-op).
+    {
+        let mut iface = linker.instance(OTEL_LOGS)?;
+        iface.func_new("on-emit", |_store, _ty, _params, _results| Ok(()))?;
+    }
+
+    // wasi:otel/metrics — export(resource-metrics) -> result<_, error>.
+    {
+        let mut iface = linker.instance(OTEL_METRICS)?;
+        iface.func_new("export", |_store, _ty, _params, results| {
+            results[0] = Val::Result(Ok(None));
+            Ok(())
+        })?;
+    }
+
+    Ok(())
+}
+
 /// Async factory that builds one fresh warm `(Store<T>, I)`. Retained by the
 /// pool so poisoned instances can be replaced (see `Checked`'s drop).
 type MakeFn<T, I> =
@@ -630,6 +686,7 @@ macro_rules! run_svc_pre {
             let mut linker: Linker<$crate::SvcHostData<$Client>> = Linker::new(&engine);
             ::wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
             <$World>::add_to_linker::<_, ::wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
+            $crate::add_otel_stubs(&mut linker)?;
 
             let component = Component::from_file(&engine, &wasm_file)?;
             let pre = Arc::new(<$Pre>::new(linker.instantiate_pre(&component)?)?);
@@ -717,6 +774,7 @@ macro_rules! run_store {
             let mut linker: Linker<$crate::StoreData> = Linker::new(&engine);
             ::wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
             <$World>::add_to_linker::<_, ::wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
+            $crate::add_otel_stubs(&mut linker)?;
 
             let component = Component::from_file(&engine, &wasm_file)?;
             let pre = Arc::new(<$Pre>::new(linker.instantiate_pre(&component)?)?);

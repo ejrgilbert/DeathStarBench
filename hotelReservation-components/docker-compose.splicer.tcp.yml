@@ -1,0 +1,29 @@
+# Overlay on top of docker-compose.tcp.yml: run the Splicer-instrumented service components (tcp deployment).
+services:
+  recommendation:
+    volumes:
+      - ./build/spliced/${SPLICE_BUILTIN:?set SPLICE_BUILTIN}/recommendation.wasm:/app/recommendation.wasm:ro
+  attractions:
+    volumes:
+      - ./build/spliced/${SPLICE_BUILTIN:?set SPLICE_BUILTIN}/attractions.wasm:/app/attractions.wasm:ro
+  geo:
+    volumes:
+      - ./build/spliced/${SPLICE_BUILTIN:?set SPLICE_BUILTIN}/geo.wasm:/app/geo.wasm:ro
+  user:
+    volumes:
+      - ./build/spliced/${SPLICE_BUILTIN:?set SPLICE_BUILTIN}/user.wasm:/app/user.wasm:ro
+  rate:
+    volumes:
+      - ./build/spliced/${SPLICE_BUILTIN:?set SPLICE_BUILTIN}/rate.wasm:/app/rate.wasm:ro
+  profile:
+    volumes:
+      - ./build/spliced/${SPLICE_BUILTIN:?set SPLICE_BUILTIN}/profile.wasm:/app/profile.wasm:ro
+  review:
+    volumes:
+      - ./build/spliced/${SPLICE_BUILTIN:?set SPLICE_BUILTIN}/review.wasm:/app/review.wasm:ro
+  reservation:
+    volumes:
+      - ./build/spliced/${SPLICE_BUILTIN:?set SPLICE_BUILTIN}/reservation.wasm:/app/reservation.wasm:ro
+  search:
+    volumes:
+      - ./build/spliced/${SPLICE_BUILTIN:?set SPLICE_BUILTIN}/search.wasm:/app/search.wasm:ro

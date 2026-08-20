@@ -7,7 +7,15 @@ SERVICES     := recommendation attractions geo user rate profile review reservat
 SHARED_GO := $(shell find internal -name '*.go' 2>/dev/null)
 
 .PHONY: all all-composed frontend-all bootstrap wit-deps generate bench bench-tcp bench-abi \
-        hosts-tcp hosts-abi tcp-up tcp-down abi-up abi-down teardown clean
+        hosts-tcp hosts-abi tcp-up tcp-down abi-up abi-down teardown clean splice
+
+# ── splicer instrumentation ───────────────────────────────────────────────────
+SPLICE_DIR           := $(BUILD_DIR)/spliced
+SPLICER_BUILTINS_DIR ?= /Users/evgilber/git/cosmonic/splicer/assets/builtins
+export SPLICER_BUILTINS_DIR
+INSTR_SERVICES       := $(SERVICES) search
+RULES_DIR            := splicer/
+BUILTIN              ?= otel-bare-metrics   # which builtin to splice; override per run
 
 .DEFAULT_GOAL := bootstrap
 
@@ -103,6 +111,15 @@ $(BUILD_DIR)/frontend-all.wasm: $(BUILD_DIR)/frontend.wasm \
 	  $(BUILD_DIR)/frontend.wasm -o $@
 
 frontend-all: $(BUILD_DIR)/frontend-all.wasm
+
+# Splice $(BUILTIN) onto every instrumented service (build/spliced/$(BUILTIN)/<svc>.wasm).
+splice: $(foreach s,$(INSTR_SERVICES),$(SPLICE_DIR)/$(BUILTIN)/$(s).wasm)
+
+$(SPLICE_DIR)/$(BUILTIN):
+	mkdir -p $@
+
+$(SPLICE_DIR)/$(BUILTIN)/%.wasm: $(BUILD_DIR)/%.wasm $(RULES_DIR)/$(BUILTIN).yaml | $(SPLICE_DIR)/$(BUILTIN)
+	splicer splice $(RULES_DIR)/$(BUILTIN).yaml $< -o $@
 
 # ── host docker images ────────────────────────────────────────────────────────
 # Rebuild the host images only when a source baked into them changes. The stamp

@@ -1,0 +1,10 @@
+version: 1
+rules:
+  - before:
+      interface: "hotel:api/*"
+    inject:
+      - builtin:
+          name: otel-bare-metrics
+          config:
+            buffer: 1
+            flush_after_seconds: 10.0

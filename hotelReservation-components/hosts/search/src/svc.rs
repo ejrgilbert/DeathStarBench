@@ -119,6 +119,7 @@ pub async fn run() -> anyhow::Result<()> {
     let mut linker: Linker<HostData> = Linker::new(&engine);
     wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
     SearchHostWorld::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
+    host_lib::add_otel_stubs(&mut linker)?;
 
     let component = Component::from_file(&engine, &wasm_file)?;
     let pre = Arc::new(SearchHostWorldPre::new(linker.instantiate_pre(&component)?)?);

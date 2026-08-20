@@ -396,6 +396,7 @@ pub async fn run() -> Result<()> {
     let mut linker: Linker<HostData> = Linker::new(&engine);
     wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
     wasmtime_wasi_http::p2::add_only_http_to_linker_async(&mut linker)?;
+    host_lib::add_otel_stubs(&mut linker)?;
     hotel::api::search::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
     hotel::api::profile::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
     hotel::api::recommendation::add_to_linker::<_, wasmtime::component::HasSelf<_>>(&mut linker, |d| d)?;
