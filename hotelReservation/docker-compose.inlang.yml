@@ -1,29 +1,29 @@
-# Overlay on docker-compose.yml: enable the in-language gRPC metrics interceptor on the native services.
+# Overlay on docker-compose.yml: enable the in-language gRPC interceptor.
 services:
   geo:
     environment:
-      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+      INLANG_BUILTIN: "${INLANG_BUILTIN:?set INLANG_BUILTIN}"
   rate:
     environment:
-      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+      INLANG_BUILTIN: "${INLANG_BUILTIN:?set INLANG_BUILTIN}"
   profile:
     environment:
-      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+      INLANG_BUILTIN: "${INLANG_BUILTIN:?set INLANG_BUILTIN}"
   search:
     environment:
-      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+      INLANG_BUILTIN: "${INLANG_BUILTIN:?set INLANG_BUILTIN}"
   review:
     environment:
-      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+      INLANG_BUILTIN: "${INLANG_BUILTIN:?set INLANG_BUILTIN}"
   attractions:
     environment:
-      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+      INLANG_BUILTIN: "${INLANG_BUILTIN:?set INLANG_BUILTIN}"
   recommendation:
     environment:
-      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+      INLANG_BUILTIN: "${INLANG_BUILTIN:?set INLANG_BUILTIN}"
   user:
     environment:
-      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+      INLANG_BUILTIN: "${INLANG_BUILTIN:?set INLANG_BUILTIN}"
   reservation:
     environment:
-      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+      INLANG_BUILTIN: "${INLANG_BUILTIN:?set INLANG_BUILTIN}"
