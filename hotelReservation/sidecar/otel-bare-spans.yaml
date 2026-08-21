@@ -1,0 +1,71 @@
+admin:
+  address:
+    socket_address: { address: 0.0.0.0, port_value: 9901 }
+static_resources:
+  listeners:
+  - name: @SVC@_listener
+    address:
+      socket_address: { address: 0.0.0.0, port_value: @PORT@ }
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: @SVC@
+          codec_type: HTTP2
+          # Generate a server span per request; sample everything.
+          tracing:
+            random_sampling: { value: 100 }
+            provider:
+              name: envoy.tracers.opentelemetry
+              typed_config:
+                "@type": type.googleapis.com/envoy.config.trace.v3.OpenTelemetryConfig
+                service_name: @SVC@
+                grpc_service:
+                  envoy_grpc:
+                    cluster_name: otel_sink
+                  timeout: 0.250s
+          route_config:
+            name: local
+            virtual_hosts:
+            - name: @SVC@
+              domains: ["*"]
+              routes:
+              - match: { prefix: "/" }
+                route: { cluster: @SVC@_backend, timeout: 0s }
+          http_filters:
+          - name: envoy.filters.http.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+  clusters:
+  - name: @SVC@_backend
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http2_protocol_options: {}
+    load_assignment:
+      cluster_name: @SVC@_backend
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address: { address: @SVC@, port_value: @PORT@ }
+  # Dead OTLP sink: spans batch here and are dropped (nothing listening).
+  - name: otel_sink
+    type: STATIC
+    lb_policy: ROUND_ROBIN
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http2_protocol_options: {}
+    load_assignment:
+      cluster_name: otel_sink
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address: { address: 127.0.0.1, port_value: 4317 }

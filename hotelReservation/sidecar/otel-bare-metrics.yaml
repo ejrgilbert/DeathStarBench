@@ -1,0 +1,46 @@
+admin:
+  address:
+    socket_address: { address: 0.0.0.0, port_value: 9901 }
+static_resources:
+  listeners:
+  - name: @SVC@_listener
+    address:
+      socket_address: { address: 0.0.0.0, port_value: @PORT@ }
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: @SVC@
+          # h2c (plaintext gRPC) has no ALPN to sniff, so pin HTTP2 explicitly;
+          # AUTO would misdetect the downstream as HTTP/1.1.
+          codec_type: HTTP2
+          route_config:
+            name: local
+            virtual_hosts:
+            - name: @SVC@
+              domains: ["*"]
+              routes:
+              - match: { prefix: "/" }
+                route: { cluster: @SVC@_backend, timeout: 0s }
+          http_filters:
+          - name: envoy.filters.http.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+  clusters:
+  - name: @SVC@_backend
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    # Upstream is also h2c (plaintext gRPC to the real service).
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http2_protocol_options: {}
+    load_assignment:
+      cluster_name: @SVC@_backend
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address: { address: @SVC@, port_value: @PORT@ }

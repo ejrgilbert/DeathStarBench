@@ -65,5 +65,8 @@ sidecar-configs: ## Generate Envoy sidecar configs + config.sidecar.json (BUILTI
 	  svc=$${pair%%:*}; port=$${pair##*:}; \
 	  sed -e "s/@SVC@/$$svc/g" -e "s/@PORT@/$$port/g" sidecar/$(BUILTIN).yaml > $(SIDECAR_DIR)/$(BUILTIN)/$$svc.yaml; \
 	done
+	@# Re-point the 9 hotel-service *Address values at envoy-<svc> (bare host:port,
+	@# same shape as the baseline addresses). The key alternation matches only the 9
+	@# service addresses — not Mongo/Memc/consul/jaeger.
 	@sed -E 's/("(Search|Profile|Recommend|User|Reserve|Review|Attractions|Geo|Rate)Address": ")([a-z]+)(:[0-9]+")/\1envoy-\3\4/' config.json > config.sidecar.json
 	@echo "wrote envoy configs to $(SIDECAR_DIR)/$(BUILTIN)/ and config.sidecar.json"
