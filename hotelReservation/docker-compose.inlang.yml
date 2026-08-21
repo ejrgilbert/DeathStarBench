@@ -1,0 +1,29 @@
+# Overlay on docker-compose.yml: enable the in-language gRPC metrics interceptor on the native services.
+services:
+  geo:
+    environment:
+      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+  rate:
+    environment:
+      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+  profile:
+    environment:
+      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+  search:
+    environment:
+      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+  review:
+    environment:
+      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+  attractions:
+    environment:
+      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+  recommendation:
+    environment:
+      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+  user:
+    environment:
+      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"
+  reservation:
+    environment:
+      INLANG_SIGNAL: "${INLANG_SIGNAL:?set INLANG_SIGNAL}"

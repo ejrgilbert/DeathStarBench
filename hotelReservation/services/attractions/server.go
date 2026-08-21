@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	inlangmw "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/inlangmw"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/registry"
 	pb "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/attractions/proto"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tls"
@@ -74,8 +75,9 @@ func (s *Server) Run() error {
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			PermitWithoutStream: true,
 		}),
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(s.Tracer),
+		grpc.ChainUnaryInterceptor(
+			append(inlangmw.UnaryServerInterceptors(),
+				otgrpc.OpenTracingServerInterceptor(s.Tracer))...,
 		),
 	}
 

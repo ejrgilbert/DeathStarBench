@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/bradfitz/gomemcache/memcache"
+	inlangmw "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/inlangmw"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/registry"
 	pb "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/reservation/proto"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tls"
@@ -56,8 +57,9 @@ func (s *Server) Run() error {
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			PermitWithoutStream: true,
 		}),
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(s.Tracer),
+		grpc.ChainUnaryInterceptor(
+			append(inlangmw.UnaryServerInterceptors(),
+				otgrpc.OpenTracingServerInterceptor(s.Tracer))...,
 		),
 	}
 

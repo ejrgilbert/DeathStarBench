@@ -50,3 +50,20 @@ protoc: bin $(PROTOC_GEN_GO) ## Downloads protoc compiler
 protoc-plugins: protoc $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) ## Copies the protoc plugin
 	cp -f $(PROTOC_GEN_GO) $(GOBIN)/protoc-gen-go
 	cp -f $(PROTOC_GEN_GO_GRPC) $(GOBIN)/protoc-gen-go-grpc
+
+# ── sidecar (Envoy) instrumentation ───────────────────────────────────────────
+SIDECAR_DIR := build/sidecar
+BUILTIN     ?= otel-bare-metrics
+SIDECAR_MAP := search:8082 profile:8081 recommendation:8085 user:8086 \
+               reservation:8087 review:8088 attractions:8089 geo:8083 rate:8084
+
+.PHONY: sidecar-configs
+sidecar-configs: ## Generate Envoy sidecar configs + config.sidecar.json (BUILTIN=<name>)
+	@test -f sidecar/$(BUILTIN).yaml || { echo "no sidecar config: sidecar/$(BUILTIN).yaml" >&2; exit 1; }
+	@mkdir -p $(SIDECAR_DIR)/$(BUILTIN)
+	@for pair in $(SIDECAR_MAP); do \
+	  svc=$${pair%%:*}; port=$${pair##*:}; \
+	  sed -e "s/@SVC@/$$svc/g" -e "s/@PORT@/$$port/g" sidecar/$(BUILTIN).yaml > $(SIDECAR_DIR)/$(BUILTIN)/$$svc.yaml; \
+	done
+	@sed -E 's/("(Search|Profile|Recommend|User|Reserve|Review|Attractions|Geo|Rate)Address": ")([a-z]+)(:[0-9]+")/\1envoy-\3\4/' config.json > config.sidecar.json
+	@echo "wrote envoy configs to $(SIDECAR_DIR)/$(BUILTIN)/ and config.sidecar.json"
