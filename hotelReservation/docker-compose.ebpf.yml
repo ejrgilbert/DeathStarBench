@@ -1,0 +1,16 @@
+# Overlay on docker-compose.yml: eBPF auto-instrumentation via Grafana Beyla.
+services:
+  beyla:
+    image: grafana/beyla:latest
+    pid: "host"
+    privileged: true
+    environment:
+      # Native gRPC service ports (from config.json *Port); Beyla instruments the
+      # processes listening on these.
+      BEYLA_OPEN_PORT: "8081,8082,8083,8084,8085,8086,8087,8088,8089"
+      BEYLA_CONFIG_PATH: /config.yaml
+    volumes:
+      - ../../ebpf/${EBPF_BUILTIN:?set EBPF_BUILTIN}.yaml:/config.yaml:ro
+      - /sys/kernel/security:/sys/kernel/security:ro
+    depends_on:
+      - frontend
