@@ -1,0 +1,9 @@
+version: 1
+rules:
+  - before:
+      interface: "hotel:api/*"
+    inject:
+      - builtin:
+          name: otel-bare-spans
+          config:
+            span_kind: server
