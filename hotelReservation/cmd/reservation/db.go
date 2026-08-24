@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/rs/zerolog/log"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -76,6 +77,19 @@ func initializeDatabase(url string) (*mongo.Client, func()) {
 		log.Fatal().Msg(err.Error())
 	}
 	log.Info().Msg("Successfully inserted test data into reservation DB")
+
+	// Index the fields MakeReservation filters on.
+	if _, err = resCollection.Indexes().CreateOne(context.TODO(), mongo.IndexModel{
+		Keys: bson.D{{Key: "hotelId", Value: 1}, {Key: "inDate", Value: 1}, {Key: "outDate", Value: 1}},
+	}); err != nil {
+		log.Fatal().Msgf("failed to create reservation index: %v", err)
+	}
+	if _, err = numCollection.Indexes().CreateOne(context.TODO(), mongo.IndexModel{
+		Keys: bson.D{{Key: "hotelId", Value: 1}},
+	}); err != nil {
+		log.Fatal().Msgf("failed to create number index: %v", err)
+	}
+	log.Info().Msg("Created reservation/number indexes")
 
 	return client, func() {
 		if err := client.Disconnect(context.TODO()); err != nil {
