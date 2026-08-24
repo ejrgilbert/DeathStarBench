@@ -115,10 +115,8 @@ frontend-all: $(BUILD_DIR)/frontend-all.wasm
 # Splice $(BUILTIN) onto every instrumented service (build/spliced/$(BUILTIN)/<svc>.wasm).
 splice: $(foreach s,$(INSTR_SERVICES),$(SPLICE_DIR)/$(BUILTIN)/$(s).wasm)
 
-$(SPLICE_DIR)/$(BUILTIN):
-	mkdir -p $@
-
-$(SPLICE_DIR)/$(BUILTIN)/%.wasm: $(BUILD_DIR)/%.wasm $(RULES_DIR)/$(BUILTIN).yaml | $(SPLICE_DIR)/$(BUILTIN)
+$(SPLICE_DIR)/$(BUILTIN)/%.wasm: $(BUILD_DIR)/%.wasm $(RULES_DIR)/$(BUILTIN).yaml
+	@mkdir -p $(@D)
 	splicer splice $(RULES_DIR)/$(BUILTIN).yaml $< -o $@
 
 # ── sidecar (Envoy) instrumentation ───────────────────────────────────────────
@@ -127,11 +125,9 @@ SIDECAR_DIR := $(BUILD_DIR)/sidecar
 SIDECAR_MAP := recommendation:8085 attractions:8087 geo:8089 user:8091 rate:8093 \
                profile:8095 search:8097 review:8098 reservation:8100
 
-$(SIDECAR_DIR)/$(BUILTIN):
-	mkdir -p $@
-
-sidecar-configs: | $(SIDECAR_DIR)/$(BUILTIN)
+sidecar-configs:
 	@test -f sidecar/$(BUILTIN).yaml || { echo "no sidecar config: sidecar/$(BUILTIN).yaml" >&2; exit 1; }
+	@mkdir -p $(SIDECAR_DIR)/$(BUILTIN)
 	@for pair in $(SIDECAR_MAP); do \
 	  svc=$${pair%%:*}; port=$${pair##*:}; \
 	  sed -e "s/@SVC@/$$svc/g" -e "s/@PORT@/$$port/g" sidecar/$(BUILTIN).yaml > $(SIDECAR_DIR)/$(BUILTIN)/$$svc.yaml; \
