@@ -1,5 +1,11 @@
 # Overlay on docker-compose.tcp.yml: Envoy reverse-proxy sidecars in front of each service (tcp deployment).
 services:
+  # Discarding OTLP collector
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ../../otelcol.yaml:/etc/otelcol/config.yaml:ro
   envoy-recommendation:
     image: envoyproxy/envoy:v1.31-latest
     command: ["-c", "/etc/envoy/envoy.yaml", "--concurrency", "1"]

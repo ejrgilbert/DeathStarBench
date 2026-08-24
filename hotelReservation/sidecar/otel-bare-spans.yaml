@@ -53,9 +53,9 @@ static_resources:
         - endpoint:
             address:
               socket_address: { address: @SVC@, port_value: @PORT@ }
-  # Dead OTLP sink: spans batch here and are dropped (nothing listening).
+  # Discarding OTLP sink
   - name: otel_sink
-    type: STATIC
+    type: STRICT_DNS
     lb_policy: ROUND_ROBIN
     typed_extension_protocol_options:
       envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
@@ -68,4 +68,4 @@ static_resources:
       - lb_endpoints:
         - endpoint:
             address:
-              socket_address: { address: 127.0.0.1, port_value: 4317 }
+              socket_address: { address: otelcol, port_value: 4317 }

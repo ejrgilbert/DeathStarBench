@@ -1,16 +1,22 @@
-# Overlay on docker-compose.yml: eBPF auto-instrumentation via Grafana Beyla.
+# Overlay on docker-compose.yml: eBPF auto-instrumentation via Grafana Beyla
+# (OpenTelemetry eBPF) as an out-of-band collector. LINUX-ONLY.
 services:
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ../../otelcol.yaml:/etc/otelcol/config.yaml:ro
   beyla:
     image: grafana/beyla:latest
     pid: "host"
     privileged: true
     environment:
-      # Native gRPC service ports (from config.json *Port); Beyla instruments the
-      # processes listening on these.
       BEYLA_OPEN_PORT: "8081,8082,8083,8084,8085,8086,8087,8088,8089"
       BEYLA_CONFIG_PATH: /config.yaml
     volumes:
       - ../../ebpf/${EBPF_BUILTIN:?set EBPF_BUILTIN}.yaml:/config.yaml:ro
       - /sys/kernel/security:/sys/kernel/security:ro
+      - /sys/fs/bpf:/sys/fs/bpf:rw          # pinned-map support (fixes bpffs warning)
     depends_on:
+      - otelcol
       - frontend

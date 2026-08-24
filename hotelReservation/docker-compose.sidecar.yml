@@ -1,5 +1,11 @@
 # Overlay on docker-compose.yml: Envoy reverse-proxy sidecars in front of each native Go service.
 services:
+  # Discarding OTLP collector
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ../../otelcol.yaml:/etc/otelcol/config.yaml:ro
   # Route the two services that dial hotel peers through the sidecars.
   frontend:
     volumes: ["./config.sidecar.json:/workspace/config.json:ro"]

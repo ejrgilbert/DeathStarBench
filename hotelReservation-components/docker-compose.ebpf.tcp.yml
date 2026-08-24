@@ -1,15 +1,22 @@
-# Overlay on docker-compose.tcp.yml: eBPF auto-instrumentation via Grafana Beyla.
+# Overlay on docker-compose.tcp.yml: eBPF (Beyla) targeting the Rust wasmtime HOST
+# processes running the component gRPC servers. Substrate-agnostic. LINUX-ONLY.
 services:
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ../../otelcol.yaml:/etc/otelcol/config.yaml:ro
   beyla:
     image: grafana/beyla:latest
     pid: "host"
     privileged: true
     environment:
-      # Component svc-mode inbound ports (LISTEN_ADDR in docker-compose.tcp.yml).
       BEYLA_OPEN_PORT: "8085,8087,8089,8091,8093,8095,8097,8098,8100"
       BEYLA_CONFIG_PATH: /config.yaml
     volumes:
       - ../../ebpf/${EBPF_BUILTIN:?set EBPF_BUILTIN}.yaml:/config.yaml:ro
       - /sys/kernel/security:/sys/kernel/security:ro
+      - /sys/fs/bpf:/sys/fs/bpf:rw
     depends_on:
+      - otelcol
       - frontend
