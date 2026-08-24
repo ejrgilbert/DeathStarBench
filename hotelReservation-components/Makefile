@@ -7,7 +7,7 @@ SERVICES     := recommendation attractions geo user rate profile review reservat
 SHARED_GO := $(shell find internal -name '*.go' 2>/dev/null)
 
 .PHONY: all all-composed frontend-all bootstrap wit-deps generate bench bench-tcp bench-abi \
-        hosts-tcp hosts-abi tcp-up tcp-down abi-up abi-down teardown clean splice sidecar-configs
+        hosts-tcp hosts-abi tcp-up tcp-down abi-up abi-down teardown clean splice splice-abi sidecar-configs
 
 # ── splicer instrumentation ───────────────────────────────────────────────────
 SPLICE_DIR           := $(BUILD_DIR)/spliced
@@ -118,6 +118,15 @@ splice: $(foreach s,$(INSTR_SERVICES),$(SPLICE_DIR)/$(BUILTIN)/$(s).wasm)
 $(SPLICE_DIR)/$(BUILTIN)/%.wasm: $(BUILD_DIR)/%.wasm $(RULES_DIR)/$(BUILTIN).yaml
 	@mkdir -p $(@D)
 	splicer splice $(RULES_DIR)/$(BUILTIN).yaml $< -o $@
+
+SPLICE_ABI_DIR := $(BUILD_DIR)/spliced-abi
+
+splice-abi: $(SPLICE_ABI_DIR)/$(BUILTIN)/frontend-all.wasm
+
+$(SPLICE_ABI_DIR)/$(BUILTIN)/frontend-all.wasm: $(BUILD_DIR)/frontend-all.wasm $(RULES_DIR)/$(BUILTIN).yaml
+	@mkdir -p $(@D)
+	splicer splice $(RULES_DIR)/$(BUILTIN).yaml $< -o $@
+	@echo "wrote spliced abi graph to $@"
 
 # ── sidecar (Envoy) instrumentation ───────────────────────────────────────────
 SIDECAR_DIR := $(BUILD_DIR)/sidecar

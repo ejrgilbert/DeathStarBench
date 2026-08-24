@@ -1,0 +1,9 @@
+# Overlay on docker-compose.abi.yml: run the Splicer-instrumented composed graph.
+services:
+  frontend:
+    volumes:
+      - ./build/spliced-abi/${SPLICE_BUILTIN:?set SPLICE_BUILTIN}/frontend-all.wasm:/app/frontend-all.wasm:ro
+    environment:
+      POOL_MEMS_PER_COMPONENT: "64"
+      POOL_CORES_PER_COMPONENT: "768"
+      POOL_TABLES_PER_COMPONENT: "128"
