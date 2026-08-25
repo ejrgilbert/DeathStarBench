@@ -1,6 +1,10 @@
 package main
 
 import (
+	"os"
+	"runtime"
+	"strconv"
+
 	gcutil "hotel-components/internal/gcutil"
 
 	"go.bytecodealliance.org/cm"
@@ -16,6 +20,40 @@ func main() {}
 
 func init() {
 	profapi.Exports.GetProfiles = getProfiles
+	reserveHeap()
+}
+
+// reserveHeap pre-grows the linear-memory heap once at startup to give every
+// request permanent GC headroom.
+//
+// TinyGo's conservative GC forces a collection whenever an allocation would run
+// past the committed heap end. Inside a canonical-ABI adapter (the GetProfiles
+// return lowering, or a cross-component lift) the buffers being built are held
+// only in WASM locals the conservative stack scan can't see, so a collection that
+// fires mid-adapter frees them and corrupts the result — the intermittent
+// "invalid utf8" trap. gcutil.Tick() collapses the heap back to the live set every
+// request, so absent headroom the very next adapter allocation can hit the
+// on-full path.
+//
+// Growing the heap once, then dropping the allocation, leaves that space free but
+// keeps the heap *committed* (wasm linear memory never shrinks), so every
+// subsequent request has multiple MB of slack and the on-full collector never
+// fires mid-adapter. One-time cost; nothing per request. Same idea as the repro's
+// 2 MB sentinel, made permanent. Tune with PROFILE_HEAP_RESERVE_BYTES (per wasm
+// instance — the ABI host pools ~64, so total cost is this value ×pool size).
+func reserveHeap() {
+	n := 4 << 20 // 4 MiB default
+	if v, ok := os.LookupEnv("PROFILE_HEAP_RESERVE_BYTES"); ok {
+		if p, err := strconv.Atoi(v); err == nil {
+			n = p
+		}
+	}
+	if n <= 0 {
+		return
+	}
+	b := make([]byte, n)
+	runtime.KeepAlive(b) // force the grow to happen and defeat dead-code elimination
+	// b goes out of scope here; the next GC reclaims it but the heap stays grown.
 }
 
 func getProfiles(hotelIds cm.List[string]) (result cm.List[profapi.Hotel]) {
