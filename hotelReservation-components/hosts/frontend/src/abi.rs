@@ -126,6 +126,17 @@ impl host::storage::collection::Host for AbiHostData {
         let col = self.ctx().table.get(&c).unwrap().inner.clone();
         host_lib::mongo_insert_many(&col, docs).await.unwrap()
     }
+
+    async fn update_one(
+        &mut self,
+        c: wasmtime::component::Resource<host_lib::MongoCollection>,
+        filter: Vec<u8>,
+        update: Vec<u8>,
+        upsert: bool,
+    ) {
+        let col = self.ctx().table.get(&c).unwrap().inner.clone();
+        host_lib::mongo_update_one(&col, &filter, &update, upsert).await.unwrap()
+    }
 }
 
 // Non-cache-using composed services still import the unused `host:cache/keyvalue`;

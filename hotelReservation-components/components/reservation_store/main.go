@@ -159,14 +159,27 @@ func loadReservations() cm.List[revstore.ReservationRec] {
 
 func doInsertReservation(r revstore.ReservationRec) {
 	ensureConn()
-	s := seedReservation{
-		HotelId:      r.HotelID,
-		CustomerName: r.CustomerName,
-		InDate:       r.InDate,
-		OutDate:      r.OutDate,
-		Number:       r.Number,
-	}
-	b, _ := json.Marshal(s)
-	col.InsertOne(resConn, col.Document(cm.ToList(b)))
+	// Aggregate per (hotelId,inDate,outDate) instead of appending a row per
+	// write: $inc the reserved-room count into a single doc (created on first
+	// write with the customer name). This keeps getReservations' result set at
+	// O(1) per key — availability only needs the summed count — so the guest
+	// never lifts an unbounded cross-boundary list (which tips TinyGo's on-full
+	// GC mid-call and corrupts the buffer). Mirrors the native UpdateOne+$inc.
+	// Build the filter/update with json.Marshal (not Sprintf %q): %q emits
+	// Go-style escapes (\x.., \U..) that are not valid JSON, which the host's
+	// serde_json rejected ("invalid escape").
+	filter, _ := json.Marshal(map[string]string{
+		"hotelId": r.HotelID,
+		"inDate":  r.InDate,
+		"outDate": r.OutDate,
+	})
+	update, _ := json.Marshal(map[string]interface{}{
+		"$inc":         map[string]uint32{"number": r.Number},
+		"$setOnInsert": map[string]string{"customerName": r.CustomerName},
+	})
+	col.UpdateOne(resConn,
+		col.Document(cm.ToList(filter)),
+		col.Document(cm.ToList(update)),
+		true)
 	reservations = append(reservations, r)
 }

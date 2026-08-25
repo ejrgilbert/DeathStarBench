@@ -378,6 +378,21 @@ pub async fn mongo_insert_one(
     Ok(())
 }
 
+/// Update-first-match with optional upsert. `update` is a full Mongo update
+/// document (e.g. `{"$inc":..., "$setOnInsert":...}`), passed through as BSON so
+/// the guest can aggregate per-key counters instead of appending a row per write.
+pub async fn mongo_update_one(
+    collection: &Arc<mongodb::Collection<mongodb::bson::Document>>,
+    filter: &[u8],
+    update: &[u8],
+    upsert: bool,
+) -> Result<()> {
+    let filter = json_to_bson(filter)?;
+    let update = json_to_bson(update)?;
+    collection.update_one(filter, update).upsert(upsert).await?;
+    Ok(())
+}
+
 /// Host data for svc-mode hosts.
 ///
 /// `store_client` is a plain (cheaply cloneable) tonic client, NOT an
@@ -496,6 +511,18 @@ macro_rules! impl_collection_host {
                 let col = <$T as ::wasmtime_wasi::WasiView>::ctx(self).table
                     .get(&c).unwrap().inner.clone();
                 $crate::mongo_insert_many(&col, docs).await.unwrap()
+            }
+
+            async fn update_one(
+                &mut self,
+                c: ::wasmtime::component::Resource<$crate::MongoCollection>,
+                filter: ::std::vec::Vec<u8>,
+                update: ::std::vec::Vec<u8>,
+                upsert: bool,
+            ) {
+                let col = <$T as ::wasmtime_wasi::WasiView>::ctx(self).table
+                    .get(&c).unwrap().inner.clone();
+                $crate::mongo_update_one(&col, &filter, &update, upsert).await.unwrap()
             }
         }
     };

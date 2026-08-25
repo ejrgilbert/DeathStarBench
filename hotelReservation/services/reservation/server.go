@@ -20,6 +20,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
@@ -191,16 +192,17 @@ func (s *Server) MakeReservation(ctx context.Context, req *pb.Request) (*pb.Resu
 	for inDate.Before(outDate) {
 		inDate = inDate.AddDate(0, 0, 1)
 		outdate := inDate.String()[0:10]
-		_, err := resCollection.InsertOne(
-			context.TODO(),
-			reservation{
-				HotelId:      hotelId,
-				CustomerName: req.CustomerName,
-				InDate:       indate,
-				OutDate:      outdate,
-				Number:       int(req.RoomNumber),
-			},
-		)
+		// Aggregate per (hotelId,inDate,outDate) via $inc upsert instead of a
+		// row-per-write InsertOne, so the CheckAvailability Find below stays
+		// O(1) per key. Availability only needs the summed reserved count.
+		// Kept identical to the components store so the comparison stays fair.
+		filter := bson.D{{"hotelId", hotelId}, {"inDate", indate}, {"outDate", outdate}}
+		update := bson.D{
+			{"$inc", bson.D{{"number", int(req.RoomNumber)}}},
+			{"$setOnInsert", bson.D{{"customerName", req.CustomerName}}},
+		}
+		_, err := resCollection.UpdateOne(
+			context.TODO(), filter, update, options.Update().SetUpsert(true))
 		if err != nil {
 			log.Panic().Msgf("Tried to insert hotel [hotelId %v], but got error", hotelId, err.Error())
 		}

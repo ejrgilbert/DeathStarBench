@@ -16,4 +16,7 @@ interface collection {
     find:        func(c: borrow<connection>, filter: document) -> list<document>;
     insert-one:  func(c: borrow<connection>, doc: document);
     insert-many: func(c: borrow<connection>, docs: list<document>);
+
+    // Update the first document matching `filter`
+    update-one:  func(c: borrow<connection>, filter: document, update: document, upsert: bool);
 }
