@@ -29,14 +29,14 @@ func getRates(hotelIds cm.List[string], inDate, outDate string) (result cm.List[
 	witResult := make([]rateapi.RatePlan, len(plans))
 	for i, p := range plans {
 		witResult[i] = rateapi.RatePlan{
-			HotelID: p.HotelId,
-			Code:    p.Code,
-			InDate:  p.InDate,
-			OutDate: p.OutDate,
+			HotelID: string([]byte(p.HotelId)),
+			Code:    string([]byte(p.Code)),
+			InDate:  string([]byte(p.InDate)),
+			OutDate: string([]byte(p.OutDate)),
 			RoomType: rateapi.RoomType{
 				BookableRate:       p.RoomType.BookableRate,
-				Code:               p.RoomType.Code,
-				RoomDescription:    p.RoomType.RoomDescription,
+				Code:               string([]byte(p.RoomType.Code)),
+				RoomDescription:    string([]byte(p.RoomType.RoomDescription)),
 				TotalRate:          p.RoomType.TotalRate,
 				TotalRateInclusive: p.RoomType.TotalRateInclusive,
 			},

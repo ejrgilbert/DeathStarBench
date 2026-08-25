@@ -23,12 +23,12 @@ func getReviews(hotelId string) cm.List[revapi.ReviewComm] {
 	witResult := make([]revapi.ReviewComm, len(reviews))
 	for i, r := range reviews {
 		witResult[i] = revapi.ReviewComm{
-			ReviewID:    r.ReviewId,
-			HotelID:     r.HotelId,
-			Name:        r.Name,
+			ReviewID:    string([]byte(r.ReviewId)),
+			HotelID:     string([]byte(r.HotelId)),
+			Name:        string([]byte(r.Name)),
 			Rating:      r.Rating,
-			Description: r.Description,
-			Image:       revapi.Image{URL: r.Image.Url, Default: r.Image.Default},
+			Description: string([]byte(r.Description)),
+			Image:       revapi.Image{URL: string([]byte(r.Image.Url)), Default: r.Image.Default},
 		}
 	}
 	gcutil.Tick()

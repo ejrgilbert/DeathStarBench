@@ -25,20 +25,20 @@ func getProfiles(hotelIds cm.List[string]) (result cm.List[profapi.Hotel]) {
 	for i, p := range profiles {
 		images := make([]profapi.Image, len(p.Images))
 		for k, img := range p.Images {
-			images[k] = profapi.Image{URL: img.Url, Default: img.Default}
+			images[k] = profapi.Image{URL: string([]byte(img.Url)), Default: img.Default}
 		}
 		witResult[i] = profapi.Hotel{
-			ID:          p.Id,
-			Name:        p.Name,
-			PhoneNumber: p.PhoneNumber,
-			Description: p.Description,
+			ID:          string([]byte(p.Id)),
+			Name:        string([]byte(p.Name)),
+			PhoneNumber: string([]byte(p.PhoneNumber)),
+			Description: string([]byte(p.Description)),
 			Addr: profapi.Address{
-				StreetNumber: p.Addr.StreetNumber,
-				StreetName:   p.Addr.StreetName,
-				City:         p.Addr.City,
-				State:        p.Addr.State,
-				Country:      p.Addr.Country,
-				PostalCode:   p.Addr.PostalCode,
+				StreetNumber: string([]byte(p.Addr.StreetNumber)),
+				StreetName:   string([]byte(p.Addr.StreetName)),
+				City:         string([]byte(p.Addr.City)),
+				State:        string([]byte(p.Addr.State)),
+				Country:      string([]byte(p.Addr.Country)),
+				PostalCode:   string([]byte(p.Addr.PostalCode)),
 				Lat:          p.Addr.Lat,
 				Lon:          p.Addr.Lon,
 			},
