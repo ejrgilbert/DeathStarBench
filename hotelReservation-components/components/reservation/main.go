@@ -119,7 +119,11 @@ func cacheGetMulti(keys []string) [][]byte {
 	out := make([][]byte, len(keys))
 	for i := range keys {
 		if i < len(res) && !res[i].None() {
-			out[i] = res[i].Some().Slice()
+			// tinyGo bug workaround
+			src := res[i].Some().Slice()
+			dst := make([]byte, len(src))
+			copy(dst, src)
+			out[i] = dst
 		}
 	}
 	return out
