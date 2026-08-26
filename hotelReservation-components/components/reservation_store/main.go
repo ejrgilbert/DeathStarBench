@@ -51,7 +51,7 @@ func getNumbers(ids cm.List[string]) cm.List[revstore.NumberRec] {
 	rawIds := ids.Slice()
 	strs := make([]string, len(rawIds))
 	for i, id := range rawIds {
-		strs[i] = string([]byte(id))
+		strs[i] = id
 	}
 	idsJSON, _ := json.Marshal(strs)
 	filter := fmt.Sprintf(`{"hotelId":{"$in":%s}}`, string(idsJSON))
@@ -61,7 +61,7 @@ func getNumbers(ids cm.List[string]) cm.List[revstore.NumberRec] {
 		var s seedNumber
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
 		recs = append(recs, revstore.NumberRec{
-			HotelID:      string([]byte(s.HotelId)),
+			HotelID:      s.HotelId,
 			NumberOfRoom: s.NumberOfRoom,
 		})
 	}
@@ -78,7 +78,7 @@ func getNumber(hotelID string) cm.Option[revstore.NumberRec] {
 	}
 	var s seedNumber
 	json.Unmarshal(cm.List[uint8](*opt.Some()).Slice(), &s)
-	return cm.Some(revstore.NumberRec{HotelID: string([]byte(s.HotelId)), NumberOfRoom: s.NumberOfRoom})
+	return cm.Some(revstore.NumberRec{HotelID: s.HotelId, NumberOfRoom: s.NumberOfRoom})
 }
 
 // getReservations does a targeted `Find({"hotelId","inDate","outDate"})`.
@@ -91,10 +91,10 @@ func getReservations(hotelID, inDate, outDate string) cm.List[revstore.Reservati
 		var s seedReservation
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
 		recs = append(recs, revstore.ReservationRec{
-			HotelID:      string([]byte(s.HotelId)),
-			CustomerName: string([]byte(s.CustomerName)),
-			InDate:       string([]byte(s.InDate)),
-			OutDate:      string([]byte(s.OutDate)),
+			HotelID:      s.HotelId,
+			CustomerName: s.CustomerName,
+			InDate:       s.InDate,
+			OutDate:      s.OutDate,
 			Number:       s.Number,
 		})
 	}
@@ -120,7 +120,7 @@ func ensureNumbers() {
 		var s seedNumber
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
 		numbers = append(numbers, revstore.NumberRec{
-			HotelID:      string([]byte(s.HotelId)),
+			HotelID:      s.HotelId,
 			NumberOfRoom: s.NumberOfRoom,
 		})
 	}
@@ -137,10 +137,10 @@ func ensureReservations() {
 		var s seedReservation
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
 		reservations = append(reservations, revstore.ReservationRec{
-			HotelID:      string([]byte(s.HotelId)),
-			CustomerName: string([]byte(s.CustomerName)),
-			InDate:       string([]byte(s.InDate)),
-			OutDate:      string([]byte(s.OutDate)),
+			HotelID:      s.HotelId,
+			CustomerName: s.CustomerName,
+			InDate:       s.InDate,
+			OutDate:      s.OutDate,
 			Number:       s.Number,
 		})
 	}

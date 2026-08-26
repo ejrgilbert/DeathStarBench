@@ -3,7 +3,6 @@ package main
 import (
 	"go.bytecodealliance.org/cm"
 
-	gcutil "hotel-components/internal/gcutil"
 
 	store "hotel-components/components/recommendation/hotel/store/recommendation-store"
 	recapi "hotel-components/components/recommendation/hotel/api/recommendation"
@@ -25,7 +24,7 @@ func loadHotels() []Hotel {
 	hotels := make([]Hotel, len(witHotels))
 	for i, h := range witHotels {
 		hotels[i] = Hotel{
-			ID:    string([]byte(h.ID)),
+			ID:    h.ID,
 			Lat:   h.Lat,
 			Lon:   h.Lon,
 			Rate:  h.Rate,
@@ -52,6 +51,5 @@ func recommend(req recapi.Requirement, lat float64, lon float64) cm.List[string]
 	}
 
 	ids, _ := svc.Recommend(r, lat, lon)
-	gcutil.Tick()
 	return cm.ToList(ids)
 }

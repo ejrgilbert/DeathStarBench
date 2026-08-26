@@ -1,8 +1,6 @@
 package main
 
 import (
-	gcutil  "hotel-components/internal/gcutil"
-
 	store   "hotel-components/components/user/hotel/store/user-store"
 	userapi "hotel-components/components/user/hotel/api/user"
 )
@@ -24,7 +22,7 @@ func loadUsers() []User {
 	witUsers := store.LoadUsers().Slice()
 	users := make([]User, len(witUsers))
 	for i, u := range witUsers {
-		users[i] = User{Username: string([]byte(u.Username)), Password: string([]byte(u.Password))}
+		users[i] = User{Username: u.Username, Password: u.Password}
 	}
 	return users
 }
@@ -35,6 +33,5 @@ func checkUser(username string, password string) bool {
 		svc.Load(loadUsers())
 	}
 	ok := svc.CheckUser(username, password)
-	gcutil.Tick()
 	return ok
 }

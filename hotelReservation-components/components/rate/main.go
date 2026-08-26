@@ -1,7 +1,6 @@
 package main
 
 import (
-	gcutil "hotel-components/internal/gcutil"
 
 	"go.bytecodealliance.org/cm"
 
@@ -19,30 +18,28 @@ func init() {
 }
 
 func getRates(hotelIds cm.List[string], inDate, outDate string) (result cm.List[rateapi.RatePlan]) {
-    // tinygo string bug workaround
 	lowerIds := make([]string, len(hotelIds.Slice()))
 	for i, id := range hotelIds.Slice() {
-	    lowerIds[i] = string([]byte(id))
+	    lowerIds[i] = id
 	}
 	plans := svc.GetRates(lowerIds, loadAll, cacheGetMulti, cacheSet)
 
 	witResult := make([]rateapi.RatePlan, len(plans))
 	for i, p := range plans {
 		witResult[i] = rateapi.RatePlan{
-			HotelID: string([]byte(p.HotelId)),
-			Code:    string([]byte(p.Code)),
-			InDate:  string([]byte(p.InDate)),
-			OutDate: string([]byte(p.OutDate)),
+			HotelID: p.HotelId,
+			Code:    p.Code,
+			InDate:  p.InDate,
+			OutDate: p.OutDate,
 			RoomType: rateapi.RoomType{
 				BookableRate:       p.RoomType.BookableRate,
-				Code:               string([]byte(p.RoomType.Code)),
-				RoomDescription:    string([]byte(p.RoomType.RoomDescription)),
+				Code:               p.RoomType.Code,
+				RoomDescription:    p.RoomType.RoomDescription,
 				TotalRate:          p.RoomType.TotalRate,
 				TotalRateInclusive: p.RoomType.TotalRateInclusive,
 			},
 		}
 	}
-	gcutil.Tick()
 	result = cm.ToList(witResult)
 	return
 }
@@ -52,14 +49,14 @@ func loadAll() []RatePlan {
 	plans := make([]RatePlan, len(witPlans))
 	for i, wp := range witPlans {
 		plans[i] = RatePlan{
-			HotelId: string([]byte(wp.HotelID)),
-			Code:    string([]byte(wp.Code)),
-			InDate:  string([]byte(wp.InDate)),
-			OutDate: string([]byte(wp.OutDate)),
+			HotelId: wp.HotelID,
+			Code:    wp.Code,
+			InDate:  wp.InDate,
+			OutDate: wp.OutDate,
 			RoomType: RoomType{
 				BookableRate:       wp.RoomType.BookableRate,
-				Code:               string([]byte(wp.RoomType.Code)),
-				RoomDescription:    string([]byte(wp.RoomType.RoomDescription)),
+				Code:               wp.RoomType.Code,
+				RoomDescription:    wp.RoomType.RoomDescription,
 				TotalRate:          wp.RoomType.TotalRate,
 				TotalRateInclusive: wp.RoomType.TotalRateInclusive,
 			},
@@ -81,11 +78,7 @@ func cacheGetMulti(keys []string) [][]byte {
 	out := make([][]byte, len(keys))
 	for i := range keys {
 		if i < len(res) && !res[i].None() {
-			// tinyGo bug workaround
-			src := res[i].Some().Slice()
-			dst := make([]byte, len(src))
-			copy(dst, src)
-			out[i] = dst
+			out[i] = res[i].Some().Slice()
 		}
 	}
 	return out
