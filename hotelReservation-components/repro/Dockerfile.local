@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1
+#
+# Runs the repro against a guest wasm built on the host with a locally-built
+# TinyGo (see `make docker-local`). Only the Rust host is built in-container:
+# the .wasm is portable, but the host tinygo binary is not, so we don't rebuild
+# the guest here — we copy the prebuilt repro.local.wasm in.
+#
+# ── builder (Rust host only) ─────────────────────────────────────────────────
+FROM rust:1.97-bookworm AS builder
+WORKDIR /build
+
+# cache Rust deps with a stub binary
+COPY host/Cargo.toml host/Cargo.lock host/
+RUN mkdir host/src && echo 'fn main(){}' > host/src/main.rs \
+ && cargo build --release --manifest-path host/Cargo.toml \
+ && rm -rf host/target/release/.fingerprint/repro-host-*
+
+# build the host (its bindgen! macro reads ./wit, including wit/deps)
+COPY . .
+RUN touch host/src/main.rs \
+ && cargo build --release --manifest-path host/Cargo.toml
+
+# ── runtime ───────────────────────────────────────────────────────────────────
+FROM debian:bookworm-slim
+COPY --from=builder /build/host/target/release/repro-host /repro/repro-host
+COPY repro.local.wasm /repro/repro.wasm
+ENTRYPOINT ["/repro/repro-host", "/repro/repro.wasm"]
