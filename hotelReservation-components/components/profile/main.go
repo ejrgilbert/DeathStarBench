@@ -20,7 +20,12 @@ func main() {}
 
 func init() {
 	profapi.Exports.GetProfiles = getProfiles
-	reserveHeap()
+	// DISABLED (bisected to 055cf2f): the 4 MiB reserve × ~64 pooled ABI instances
+	// makes TinyGo's per-request mark-sweep scan a huge committed heap, tanking abi
+	// latency ~7x (1.4ms -> 9.6ms) and capping throughput. The eb1b480 defensive
+	// copies prevent the "invalid utf8" corruption on their own (verified on Mac:
+	// abi @3000/@5000 fast with errors=0). Re-enable if the GC trap reappears on Linux.
+	// reserveHeap()
 }
 
 // reserveHeap pre-grows the linear-memory heap once at startup to give every
