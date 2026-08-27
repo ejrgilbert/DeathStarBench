@@ -3,7 +3,6 @@ package main
 import (
 	"go.bytecodealliance.org/cm"
 
-	gcutil "hotel-components/internal/gcutil"
 
 	hkv    "hotel-components/components/review/cache/keyvalue/keyvalue"
 	store  "hotel-components/components/review/hotel/store/review-store"
@@ -23,15 +22,14 @@ func getReviews(hotelId string) cm.List[revapi.ReviewComm] {
 	witResult := make([]revapi.ReviewComm, len(reviews))
 	for i, r := range reviews {
 		witResult[i] = revapi.ReviewComm{
-			ReviewID:    string([]byte(r.ReviewId)),
-			HotelID:     string([]byte(r.HotelId)),
-			Name:        string([]byte(r.Name)),
+			ReviewID:    r.ReviewId,
+			HotelID:     r.HotelId,
+			Name:        r.Name,
 			Rating:      r.Rating,
-			Description: string([]byte(r.Description)),
-			Image:       revapi.Image{URL: string([]byte(r.Image.Url)), Default: r.Image.Default},
+			Description: r.Description,
+			Image:       revapi.Image{URL: r.Image.Url, Default: r.Image.Default},
 		}
 	}
-	gcutil.Tick()
 	return cm.ToList(witResult)
 }
 
@@ -40,12 +38,12 @@ func fetchReviews(hotelId string) []Review {
 	result := make([]Review, len(witRevs))
 	for i, wr := range witRevs {
 		result[i] = Review{
-			ReviewId:    string([]byte(wr.ReviewID)),
-			HotelId:     string([]byte(wr.HotelID)),
-			Name:        string([]byte(wr.Name)),
+			ReviewId:    wr.ReviewID,
+			HotelId:     wr.HotelID,
+			Name:        wr.Name,
 			Rating:      wr.Rating,
-			Description: string([]byte(wr.Description)),
-			Image:       Image{Url: string([]byte(wr.Image.URL)), Default: wr.Image.Default},
+			Description: wr.Description,
+			Image:       Image{Url: wr.Image.URL, Default: wr.Image.Default},
 		}
 	}
 	return result

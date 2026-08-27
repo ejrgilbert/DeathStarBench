@@ -51,7 +51,7 @@ func getNumbers(ids cm.List[string]) cm.List[revstore.NumberRec] {
 	rawIds := ids.Slice()
 	strs := make([]string, len(rawIds))
 	for i, id := range rawIds {
-		strs[i] = string([]byte(id))
+		strs[i] = id
 	}
 	idsJSON, _ := json.Marshal(strs)
 	filter := fmt.Sprintf(`{"hotelId":{"$in":%s}}`, string(idsJSON))
@@ -61,7 +61,7 @@ func getNumbers(ids cm.List[string]) cm.List[revstore.NumberRec] {
 		var s seedNumber
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
 		recs = append(recs, revstore.NumberRec{
-			HotelID:      string([]byte(s.HotelId)),
+			HotelID:      s.HotelId,
 			NumberOfRoom: s.NumberOfRoom,
 		})
 	}
@@ -78,7 +78,7 @@ func getNumber(hotelID string) cm.Option[revstore.NumberRec] {
 	}
 	var s seedNumber
 	json.Unmarshal(cm.List[uint8](*opt.Some()).Slice(), &s)
-	return cm.Some(revstore.NumberRec{HotelID: string([]byte(s.HotelId)), NumberOfRoom: s.NumberOfRoom})
+	return cm.Some(revstore.NumberRec{HotelID: s.HotelId, NumberOfRoom: s.NumberOfRoom})
 }
 
 // getReservations does a targeted `Find({"hotelId","inDate","outDate"})`.
@@ -91,10 +91,10 @@ func getReservations(hotelID, inDate, outDate string) cm.List[revstore.Reservati
 		var s seedReservation
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
 		recs = append(recs, revstore.ReservationRec{
-			HotelID:      string([]byte(s.HotelId)),
-			CustomerName: string([]byte(s.CustomerName)),
-			InDate:       string([]byte(s.InDate)),
-			OutDate:      string([]byte(s.OutDate)),
+			HotelID:      s.HotelId,
+			CustomerName: s.CustomerName,
+			InDate:       s.InDate,
+			OutDate:      s.OutDate,
 			Number:       s.Number,
 		})
 	}
@@ -120,7 +120,7 @@ func ensureNumbers() {
 		var s seedNumber
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
 		numbers = append(numbers, revstore.NumberRec{
-			HotelID:      string([]byte(s.HotelId)),
+			HotelID:      s.HotelId,
 			NumberOfRoom: s.NumberOfRoom,
 		})
 	}
@@ -137,10 +137,10 @@ func ensureReservations() {
 		var s seedReservation
 		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
 		reservations = append(reservations, revstore.ReservationRec{
-			HotelID:      string([]byte(s.HotelId)),
-			CustomerName: string([]byte(s.CustomerName)),
-			InDate:       string([]byte(s.InDate)),
-			OutDate:      string([]byte(s.OutDate)),
+			HotelID:      s.HotelId,
+			CustomerName: s.CustomerName,
+			InDate:       s.InDate,
+			OutDate:      s.OutDate,
 			Number:       s.Number,
 		})
 	}
@@ -159,27 +159,14 @@ func loadReservations() cm.List[revstore.ReservationRec] {
 
 func doInsertReservation(r revstore.ReservationRec) {
 	ensureConn()
-	// Aggregate per (hotelId,inDate,outDate) instead of appending a row per
-	// write: $inc the reserved-room count into a single doc (created on first
-	// write with the customer name). This keeps getReservations' result set at
-	// O(1) per key — availability only needs the summed count — so the guest
-	// never lifts an unbounded cross-boundary list (which tips TinyGo's on-full
-	// GC mid-call and corrupts the buffer). Mirrors the native UpdateOne+$inc.
-	// Build the filter/update with json.Marshal (not Sprintf %q): %q emits
-	// Go-style escapes (\x.., \U..) that are not valid JSON, which the host's
-	// serde_json rejected ("invalid escape").
-	filter, _ := json.Marshal(map[string]string{
-		"hotelId": r.HotelID,
-		"inDate":  r.InDate,
-		"outDate": r.OutDate,
-	})
-	update, _ := json.Marshal(map[string]interface{}{
-		"$inc":         map[string]uint32{"number": r.Number},
-		"$setOnInsert": map[string]string{"customerName": r.CustomerName},
-	})
-	col.UpdateOne(resConn,
-		col.Document(cm.ToList(filter)),
-		col.Document(cm.ToList(update)),
-		true)
+	s := seedReservation{
+		HotelId:      r.HotelID,
+		CustomerName: r.CustomerName,
+		InDate:       r.InDate,
+		OutDate:      r.OutDate,
+		Number:       r.Number,
+	}
+	b, _ := json.Marshal(s)
+	col.InsertOne(resConn, col.Document(cm.ToList(b)))
 	reservations = append(reservations, r)
 }

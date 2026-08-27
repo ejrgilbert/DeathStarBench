@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	gcutil "hotel-components/internal/gcutil"
 	"strconv"
 	"strings"
 
@@ -31,10 +30,6 @@ func handle(req incominghandler.IncomingRequest, responseOut incominghandler.Res
 	req.ResourceDrop()
 	body, ct := dispatch(path, query)
 	sendResponse(responseOut, 200, ct, body)
-	// Reclaim the per-request cabi_realloc'd cross-boundary buffers at this
-	// quiescent point (shallow stack), amortized over GC_EVERY requests. See
-	// internal/gcutil for why this is needed under instance reuse.
-	gcutil.Tick()
 }
 
 func parsePQ(pq cm.Option[string]) (path, query string) {
@@ -42,7 +37,7 @@ func parsePQ(pq cm.Option[string]) (path, query string) {
 	if s == nil {
 		return "/", ""
 	}
-	full := string([]byte(*s))
+	full := *s
 	if i := strings.IndexByte(full, '?'); i >= 0 {
 		return full[:i], full[i+1:]
 	}
@@ -123,10 +118,10 @@ func geoJSONResponse(hotels []profile.Hotel) string {
 	for i, h := range hotels {
 		features[i] = geoFeature{
 			Type: "Feature",
-			ID:   string([]byte(h.ID)),
+			ID:   h.ID,
 			Properties: geoProperties{
-				Name:        string([]byte(h.Name)),
-				PhoneNumber: string([]byte(h.PhoneNumber)),
+				Name:        h.Name,
+				PhoneNumber: h.PhoneNumber,
 			},
 			Geometry: geoGeometry{
 				Type:        "Point",
@@ -149,13 +144,13 @@ func handleHotels(q map[string]string) string {
 	nearbyRaw := search.Nearby(lat, lon, inDate, outDate).Slice()
 	nearbyIDs := make([]string, len(nearbyRaw))
 	for i, id := range nearbyRaw {
-		nearbyIDs[i] = string([]byte(id))
+		nearbyIDs[i] = id
 	}
 
 	availRaw := reservation.CheckAvailability(cm.ToList(nearbyIDs), inDate, outDate, 1).Slice()
 	availIDs := make([]string, len(availRaw))
 	for i, id := range availRaw {
-		availIDs[i] = string([]byte(id))
+		availIDs[i] = id
 	}
 
 	hotels := profile.GetProfiles(cm.ToList(availIDs)).Slice()
@@ -179,7 +174,7 @@ func handleRecommendations(q map[string]string) string {
 	recRaw := recommendation.Recommend(req, lat, lon).Slice()
 	recIDs := make([]string, len(recRaw))
 	for i, id := range recRaw {
-		recIDs[i] = string([]byte(id))
+		recIDs[i] = id
 	}
 
 	hotels := profile.GetProfiles(cm.ToList(recIDs)).Slice()
@@ -195,7 +190,7 @@ func handleUser(q map[string]string) string {
 
 func handleReview(q map[string]string) string {
 	user.CheckUser(q["username"], q["password"])
-	hotelID := string([]byte(q["hotelId"]))
+	hotelID := q["hotelId"]
 	reviews := review.GetReviews(hotelID).Slice()
 	if len(reviews) == 0 {
 		return msgJSON("Failed. No Reviews. ")
@@ -205,7 +200,7 @@ func handleReview(q map[string]string) string {
 
 func handleRestaurants(q map[string]string) string {
 	user.CheckUser(q["username"], q["password"])
-	hotelID := string([]byte(q["hotelId"]))
+	hotelID := q["hotelId"]
 	ids := attractions.NearbyRest(hotelID).Slice()
 	if len(ids) == 0 {
 		return msgJSON("Failed. No Restaurants. ")
@@ -215,7 +210,7 @@ func handleRestaurants(q map[string]string) string {
 
 func handleMuseums(q map[string]string) string {
 	user.CheckUser(q["username"], q["password"])
-	hotelID := string([]byte(q["hotelId"]))
+	hotelID := q["hotelId"]
 	ids := attractions.NearbyMus(hotelID).Slice()
 	if len(ids) == 0 {
 		return msgJSON("Failed. No Museums. ")
@@ -225,7 +220,7 @@ func handleMuseums(q map[string]string) string {
 
 func handleCinema(q map[string]string) string {
 	user.CheckUser(q["username"], q["password"])
-	hotelID := string([]byte(q["hotelId"]))
+	hotelID := q["hotelId"]
 	ids := attractions.NearbyCinema(hotelID).Slice()
 	if len(ids) == 0 {
 		return msgJSON("Failed. No Cinemas. ")
@@ -236,8 +231,8 @@ func handleCinema(q map[string]string) string {
 func handleReservation(q map[string]string) string {
 	inDate := q["inDate"]
 	outDate := q["outDate"]
-	hotelID := string([]byte(q["hotelId"]))
-	customerName := string([]byte(q["customerName"]))
+	hotelID := q["hotelId"]
+	customerName := q["customerName"]
 	number, _ := strconv.ParseInt(q["number"], 10, 32)
 
 	msg := "Reserve successfully!"

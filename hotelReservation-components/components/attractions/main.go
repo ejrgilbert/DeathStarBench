@@ -5,7 +5,6 @@ import (
 
 	"go.bytecodealliance.org/cm"
 
-	gcutil "hotel-components/internal/gcutil"
 
 	hkv    "hotel-components/components/attractions/host/cache/keyvalue"
 	store  "hotel-components/components/attractions/hotel/store/attractions-store"
@@ -68,7 +67,7 @@ func loadAttractionData() ([]Restaurant, []Museum, []Cinema) {
 	rests = make([]Restaurant, len(witRests))
 	cr := make([]cachedGeoItem, len(witRests))
 	for i, r := range witRests {
-		rests[i] = Restaurant{id: string([]byte(r.ID)), plat: r.Lat, plon: r.Lon}
+		rests[i] = Restaurant{id: r.ID, plat: r.Lat, plon: r.Lon}
 		cr[i] = cachedGeoItem{ID: rests[i].id, Plat: r.Lat, Plon: r.Lon}
 	}
 
@@ -76,7 +75,7 @@ func loadAttractionData() ([]Restaurant, []Museum, []Cinema) {
 	mus = make([]Museum, len(witMus))
 	cm2 := make([]cachedGeoItem, len(witMus))
 	for i, m := range witMus {
-		mus[i] = Museum{id: string([]byte(m.ID)), plat: m.Lat, plon: m.Lon}
+		mus[i] = Museum{id: m.ID, plat: m.Lat, plon: m.Lon}
 		cm2[i] = cachedGeoItem{ID: mus[i].id, Plat: m.Lat, Plon: m.Lon}
 	}
 
@@ -84,7 +83,7 @@ func loadAttractionData() ([]Restaurant, []Museum, []Cinema) {
 	cin = make([]Cinema, len(witCin))
 	cc := make([]cachedGeoItem, len(witCin))
 	for i, c := range witCin {
-		cin[i] = Cinema{id: string([]byte(c.ID)), plat: c.Lat, plon: c.Lon}
+		cin[i] = Cinema{id: c.ID, plat: c.Lat, plon: c.Lon}
 		cc[i] = cachedGeoItem{ID: cin[i].id, Plat: c.Lat, Plon: c.Lon}
 	}
 
@@ -127,7 +126,6 @@ func resolveHotel(hotelID string) (lat, lon float64, ok bool) {
 
 func nearbyRest(hotelID string) cm.List[string] {
 	lat, lon, ok := resolveHotel(hotelID)
-	gcutil.Tick()
 	if !ok {
 		return cm.ToList([]string{})
 	}
@@ -136,7 +134,6 @@ func nearbyRest(hotelID string) cm.List[string] {
 
 func nearbyMus(hotelID string) cm.List[string] {
 	lat, lon, ok := resolveHotel(hotelID)
-	gcutil.Tick()
 	if !ok {
 		return cm.ToList([]string{})
 	}
@@ -145,7 +142,6 @@ func nearbyMus(hotelID string) cm.List[string] {
 
 func nearbyCinema(hotelID string) cm.List[string] {
 	lat, lon, ok := resolveHotel(hotelID)
-	gcutil.Tick()
 	if !ok {
 		return cm.ToList([]string{})
 	}

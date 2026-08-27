@@ -1,7 +1,6 @@
 package main
 
 import (
-	gcutil "hotel-components/internal/gcutil"
 
 	"go.bytecodealliance.org/cm"
 
@@ -18,24 +17,14 @@ func main() {}
 
 func init() {
 	keyvalue.Exports.Get = func(key string) cm.Option[cm.List[uint8]] {
-		opt := hostkv.Get(string([]byte(key)))
-		if opt.None() {
-			return cm.None[cm.List[uint8]]()
-		}
-		// Copy the bytes out of the host result buffer before re-lowering: the
-		// caller reads the returned list after this export returns, and TinyGo's
-		// GC can reclaim the un-copied cabi_realloc buffer (see internal/gcutil).
-		src := opt.Some().Slice()
-		b := make([]byte, len(src))
-		copy(b, src)
-		gcutil.Tick()
-		return cm.Some(cm.ToList(b))
+		opt := hostkv.Get(key)
+        if opt.None() {
+            return cm.None[cm.List[uint8]]()
+        }
+		return cm.Some(cm.ToList(opt.Some().Slice()))
 	}
 	keyvalue.Exports.Set = func(key string, value cm.List[uint8]) {
-		k := string([]byte(key))
-		b := make([]byte, len(value.Slice()))
-		copy(b, value.Slice())
-		hostkv.Set(k, cm.ToList(b))
+		hostkv.Set(key, cm.ToList(value.Slice()))
 	}
 	// Batched probe: one gRPC round-trip / Wasm checkout for all keys, forwarding
 	// to the host map per key in-process.
@@ -43,17 +32,13 @@ func init() {
 		ks := keys.Slice()
 		out := make([]cm.Option[cm.List[uint8]], len(ks))
 		for i, k := range ks {
-			opt := hostkv.Get(string([]byte(k)))
+			opt := hostkv.Get(k)
 			if opt.None() {
 				out[i] = cm.None[cm.List[uint8]]()
 				continue
 			}
-			src := opt.Some().Slice()
-			b := make([]byte, len(src))
-			copy(b, src)
-			out[i] = cm.Some(cm.ToList(b))
+			out[i] = cm.Some(cm.ToList(opt.Some().Slice()))
 		}
-		gcutil.Tick()
 		return cm.ToList(out)
 	}
 }
