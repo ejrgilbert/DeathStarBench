@@ -7,7 +7,7 @@ services:
     volumes:
       - ../../otelcol.yaml:/etc/otelcol/config.yaml:ro
   beyla:
-    image: grafana/beyla:latest
+    image: grafana/beyla:3.33.0
     pid: "host"
     privileged: true
     environment:
