@@ -1,4 +1,5 @@
 BUILD_DIR    := build
+TINYGO       ?= $(HOME)/git/tinygo/build/tinygo
 TINYGO_FLAGS := -target=wasip2 -scheduler=none
 SERVICES     := recommendation attractions geo user rate profile review reservation # append here to add a service
 
@@ -26,13 +27,13 @@ bootstrap:
 	$(MAKE) frontend-all
 
 $(BUILD_DIR)/frontend.wasm: components/frontend $(shell find components/frontend -name '*.go' 2>/dev/null) $(SHARED_GO) | $(BUILD_DIR)
-	tinygo build $(TINYGO_FLAGS) \
+	$(TINYGO) build $(TINYGO_FLAGS) \
 	  -wit-package ./components/frontend/wit \
 	  -wit-world frontend-world \
 	  -o $@ ./components/frontend/
 
 $(BUILD_DIR)/search.wasm: components/search $(shell find components/search -name '*.go' 2>/dev/null) $(SHARED_GO) | $(BUILD_DIR)
-	tinygo build $(TINYGO_FLAGS) \
+	$(TINYGO) build $(TINYGO_FLAGS) \
 	  -wit-package ./components/search/wit \
 	  -wit-world search-world \
 	  -o $@ ./components/search/
@@ -65,13 +66,13 @@ all-composed: $(BUILD_DIR) $(foreach s,$(SERVICES),$(BUILD_DIR)/$(s)-composed.wa
 .SECONDEXPANSION:
 
 $(BUILD_DIR)/%-store.wasm: components/%_store $$(shell find components/$$*_store -name '*.go' 2>/dev/null) $(SHARED_GO) | $(BUILD_DIR)
-	tinygo build $(TINYGO_FLAGS) \
+	$(TINYGO) build $(TINYGO_FLAGS) \
 	  -wit-package ./components/$*_store/wit \
 	  -wit-world $*-store-world \
 	  -o $@ ./components/$*_store/
 
 $(BUILD_DIR)/%.wasm: components/% $$(shell find components/$$* -name '*.go' 2>/dev/null) $(SHARED_GO) | $(BUILD_DIR)
-	tinygo build $(TINYGO_FLAGS) \
+	$(TINYGO) build $(TINYGO_FLAGS) \
 	  -wit-package ./components/$*/wit \
 	  -wit-world $*-world \
 	  -o $@ ./components/$*/
