@@ -262,7 +262,16 @@ func sendResponse(responseOut types.ResponseOutparam, status uint16, contentType
 	writeRes := outBody.Write()
 	stream := *writeRes.OK()
 
-	stream.BlockingWriteAndFlush(cm.ToList([]uint8(body)))
+	// write in chunks (WASI limit)
+	data := []uint8(body)
+	for len(data) > 0 {
+		n := len(data)
+		if n > 4096 {
+			n = 4096
+		}
+		stream.BlockingWriteAndFlush(cm.ToList(data[:n]))
+		data = data[n:]
+	}
 	stream.ResourceDrop()
 
 	types.OutgoingBodyFinish(outBody, cm.None[types.Trailers]())
