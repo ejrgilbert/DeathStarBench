@@ -31,7 +31,7 @@ func ensureConn() {
 	if connOpen {
 		return
 	}
-	conn = col.ConnectionOpen("users")
+	conn = col.ConnectionOpen("user")
 	connOpen = true
 }
 

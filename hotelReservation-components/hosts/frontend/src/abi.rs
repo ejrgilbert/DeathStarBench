@@ -206,13 +206,13 @@ pub async fn run() -> Result<()> {
     let specs: &[(&str, &str, &str)] = &[
         ("attractions", "MONGO_URI_ATTRACTIONS",    "attractions-db"),
         ("geo",         "MONGO_URI_GEO",            "geo-db"),
-        ("profiles",    "MONGO_URI_PROFILE",        "profile-db"),
-        ("rates",       "MONGO_URI_RATE",            "rate-db"),
-        ("recs",        "MONGO_URI_RECOMMENDATION", "recommendation-db"),
+        ("hotels",      "MONGO_URI_PROFILE",        "profile-db"),
+        ("inventory",   "MONGO_URI_RATE",            "rate-db"),
+        ("recommendation", "MONGO_URI_RECOMMENDATION", "recommendation-db"),
         ("number",      "MONGO_URI_RESERVATION",    "reservation-db"),
         ("reservation", "MONGO_URI_RESERVATION",    "reservation-db"),
         ("reviews",     "MONGO_URI_REVIEW",         "review-db"),
-        ("users",       "MONGO_URI_USER",           "user-db"),
+        ("user",        "MONGO_URI_USER",           "user-db"),
     ];
 
     // Deduplicate MongoDB clients by URI (connection pool reuse).

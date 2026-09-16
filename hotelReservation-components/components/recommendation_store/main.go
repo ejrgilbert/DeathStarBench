@@ -10,7 +10,7 @@ import (
 )
 
 type seedRecord struct {
-	ID    string  `json:"id"`
+	ID    string  `json:"hotelId"`
 	Lat   float64 `json:"lat"`
 	Lon   float64 `json:"lon"`
 	Rate  float64 `json:"rate"`
@@ -32,7 +32,7 @@ func ensureConn() {
 	if connOpen {
 		return
 	}
-	conn = col.ConnectionOpen("recs")
+	conn = col.ConnectionOpen("recommendation")
 	connOpen = true
 }
 

@@ -1,2 +1,2 @@
 #!/bin/bash
-mongoimport --db rate-db --collection rates --file /seed/rate-seed.json --jsonArray
+mongoimport --db rate-db --collection inventory --file /seed/rate-seed.json --jsonArray

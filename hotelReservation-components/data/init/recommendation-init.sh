@@ -1,2 +1,2 @@
 #!/bin/bash
-mongoimport --db recommendation-db --collection recs --file /seed/recommendation-seed.json --jsonArray
+mongoimport --db recommendation-db --collection recommendation --file /seed/recommendation-seed.json --jsonArray

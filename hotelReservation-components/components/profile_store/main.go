@@ -77,7 +77,7 @@ func ensureConn() {
 	if connOpen {
 		return
 	}
-	conn = col.ConnectionOpen("profiles")
+	conn = col.ConnectionOpen("hotels")
 	connOpen = true
 }
 

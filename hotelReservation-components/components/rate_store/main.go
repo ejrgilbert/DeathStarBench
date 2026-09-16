@@ -42,7 +42,7 @@ func ensureConn() {
 	if connOpen {
 		return
 	}
-	conn = col.ConnectionOpen("rates")
+	conn = col.ConnectionOpen("inventory")
 	connOpen = true
 }
 

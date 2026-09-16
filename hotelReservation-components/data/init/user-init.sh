@@ -1,2 +1,2 @@
 #!/bin/bash
-mongoimport --db user-db --collection users --file /seed/user-seed.json --jsonArray
+mongoimport --db user-db --collection user --file /seed/user-seed.json --jsonArray

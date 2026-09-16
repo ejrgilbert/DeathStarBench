@@ -10,7 +10,7 @@ import (
 )
 
 type seedPoint struct {
-	ID  string  `json:"id"`
+	ID  string  `json:"hotelId"`
 	Lat float64 `json:"lat"`
 	Lon float64 `json:"lon"`
 }
