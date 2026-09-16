@@ -25,6 +25,14 @@ type Museum struct {
 	Type       string  `bson:"type"`
 }
 
+type Cinema struct {
+	CinemaId   string  `bson:"cinemaId"`
+	CLat       float64 `bson:"lat"`
+	CLon       float64 `bson:"lon"`
+	CinemaName string  `bson:"cinemaName"`
+	Type       string  `bson:"type"`
+}
+
 type point struct {
 	Pid  string  `bson:"hotelId"`
 	Plat float64 `bson:"lat"`
@@ -60,6 +68,19 @@ func initializeDatabase(url string) (*mongo.Client, func()) {
 		&Museum{"6", 37.3867, -122.5012, "M6", "technology"},
 	}
 
+	// Cinemas: the upstream seeder omits these even though the attractions
+	// service exposes NearbyCinema, so /cinema always returned "No Cinemas".
+	// Seed the same 6 cinemas the component port ships so the cinema path is
+	// exercised identically on both stacks (only id/lat/lon affect the result).
+	newCinemas := []interface{}{
+		&Cinema{"1", 37.786, -122.41, "C1", "IMAX"},
+		&Cinema{"2", 37.784, -122.406, "C2", "standard"},
+		&Cinema{"3", 37.787, -122.402, "C3", "IMAX"},
+		&Cinema{"4", 37.7855, -122.414, "C4", "standard"},
+		&Cinema{"5", 37.7845, -122.408, "C5", "4DX"},
+		&Cinema{"6", 37.7865, -122.416, "C6", "standard"},
+	}
+
 	uri := fmt.Sprintf("mongodb://%s", url)
 	log.Info().Msgf("Attempting connection to %v", uri)
 
@@ -90,6 +111,13 @@ func initializeDatabase(url string) (*mongo.Client, func()) {
 		log.Fatal().Msg(err.Error())
 	}
 	log.Info().Msg("Successfully inserted test data into museum DB")
+
+	collectionC := client.Database("attractions-db").Collection("cinemas")
+	_, err = collectionC.InsertMany(context.TODO(), newCinemas)
+	if err != nil {
+		log.Fatal().Msg(err.Error())
+	}
+	log.Info().Msg("Successfully inserted test data into cinema DB")
 
 	return client, func() {
 		if err := client.Disconnect(context.TODO()); err != nil {
