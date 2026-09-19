@@ -1,0 +1,34 @@
+# Equivalence-harness-only override (layered by ../equivalence/run.sh via `-f`).
+#
+# The harness runs a `mongosh` probe against every mongod on every replayed
+# request. Each fresh client creates a logical session, so config.system.sessions
+# grows to ~590 active entries; MongoDB's ~5-min logical-session-cache refresh then
+# upserts them all at once. serverStatus().opcounters is per-mongod-process (across
+# every db, incl. config), so that shows up as a ~590-update burst on all mongods
+# simultaneously, gets attributed to whichever request was replaying at the time,
+# and breaks the strict per-request DB-write comparison (plus adds the stray reads
+# that fail the geo/recommendation/user in-memory reconciler).
+#
+# Disabling the refresh is server-internal maintenance only, symmetric on both
+# stacks, so it removes the measurement artifact without touching the equivalence
+# claim. Kept out of the base compose so the perf sweeps are unaffected.
+#
+# `command` fully replaces the image's default CMD, so --bind_ip_all is restated.
+
+services:
+  mongodb-geo:
+    command: ["mongod", "--bind_ip_all", "--setParameter", "disableLogicalSessionCacheRefresh=true"]
+  mongodb-profile:
+    command: ["mongod", "--bind_ip_all", "--setParameter", "disableLogicalSessionCacheRefresh=true"]
+  mongodb-rate:
+    command: ["mongod", "--bind_ip_all", "--setParameter", "disableLogicalSessionCacheRefresh=true"]
+  mongodb-recommendation:
+    command: ["mongod", "--bind_ip_all", "--setParameter", "disableLogicalSessionCacheRefresh=true"]
+  mongodb-reservation:
+    command: ["mongod", "--bind_ip_all", "--setParameter", "disableLogicalSessionCacheRefresh=true"]
+  mongodb-user:
+    command: ["mongod", "--bind_ip_all", "--setParameter", "disableLogicalSessionCacheRefresh=true"]
+  mongodb-review:
+    command: ["mongod", "--bind_ip_all", "--setParameter", "disableLogicalSessionCacheRefresh=true"]
+  mongodb-attractions:
+    command: ["mongod", "--bind_ip_all", "--setParameter", "disableLogicalSessionCacheRefresh=true"]
