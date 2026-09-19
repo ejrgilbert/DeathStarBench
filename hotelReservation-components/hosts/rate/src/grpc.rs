@@ -40,7 +40,9 @@ impl<C: RateComponent> Rate for RateService<C> {
 }
 
 pub async fn serve<C: RateComponent>(component: Arc<C>, addr: SocketAddr) -> Result<()> {
+    host_lib::topology::start_flusher();
     Server::builder()
+        .layer(host_lib::topology::TopologyLayer::default())
         .add_service(RateServer::new(RateService { component }))
         .serve(addr)
         .await?;

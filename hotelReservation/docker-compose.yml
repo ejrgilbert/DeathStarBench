@@ -10,6 +10,7 @@ services:
       - GC
       - JAEGER_SAMPLE_RATIO
       - LOG_LEVEL
+      - EQUIV_TOPOLOGY
     build: .
     image: deathstarbench/hotel-reservation:latest
     entrypoint: frontend
@@ -30,6 +31,7 @@ services:
       - GC
       - JAEGER_SAMPLE_RATIO
       - LOG_LEVEL
+      - EQUIV_TOPOLOGY
     build: .
     image: deathstarbench/hotel-reservation:latest
     entrypoint: profile
@@ -51,6 +53,7 @@ services:
       - GC
       - JAEGER_SAMPLE_RATIO
       - LOG_LEVEL
+      - EQUIV_TOPOLOGY
     build: .
     image: deathstarbench/hotel-reservation:latest
     entrypoint: search
@@ -69,6 +72,7 @@ services:
       - GC
       - JAEGER_SAMPLE_RATIO
       - LOG_LEVEL
+      - EQUIV_TOPOLOGY
     build: .
     image: deathstarbench/hotel-reservation:latest
     entrypoint: geo
@@ -89,6 +93,7 @@ services:
       - GC
       - JAEGER_SAMPLE_RATIO
       - LOG_LEVEL
+      - EQUIV_TOPOLOGY
     build: .
     image: deathstarbench/hotel-reservation:latest
     entrypoint: rate
@@ -108,6 +113,7 @@ services:
       - JAEGER_SAMPLE_RATIO
       - MEMC_TIMEOUT
       - LOG_LEVEL
+      - EQUIV_TOPOLOGY
     build: .
     image: hotel_reserv_review_single_node
     entrypoint: review
@@ -124,6 +130,7 @@ services:
       - JAEGER_SAMPLE_RATIO
       - MEMC_TIMEOUT
       - LOG_LEVEL
+      - EQUIV_TOPOLOGY
     build: .
     image: hotel_reserv_attractions_single_node
     entrypoint: attractions
@@ -141,6 +148,7 @@ services:
       - GC
       - JAEGER_SAMPLE_RATIO
       - LOG_LEVEL
+      - EQUIV_TOPOLOGY
     build: .
     image: deathstarbench/hotel-reservation:latest
     entrypoint: recommendation
@@ -161,6 +169,7 @@ services:
       - GC
       - JAEGER_SAMPLE_RATIO
       - LOG_LEVEL
+      - EQUIV_TOPOLOGY
     build: .
     image: deathstarbench/hotel-reservation:latest
     entrypoint: user
@@ -181,6 +190,7 @@ services:
       - GC
       - JAEGER_SAMPLE_RATIO
       - LOG_LEVEL
+      - EQUIV_TOPOLOGY
     build: .
     image: deathstarbench/hotel-reservation:latest
     entrypoint: reservation

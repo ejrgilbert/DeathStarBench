@@ -50,7 +50,9 @@ impl<C: RecommendComponent> Recommendation for RecommendService<C> {
 }
 
 pub async fn serve<C: RecommendComponent>(component: Arc<C>, addr: SocketAddr) -> Result<()> {
+    host_lib::topology::start_flusher();
     Server::builder()
+        .layer(host_lib::topology::TopologyLayer::default())
         .add_service(RecommendationServer::new(RecommendService { component }))
         .serve(addr)
         .await?;

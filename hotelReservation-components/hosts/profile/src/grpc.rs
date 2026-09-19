@@ -35,7 +35,9 @@ impl<C: ProfileComponent> Profile for ProfileService<C> {
 }
 
 pub async fn serve<C: ProfileComponent>(component: Arc<C>, addr: SocketAddr) -> Result<()> {
+    host_lib::topology::start_flusher();
     Server::builder()
+        .layer(host_lib::topology::TopologyLayer::default())
         .add_service(ProfileServer::new(ProfileService { component }))
         .serve(addr)
         .await?;

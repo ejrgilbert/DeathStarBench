@@ -39,7 +39,9 @@ impl<C: SearchComponent> Search for SearchService<C> {
 }
 
 pub async fn serve<C: SearchComponent>(component: Arc<C>, addr: SocketAddr) -> Result<()> {
+    host_lib::topology::start_flusher();
     Server::builder()
+        .layer(host_lib::topology::TopologyLayer::default())
         .add_service(SearchServer::new(SearchService { component }))
         .serve(addr)
         .await?;

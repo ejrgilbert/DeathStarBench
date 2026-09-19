@@ -63,7 +63,9 @@ impl<C: ReservationComponent> Reservation for ReservationService<C> {
 }
 
 pub async fn serve<C: ReservationComponent>(component: Arc<C>, addr: SocketAddr) -> Result<()> {
+    host_lib::topology::start_flusher();
     Server::builder()
+        .layer(host_lib::topology::TopologyLayer::default())
         .add_service(ReservationServer::new(ReservationService { component }))
         .serve(addr)
         .await?;

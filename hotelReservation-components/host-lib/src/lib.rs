@@ -4,6 +4,9 @@ use wasmtime::{Config, Engine, InstanceAllocationStrategy, PoolingAllocationConf
 use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiCtxView};
 pub type Cache = std::sync::RwLock<std::collections::HashMap<String, Vec<u8>>>;
 
+/// Equivalence-harness topology capture (EQUIV_TOPOLOGY-gated; no-op otherwise).
+pub mod topology;
+
 /// gRPC contract for the cache service (compiled from `proto/cache.proto` by
 /// this crate's `build.rs`). A cache-using svc host holds a `CacheClient` and
 /// bridges its component's `cache:keyvalue/keyvalue` import to these RPCs.

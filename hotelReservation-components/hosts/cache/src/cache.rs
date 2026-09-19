@@ -49,6 +49,7 @@ struct CacheGrpcService {
 #[tonic::async_trait]
 impl CacheSvc for CacheGrpcService {
     async fn get(&self, req: Request<GetRequest>) -> Result<Response<GetResponse>, Status> {
+        host_lib::topology::record_cache("get", 1);
         let key = req.into_inner().key;
         let mut checked = self.pool.checkout().await;
         let (store, instance) = checked.parts();
@@ -69,6 +70,7 @@ impl CacheSvc for CacheGrpcService {
         req: Request<GetMultiRequest>,
     ) -> Result<Response<GetMultiResponse>, Status> {
         let keys = req.into_inner().keys;
+        host_lib::topology::record_cache("get", keys.len() as u64);
         let mut checked = self.pool.checkout().await;
         let (store, instance) = checked.parts();
         let vals = instance
@@ -88,6 +90,7 @@ impl CacheSvc for CacheGrpcService {
     }
 
     async fn set(&self, req: Request<SetRequest>) -> Result<Response<SetResponse>, Status> {
+        host_lib::topology::record_cache("set", 1);
         let SetRequest { key, value } = req.into_inner();
         let mut checked = self.pool.checkout().await;
         let (store, instance) = checked.parts();
@@ -142,6 +145,9 @@ pub async fn run() -> Result<()> {
     let svc = CacheGrpcService { pool };
 
     println!("cache-host listening on {listen_addr} (instance pool size {pool_size})");
+
+    // Equivalence-harness cache-op counter flush (EQUIV_TOPOLOGY-gated no-op otherwise).
+    host_lib::topology::start_flusher();
 
     Server::builder()
         .add_service(CacheServer::new(svc))

@@ -16,6 +16,9 @@ tonic         = { version = "0.12", features = ["transport"] }
 prost         = "0.13"
 async-channel = "2"
 anyhow        = "1"
+# equivalence-harness topology capture (EQUIV_TOPOLOGY-gated tower layer)
+tower         = "0.4"
+http          = "1"
 
 [build-dependencies]
 tonic-build = "0.12"

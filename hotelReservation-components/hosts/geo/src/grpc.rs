@@ -33,7 +33,9 @@ impl<C: GeoComponent> Geo for GeoService<C> {
 }
 
 pub async fn serve<C: GeoComponent>(component: Arc<C>, addr: SocketAddr) -> Result<()> {
+    host_lib::topology::start_flusher();
     Server::builder()
+        .layer(host_lib::topology::TopologyLayer::default())
         .add_service(GeoServer::new(GeoService { component }))
         .serve(addr)
         .await?;
