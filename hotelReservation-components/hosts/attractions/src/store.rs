@@ -12,6 +12,7 @@ use proto::{
     LoadRequest,
     LoadHotelPositionsResponse, LoadRestaurantsResponse,
     LoadMuseumsResponse, LoadCinemasResponse,
+    GetHotelPositionRequest, GetHotelPositionResponse,
 };
 
 wasmtime::component::bindgen!({
@@ -96,6 +97,30 @@ impl AttractionsStore for StoreGrpcService {
             cinemas: items.into_iter().map(|c| ProtoCinema {
                 id: c.id, lat: c.lat, lon: c.lon, name: c.name, category: c.category,
             }).collect(),
+        }))
+    }
+
+    // Targeted per-request query-hotel lookup — drives the store guest's
+    // col.Find({type:hotel,id}) so a real Mongo query hits the DB on every
+    // attractions request, matching native's per-request Find({hotelId}).
+    async fn get_hotel_position(
+        &self,
+        req: Request<GetHotelPositionRequest>,
+    ) -> Result<Response<GetHotelPositionResponse>, Status> {
+        let hotel_id = req.into_inner().hotel_id;
+        let mut checked = self.checkout().await;
+        let (store, instance) = checked.parts();
+        let opt = instance
+            .hotel_store_attractions_store()
+            .call_get_hotel_position(&mut *store, &hotel_id).await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        checked.commit();
+        Ok(Response::new(match opt {
+            Some(h) => GetHotelPositionResponse {
+                found: true,
+                hotel: Some(ProtoHotel { id: h.id, lat: h.lat, lon: h.lon }),
+            },
+            None => GetHotelPositionResponse { found: false, hotel: None },
         }))
     }
 }

@@ -6,7 +6,7 @@ mod store_proto {
 }
 use store_proto::{
     attractions_store_client::AttractionsStoreClient,
-    LoadRequest,
+    LoadRequest, GetHotelPositionRequest,
 };
 
 wasmtime::component::bindgen!({
@@ -56,10 +56,23 @@ impl hotel::store::attractions_store::Host for HostData {
         }).collect()
     }
 
-    // Targeted parity method: the store service is a plain gRPC load-all, so fall
-    // back to filtering the loaded hotel positions by id.
+    // Targeted per-request query-hotel lookup via the store's GetHotelPosition RPC
+    // (a real Mongo Find on every request), matching the native attractions
+    // service's per-request `Find({"hotelId": id})`. NOT a load-all + in-process
+    // filter: the whole point is that each request issues one targeted DB query,
+    // so the per-request Mongo work converges to native's ~60/kind. (The ABI path
+    // reaches the composed store's `get-hotel-position` directly.)
     async fn get_hotel_position(&mut self, hotel_id: String) -> Option<hotel::store::attractions_store::HotelPosition> {
-        self.load_hotel_positions().await.into_iter().find(|h| h.id == hotel_id)
+        let resp = self.store_client.clone()
+            .get_hotel_position(tonic::Request::new(GetHotelPositionRequest { hotel_id })).await
+            .ok()?
+            .into_inner();
+        if !resp.found {
+            return None;
+        }
+        resp.hotel.map(|h| hotel::store::attractions_store::HotelPosition {
+            id: h.id, lat: h.lat, lon: h.lon,
+        })
     }
 }
 

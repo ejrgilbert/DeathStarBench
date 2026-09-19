@@ -71,19 +71,35 @@ func ensureLoaded() {
 	allLoaded = true
 }
 
-// getHotelPosition does a targeted single-document lookup by hotel id, matching
-// the Go attractions service's per-request `Find({"hotelId": id})` on the hotels
-// collection. Seed records carry a `type` discriminator, so hotel rows are keyed
-// by {type:"hotel", id}.
+// getHotelPosition resolves the query hotel's coordinates with a targeted
+// per-request Mongo query, replicating a native attractions-service quirk (see
+// services/attractions/server.go NearbyRest/Mus/Cinema): the native service
+// re-queries the hotel's lat/lon on EVERY request rather than caching it, even
+// though it already loaded every hotel into an in-memory geo index at boot.
+//
+// It is deliberately wonky to match native EXACTLY:
+//   - native issues `Find({"hotelId": id})` (a multi-doc cursor), not a FindOne,
+//     so we use col.Find here too — both COLLSCAN and bump the Mongo `query`
+//     opcounter by 1/request (the fairness-relevant count), giving ~60/kind.
+//   - native ranges over the cursor keeping the LAST match; hotel ids are unique
+//     so there is only ever one, but we mirror the take-last loop so the behavior
+//     is identical if the collection ever held dup ids.
+//
+// Seed records carry a `type` discriminator (the port folds native's separate
+// hotels/restaurants/... collections into one `attractions` collection), so hotel
+// rows are keyed by {type:"hotel", id} — the documented state-normalization fold,
+// not a behavioral divergence.
 func getHotelPosition(hotelID string) cm.Option[attstore.HotelPosition] {
 	ensureConn()
 	filter := fmt.Sprintf(`{"type":"hotel","id":%q}`, hotelID)
-	opt := col.FindOne(conn, col.Document(cm.ToList([]uint8(filter))))
-	if opt.None() {
+	docs := col.Find(conn, col.Document(cm.ToList([]uint8(filter)))).Slice()
+	if len(docs) == 0 {
 		return cm.None[attstore.HotelPosition]()
 	}
 	var s seedRecord
-	json.Unmarshal(cm.List[uint8](*opt.Some()).Slice(), &s)
+	for _, raw := range docs {
+		json.Unmarshal(cm.List[uint8](raw).Slice(), &s)
+	}
 	return cm.Some(attstore.HotelPosition{ID: s.ID, Lat: s.Lat, Lon: s.Lon})
 }
 

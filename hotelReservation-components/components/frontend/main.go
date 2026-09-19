@@ -262,16 +262,35 @@ func sendResponse(responseOut types.ResponseOutparam, status uint16, contentType
 	writeRes := outBody.Write()
 	stream := *writeRes.OK()
 
-	// write in chunks (WASI limit)
+	// Write the body honoring the stream's flow control: check-write returns
+	// the currently permitted byte budget (<=4096); when it's 0, block on the
+	// stream's pollable until it drains. blocking-write-and-flush in a loop
+	// deadlocks on bodies >4096 (a /hotels search body is ~4.6KB), so use the
+	// canonical check-write/write/blocking-flush pattern instead.
 	data := []uint8(body)
 	for len(data) > 0 {
-		n := len(data)
-		if n > 4096 {
-			n = 4096
+		cw := stream.CheckWrite()
+		if cw.IsErr() {
+			break
 		}
-		stream.BlockingWriteAndFlush(cm.ToList(data[:n]))
+		budget := *cw.OK()
+		if budget == 0 {
+			p := stream.Subscribe()
+			p.Block()
+			p.ResourceDrop()
+			continue
+		}
+		n := uint64(len(data))
+		if n > budget {
+			n = budget
+		}
+		wr := stream.Write(cm.ToList(data[:n]))
+		if wr.IsErr() {
+			break
+		}
 		data = data[n:]
 	}
+	stream.BlockingFlush()
 	stream.ResourceDrop()
 
 	types.OutgoingBodyFinish(outBody, cm.None[types.Trailers]())

@@ -28,7 +28,7 @@ func checkAvailability(hotelIds cm.List[string], inDate, outDate string, roomNum
 		ids,
 		inDate, outDate,
 		roomNumber,
-		getNumbers, getReservations, cacheGetMulti, cacheSet,
+		cacheGetMulti,
 	)
 	return cm.ToList(result)
 }
@@ -40,7 +40,7 @@ func makeReservation(hotelID, customerName, inDate, outDate string, roomNumber i
 		inDate,
 		outDate,
 		roomNumber,
-		getNumbers, getReservations, doInsertReservation, cacheGetMulti, cacheGet, cacheSet,
+		getNumber, getReservations, doInsertReservation, cacheGet, cacheSet,
 	)
 	return cm.ToList(result)
 }
@@ -105,18 +105,35 @@ func cacheGet(key string) ([]byte, bool) {
 	return opt.Some().Slice(), true
 }
 
-// cacheGetMulti probes all keys in one batched call (native memcached GetMulti).
-// The returned slice is parallel to keys; a nil entry is a cache miss.
+// cacheGetMultiBatch bounds how many keys go into a single host GetMulti call.
+// The Wasm cache component materializes its entire result list (list<option<
+// list<u8>>>) in linear memory, and a single very large multiget overflows
+// TinyGo's cross-boundary GC (a ~1000-key probe traps its wasmexport_GetMulti).
+// Native memcached — and gomemcache, which itself splits multigets — has no such
+// limit. We keep the requested count identical (every key is still one GET, so
+// the cmd_get total matches native) but issue it in trap-safe batches.
+const cacheGetMultiBatch = 128
+
+// cacheGetMulti probes all keys via the cache (native memcached GetMulti). The
+// returned slice is parallel to keys; a nil entry is a cache miss. See
+// cacheGetMultiBatch for why the probe is chunked.
 func cacheGetMulti(keys []string) [][]byte {
-	nsKeys := make([]string, len(keys))
-	for i, k := range keys {
-		nsKeys[i] = cacheNS + k
-	}
-	res := hkv.GetMulti(cm.ToList(nsKeys)).Slice()
 	out := make([][]byte, len(keys))
-	for i := range keys {
-		if i < len(res) && !res[i].None() {
-			out[i] = res[i].Some().Slice()
+	for start := 0; start < len(keys); start += cacheGetMultiBatch {
+		end := start + cacheGetMultiBatch
+		if end > len(keys) {
+			end = len(keys)
+		}
+		batch := keys[start:end]
+		nsKeys := make([]string, len(batch))
+		for i, k := range batch {
+			nsKeys[i] = cacheNS + k
+		}
+		res := hkv.GetMulti(cm.ToList(nsKeys)).Slice()
+		for i := range batch {
+			if i < len(res) && !res[i].None() {
+				out[start+i] = res[i].Some().Slice()
+			}
 		}
 	}
 	return out

@@ -6,6 +6,7 @@ service AttractionsStore {
     rpc LoadRestaurants(LoadRequest)            returns (LoadRestaurantsResponse);
     rpc LoadMuseums(LoadRequest)                returns (LoadMuseumsResponse);
     rpc LoadCinemas(LoadRequest)                returns (LoadCinemasResponse);
+    rpc GetHotelPosition(GetHotelPositionRequest) returns (GetHotelPositionResponse);
 }
 
 message HotelPosition {
@@ -40,6 +41,8 @@ message Cinema {
 }
 
 message LoadRequest {}
+message GetHotelPositionRequest    { string hotel_id = 1; }
+message GetHotelPositionResponse   { HotelPosition hotel = 1; bool found = 2; }
 message LoadHotelPositionsResponse { repeated HotelPosition hotels      = 1; }
 message LoadRestaurantsResponse    { repeated Restaurant     restaurants = 1; }
 message LoadMuseumsResponse        { repeated Museum         museums     = 1; }
