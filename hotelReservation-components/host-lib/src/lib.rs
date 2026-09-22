@@ -72,13 +72,17 @@ pub fn add_otel_stubs<T>(linker: &mut wasmtime::component::Linker<T>) -> Result<
     Ok(())
 }
 
+/// Retire a reused instance after this many requests and rebuild a fresh one.
+const DEFAULT_MAX_INSTANCE_REUSE: u32 = 1000;
+
 /// Async factory that builds one fresh warm `(Store<T>, I)`. Retained by the
-/// pool so poisoned instances can be replaced (see `Checked`'s drop).
+/// pool so poisoned/retired instances can be replaced (see `Checked`'s drop).
 type MakeFn<T, I> =
     Arc<dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(Store<T>, I)>> + Send>> + Send + Sync>;
 
 /// A fixed-size pool of pre-instantiated `(Store<T>, I)` pairs to reuse warm
-/// instances on requests.
+/// instances on requests. Each pooled entry tracks the number of requests it has
+/// served so it can be retired at the reuse cap.
 ///
 /// Backed by an `async_channel` MPMC channel whose receiver is cloneable, so
 /// concurrent `checkout()`s recv in parallel with no shared lock. (The previous
@@ -86,35 +90,46 @@ type MakeFn<T, I> =
 /// `Mutex<Receiver>` held across `recv().await` — a hot-path serialization point
 /// that pinned one core and capped throughput under load.)
 pub struct InstancePool<T: Send + 'static, I: Send + 'static> {
-    tx: async_channel::Sender<(Store<T>, I)>,
-    rx: async_channel::Receiver<(Store<T>, I)>,
+    tx: async_channel::Sender<(Store<T>, I, u32)>,
+    rx: async_channel::Receiver<(Store<T>, I, u32)>,
     make: MakeFn<T, I>,
+    max_reuse: u32,
 }
 
 impl<T: Send + 'static, I: Send + 'static> InstancePool<T, I> {
     /// Instantiate `size` warm instances up front via `make`. `make` is retained
-    /// so instances left non-reentrant by a trap/cancellation can be rebuilt.
+    /// so instances left non-reentrant by a trap/cancellation -- or retired once
+    /// they hit the reuse cap -- can be rebuilt.
     pub async fn build<F, Fut>(size: usize, make: F) -> Result<Self>
     where
         F: Fn() -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = Result<(Store<T>, I)>> + Send + 'static,
     {
         let make: MakeFn<T, I> = Arc::new(move || Box::pin(make()));
+        let max_reuse = std::env::var("POOL_MAX_INSTANCE_REUSE")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(DEFAULT_MAX_INSTANCE_REUSE);
         let size = size.max(1);
         let (tx, rx) = async_channel::bounded(size);
-        for _ in 0..size {
-            tx.try_send(make().await?)
+        for k in 0..size {
+            let (s, i) = make().await?;
+            // Stagger initial use-counts across [0, max_reuse) so instances don't
+            // all reach the reuse cap at once.
+            let init = ((k as u64 * max_reuse as u64) / size as u64) as u32;
+            tx.try_send((s, i, init))
                 .map_err(|_| anyhow::anyhow!("instance pool prefill overflow"))?;
         }
-        Ok(Self { tx, rx, make })
+        Ok(Self { tx, rx, make, max_reuse })
     }
 
     /// Borrow a warm instance, awaiting until one is free. The instance is only
     /// returned to the pool if the caller calls [`Checked::commit`] after a
-    /// clean guest call; otherwise (trap, error, or cancellation) it is dropped
-    /// and a fresh instance is rebuilt to keep the pool full. This is required
-    /// because a wasm component instance whose call did not return cleanly is
-    /// left non-reentrant — recycling it makes every later call trap with
+    /// clean guest call AND it is under its reuse cap; otherwise (trap, error,
+    /// cancellation, or cap reached) it is dropped and a fresh instance is rebuilt
+    /// to keep the pool full. Discarding a non-clean instance is required because
+    /// a component instance whose call did not return cleanly is left
+    /// non-reentrant — recycling it makes every later call trap with
     /// "cannot enter component instance".
     pub async fn checkout(&self) -> Checked<T, I> {
         // No lock: the async_channel receiver is cloneable/MPMC, so concurrent
@@ -123,6 +138,7 @@ impl<T: Send + 'static, I: Send + 'static> InstancePool<T, I> {
         Checked {
             tx: self.tx.clone(),
             make: self.make.clone(),
+            max_reuse: self.max_reuse,
             item: Some(item),
             committed: false,
         }
@@ -133,16 +149,17 @@ impl<T: Send + 'static, I: Send + 'static> InstancePool<T, I> {
 /// to the pool only if [`Checked::commit`] was called; otherwise it discards the
 /// (possibly poisoned) instance and asynchronously rebuilds a replacement.
 pub struct Checked<T: Send + 'static, I: Send + 'static> {
-    tx: async_channel::Sender<(Store<T>, I)>,
+    tx: async_channel::Sender<(Store<T>, I, u32)>,
     make: MakeFn<T, I>,
-    item: Option<(Store<T>, I)>,
+    max_reuse: u32,
+    item: Option<(Store<T>, I, u32)>,
     committed: bool,
 }
 
 impl<T: Send + 'static, I: Send + 'static> Checked<T, I> {
     /// `(&mut Store, &Instance)` for making the guest call.
     pub fn parts(&mut self) -> (&mut Store<T>, &I) {
-        let (s, i) = self.item.as_mut().expect("checked-out instance");
+        let (s, i, _) = self.item.as_mut().expect("checked-out instance");
         (s, i)
     }
 
@@ -157,28 +174,29 @@ impl<T: Send + 'static, I: Send + 'static> Checked<T, I> {
 
 impl<T: Send + 'static, I: Send + 'static> Drop for Checked<T, I> {
     fn drop(&mut self) {
-        let Some(item) = self.item.take() else { return };
+        let Some((store, inst, uses)) = self.item.take() else { return };
 
-        if self.committed {
+        // Return a clean instance that's still under its reuse cap.
+        if self.committed && uses + 1 < self.max_reuse {
             // Capacity was reserved when we checked out, so this never blocks.
-            let _ = self.tx.try_send(item);
+            let _ = self.tx.try_send((store, inst, uses + 1));
             return;
         }
 
-        // The call trapped, errored, or was cancelled mid-flight (e.g. the client
-        // disconnected). The component instance may be left non-reentrant, so it
-        // must not be recycled. Drop it and rebuild a fresh warm instance to
+        // Either the call trapped/errored/was cancelled mid-flight (client
+        // disconnect) -- leaving the instance non-reentrant and unsafe to recycle
+        // -- or it hit the reuse cap. Drop it and rebuild a fresh warm instance to
         // refill the slot we vacated at checkout.
-        drop(item);
+        drop((store, inst));
         let tx = self.tx.clone();
         let make = self.make.clone();
         if let Ok(handle) = tokio::runtime::Handle::try_current() {
             handle.spawn(async move {
                 match make().await {
-                    Ok(fresh) => {
-                        let _ = tx.try_send(fresh);
+                    Ok((s, i)) => {
+                        let _ = tx.try_send((s, i, 0));
                     }
-                    Err(e) => eprintln!("[instance-pool] refill after poison failed: {e:?}"),
+                    Err(e) => eprintln!("[instance-pool] refill after poison/retire failed: {e:?}"),
                 }
             });
         }
